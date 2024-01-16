@@ -1,0 +1,308 @@
+#include "dkli.dkh"
+#!
+module "index.dkl"
+{
+    #include "functions.dkh"
+    #include "dbr.dkh"
+    #include "serialize.dkh"
+
+    // Se accede a la aplicación de base de datos
+    @qname.Epifania = "epifania@induxsoft"
+
+    openEpifania::
+    {
+        return dbr.open(@qname.Epifania)
+    }
+
+    // db contiene la conexión de la base de datos
+    ref db = openEpifania()
+
+    // control de fechas
+
+    fechaHoy=date_str(now(),"yyyy-MM-dd")
+
+    fechaHoyDB=fechaHoy+" "+"23:59:59"
+
+    new fechaobj {
+        @"fechadehoy":fechaHoyDB
+    }
+
+    // Tabla 2
+    fechahoyOportunidad=date_str(now(),"yyyy-MM-01")
+
+    new fechaobjOportunidad {
+        @"fechadehoyOportunidad":fechahoyOportunidad
+    }
+
+    mesActual = date_str(now(),"MM")
+
+    mes = val(mesActual)
+
+ 
+
+    ref @queryAgentes = dbr.list(db,"
+        SELECT induxsoft.ut_icontactuser.nomBre,
+            COUNT(induxsoft.ut_icontact.sys_pk) 
+            AS ReciBidos,
+        (SELECT COUNT(ic2.sys_pk) 
+            FROM induxsoft.ut_icontact ic2  
+            WHERE ic2.uf_status=0 
+            AND induxsoft.ut_icontact.uf_perfil=ic2.uf_perfil and ifnull(sys_deleted,0)=0) 
+            AS Poratender,
+        (SELECT COUNT(ic2.sys_pk) 
+            FROM induxsoft.ut_icontact ic2  
+            WHERE ic2.uf_status=1 
+            AND induxsoft.ut_icontact.uf_perfil=ic2.uf_perfil and ifnull(sys_deleted,0)=0) 
+            AS Atendidos,
+        (SELECT COUNT(ic2.sys_pk) 
+            FROM induxsoft.ut_icontact ic2  
+            WHERE ic2.uf_status=3 
+            AND induxsoft.ut_icontact.uf_perfil=ic2.uf_perfil and ifnull(sys_deleted,0)=0) 
+            AS Oportunidades,
+        (SELECT COUNT(ic2.sys_pk) 
+            FROM induxsoft.ut_icontact ic2  
+            WHERE ic2.uf_status=4 
+            AND induxsoft.ut_icontact.uf_perfil=ic2.uf_perfil and ifnull(sys_deleted,0)=0) 
+            AS Ganados,
+        (SELECT COUNT(ic2.sys_pk) 
+            FROM induxsoft.ut_icontact ic2  
+            WHERE ic2.uf_status=5 
+            AND induxsoft.ut_icontact.uf_perfil=ic2.uf_perfil and ifnull(sys_deleted,0)=0) 
+            AS Perdidos,
+        (SELECT COUNT(ic2.sys_pk) 
+            FROM induxsoft.ut_icontact ic2  
+            WHERE ic2.uf_status=2 
+            AND induxsoft.ut_icontact.uf_perfil=ic2.uf_perfil and ifnull(sys_deleted,0)=0) 
+            AS Descartados
+        FROM induxsoft.ut_icontactuser
+        INNER JOIN induxsoft.ut_icontact 
+        ON induxsoft.ut_icontactuser.uf_perfil=induxsoft.ut_icontact.uf_perfil
+        WHERE ifnull(induxsoft.ut_icontact.sys_deleted,0)=0
+        group By induxsoft.ut_icontactuser.NomBre",fechaobj)
+
+        // tabla 2
+        ref @queryOportunidades = dbr.list(db, "
+        SELECT induxsoft.ut_icontactuser.nombre 
+            AS perfil,  
+        (SELECT COUNT(ic2.sys_pk) 
+            FROM induxsoft.ut_icontact ic2  
+            WHERE (ic2.uf_status=3 or ic2.uf_status=4 or ic2.uf_status=5)
+            AND (Sys_DTCreated>=DATE_SUB(@fechadehoyOportunidad,INTERVAL 3 MONTH) and Sys_DTCreated<DATE_SUB(@fechadehoyOportunidad,INTERVAL 2 MONTH)) 
+            AND induxsoft.ut_icontactuser.uf_perfil=ic2.uf_perfil 
+            AND ifnull(sys_deleted,0)=0 ) 
+            AS Hace3Meses,
+        (SELECT COUNT(ic2.sys_pk) 
+            FROM induxsoft.ut_icontact ic2  
+            WHERE (ic2.uf_status=3 or ic2.uf_status=4 or ic2.uf_status=5)
+            AND (Sys_DTCreated>=DATE_SUB(@fechadehoyOportunidad,INTERVAL 2 MONTH) and Sys_DTCreated<DATE_SUB(@fechadehoyOportunidad,INTERVAL 1 MONTH)) 
+            AND induxsoft.ut_icontactuser.uf_perfil=ic2.uf_perfil 
+            AND ifnull(sys_deleted,0)=0) 
+            AS Hace2Meses,
+        (SELECT COUNT(ic2.sys_pk) 
+            FROM induxsoft.ut_icontact ic2  
+            WHERE (ic2.uf_status=3 or ic2.uf_status=4 or ic2.uf_status=5)
+            AND (Sys_DTCreated>=DATE_SUB(@fechadehoyOportunidad,INTERVAL 1 MONTH) AND Sys_DTCreated<@fechadehoyOportunidad) 
+            AND induxsoft.ut_icontactuser.uf_perfil=ic2.uf_perfil 
+            AND ifnull(sys_deleted,0)=0) 
+            AS Hace1Mes,
+        (SELECT COUNT(ic2.sys_pk) 
+            FROM induxsoft.ut_icontact ic2  
+            WHERE (ic2.uf_status=3 or ic2.uf_status=4 or ic2.uf_status=5)
+            AND (Sys_DTCreated>=@fechadehoyOportunidad AND Sys_DTCreated<DATE_ADD(@fechadehoyOportunidad,INTERVAL 1 MONTH)) 
+            AND induxsoft.ut_icontactuser.uf_perfil=ic2.uf_perfil 
+            AND ifnull(sys_deleted,0)=0) 
+            AS MesActual
+        FROM induxsoft.ut_icontactuser 
+        INNER JOIN induxsoft.ut_icontact ON induxsoft.ut_icontactuser.uf_perfil=induxsoft.ut_icontact.uf_perfil 
+        group By induxsoft.ut_icontactuser.nombre" ,fechaobjOportunidad)
+
+
+    pintarTabla::
+    {
+        for i=0; i<@count(@queryAgentes)
+        {
+            ref queryAgente = @item(@queryAgentes, i)
+            ##
+                tr
+                {
+                    td(class="text-center"){$"#<i+1>"}
+                    td(class="text-center"){$'#<@@(queryAgente,"nomBre")>'}		
+                    td(class="text-center"){$'#<@@(queryAgente,"ReciBidos")>'}	
+                    td(class="text-center"){$'#<@@(queryAgente,"Poratender")>'}	
+                    td(class="text-center"){$'#<@@(queryAgente,"Atendidos")>'}	
+                    td(class="text-center"){$'#<@@(queryAgente,"Oportunidades")>'}	
+                    td(class="text-center"){$'#<@@(queryAgente,"Ganados")>'}	
+                    td(class="text-center"){$'#<@@(queryAgente,"Perdidos")>'}	
+                    td(class="text-center"){$'#<@@(queryAgente,"Descartados")>'}		
+                }
+            ##
+        }
+    }
+
+
+    // Tabla 2
+
+    pintarTablaOportunidad::
+    {
+        for i=0; i<@count(@queryOportunidades)
+        {
+            ref queryOportunidad = @item(@queryOportunidades, i)
+            ##
+                tr
+                {
+                    td(class="text-center"){$"#<i+1>"}
+                    td(class="text-center"){$'#<@@(queryOportunidad,"perfil")>'}		
+                    td(class="text-center"){$'#<@@(queryOportunidad,"Hace3Meses")>'}	
+                    td(class="text-center"){$'#<@@(queryOportunidad,"Hace2Meses")>'}	
+                    td(class="text-center"){$'#<@@(queryOportunidad,"Hace1Mes")>'}	
+                    td(class="text-center"){$'#<@@(queryOportunidad,"MesActual")>'}			
+                }
+            ##
+        }
+    }
+    
+   
+   #$
+	div
+	{
+        div(class="setting")
+        {
+            a(class="cursor-pointer" id="icon-setting" onclick="controller.redirect(controller.getParams()+'&view=pipelines')" ){svg(xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-gear" viewBox="0 0 16 16")
+            {
+                path(d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"){""}
+                path(d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319zm-2.633.283c.246-.835 1.428-.835 1.674 0l.094.319a1.873 1.873 0 0 0 2.693 1.115l.291-.16c.764-.415 1.6.42 1.184 1.185l-.159.292a1.873 1.873 0 0 0 1.116 2.692l.318.094c.835.246.835 1.428 0 1.674l-.319.094a1.873 1.873 0 0 0-1.115 2.693l.16.291c.415.764-.42 1.6-1.185 1.184l-.291-.159a1.873 1.873 0 0 0-2.693 1.116l-.094.318c-.246.835-1.428.835-1.674 0l-.094-.319a1.873 1.873 0 0 0-2.692-1.115l-.292.16c-.764.415-1.6-.42-1.184-1.185l.159-.291A1.873 1.873 0 0 0 1.945 8.93l-.319-.094c-.835-.246-.835-1.428 0-1.674l.319-.094A1.873 1.873 0 0 0 3.06 4.377l-.16-.292c-.415-.764.42-1.6 1.185-1.184l.292.159a1.873 1.873 0 0 0 2.692-1.115l.094-.319z"){""}
+            }}
+        }
+        div(class = "d-flex justify-content-center")
+        {
+            div(class= "w-75 mt-4")
+            {
+                div(class= "card containerAll") 
+                {
+                    div(class="text-center m-2")
+                    {
+                        h4{$"Atención de leads al momento:"}h4{$"#<fechaHoy>"}                       
+                    }
+
+                    div(class= "card-body")
+                    {		                       			
+                        table(class= "table table-hover")
+                        {
+                            thead
+                            {
+                                tr
+                                {
+                                    th( scope="col"){$"#"}
+                                    th( scope="col"){$"Colaborador"}
+                                    th( scope="col"){$"Recibidos"}
+                                    th( scope="col"){$"Por atender"}
+                                    th( scope="col"){$"Atendidos"}
+                                    th( scope="col"){$"Oportunidades"}
+                                    th( scope="col"){$"Ganados"}
+                                    th( scope="col"){$"Perdidos"}
+                                    th( scope="col"){$"Descartados"}
+                                }
+                            }
+                            tbody
+                            {
+                                ##
+                                    do pintarTabla()
+                                ##
+                            }
+                        }                    
+                            
+                    }
+                }
+            }
+
+        }
+
+
+        div(class = "d-flex justify-content-center")
+        {
+            div(class= "w-75 mt-4")
+            {
+                div(class= "card containerAll") 
+                {
+                    div(class="text-center m-2")
+                    {
+                        h4{$"Generación de oportunidades"}
+                    }
+                    
+                    div(class= "card-body")
+                    {		
+                        			
+                        table(class= "table table-hover")
+                        {
+                            thead
+                            {
+                                tr
+                                {
+                                    th( scope="col" class="text-center"){$"#"}
+                                    th( scope="col" class="text-center"){$"Colaborador"}
+                                    th( scope="col" class="text-center" id="mes3"){$"#<mes - 3>"}
+                                    th( scope="col" class="text-center" id="mes2"){$"#<mes - 2>"}
+                                    th( scope="col" class="text-center" id="mes1"){$"#<mes - 1>"}
+                                    th( scope="col" class="text-center" id="mes"){$"#<mes>"}
+                                }
+                            }
+                            tbody
+                            {
+                                ##
+                                    do pintarTablaOportunidad()
+                                ##
+                            }
+                        }                    
+                            
+                    }
+
+                }
+            }
+
+            
+        }
+
+        #$
+            script
+            {
+                $"
+                
+                var meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                
+
+                var inputMes = document.getElementById('mes');
+                var inputMes1 = document.getElementById('mes1');
+
+                var numeroMes = parseInt(inputMes.innerHTML);
+                if(! isNaN(numeroMes) && numeroMes >= 1  && numeroMes <= 12 ) {
+                    inputMes.innerHTML = meses[numeroMes - 1];
+                    
+                }
+
+                var numeroMes1 = parseInt(inputMes1.innerHTML);
+                if(! isNaN(numeroMes1) && numeroMes1 >= 1  && numeroMes1 <= 12 ) {
+                    inputMes1.innerHTML = meses[numeroMes1 - 1];
+                }
+
+                var inputMes2 = document.getElementById('mes2');
+
+                var numeroMes2 = parseInt(inputMes2.innerHTML);
+                if(! isNaN(numeroMes2) && numeroMes2 >= 1  && numeroMes2 <= 12 ) {
+                    inputMes2.innerHTML = meses[numeroMes2 - 1];
+                }
+
+                var inputMes3 = document.getElementById('mes3');
+
+                var numeroMes3 = parseInt(inputMes3.innerHTML);
+                if(! isNaN(numeroMes3) && numeroMes3 >= 1  && numeroMes3 <= 12 ) {
+                    inputMes3.innerHTML = meses[numeroMes3 - 1];
+                }
+
+                "
+            }
+    }
+   ##
+
+}
+
+

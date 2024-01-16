@@ -1,0 +1,315 @@
+#include "ddm.dkh"
+model "erp.vendesk"
+{
+    /* 
+    VenDesk: Gestión de ventas y atención a clientes.
+    =======================================================================
+    */
+
+    #include "induxsoft.abstracts.ddm"
+
+    //* ======================================== [ DEPENDENCIAS (FK) ]
+    // Tipos de documentos comerciales
+    entity "cdocumentos" : "EnumModel" {}
+    // Estados posibles para un cliente, proveedor u organización
+    entity "cstatusorg" : "EnumModel" {}
+    // agente
+    entity "agente" : "TableModel"
+    {
+        @"codigo" string(50) unique required
+        @"codnomina" string(50) unique
+        @"email" string(50)
+        @"nombre" string(50) unique required
+        @"notas" memo
+        @"pcomision" decimal(18,8)
+        @"telefono" string(150)
+        @"domicilio1" ref:"domicilio"
+        @"uf_capitan" bool
+        @"uf_sys_baja" bool
+        @"uf_iuser" int
+
+    }
+    // contacto
+    entity "contacto" : "TableModel"
+    {
+        @"apellidos" string(50) required
+        @"email1" string(50)
+        @"email2" string(50)
+        @"email3" string(50)
+        @"email4" string(50)
+        @"empresa" string(50)
+        @"nombre" string(50) required
+        @"notas" memo
+        @"puesto" string(50)
+        @"tel1" string(50)
+        @"tel2" string(50)
+        @"tel3" string(50)
+        @"tratamiento" string(5)
+        @"website" string(150)
+        @"domicilio1" ref:"domicilio"
+        @"domicilio2" ref:"domicilio"
+    }
+    //#region Domicilio
+    entity "pais" : "TableModel"
+    {
+        @"codigo" string(8) unique required
+        @"codigotel" string(5)
+        @"nombre" string(100) unique required
+    }
+    entity "edoprov" : "TableModel"
+    {
+        @"codigo" string(8) unique required
+        @"nombre" string(50) required
+        @"ipais" ref:"pais" required
+    }
+    entity "ciudad" : "TableModel"
+    {
+        @"codigo" string(8) unique required
+        @"codigotel" string(5)
+        @"nombre" string(100) required
+        @"estado" ref:"edoprov" required
+    }
+    entity "domicilio" : "TableModel"
+    {
+        @"codpos" string(10)
+        @"colonia" string(150)
+        @"direccion" string(1024)
+        @"notas" string(150)
+        @"telefonos" string(150)
+        @"iciudad" ref:"ciudad"
+        @"numint" string(1024)
+        @"numext" string(1024)
+    }
+    //#endregion
+    // Catálogo de monedas o divisas
+    entity "divisa" : "TableModel"
+    {
+        @"codigo" string(5) unique required
+        @"descripcion" string(30) unique required
+        @"tcambio" decimal(18,8)
+    }
+    // Tipo (clasificación) del cliente
+    entity "tipocliente" : "TableModel"
+    {
+        @"codigo" string(15) unique required
+        @"descripcion" string(50) unique required
+        @"notas" string(4096) 
+    }
+
+    entity "zona" : "TableModel"
+    {
+        @"nombre" string(30) unique required
+        @"notas" string(255) 
+    }
+
+    //* ======================================== [ ENTIDADES PRINCIPALES ]
+    // Datos de un cliente
+    entity "cliente" : "TableModel"
+    {
+        @"codcuenta" string(50) unique
+        @"codigo" string(35) unique required
+        @"curp" string(25) unique
+        @"descuento" decimal(19,8)
+        @"diascredito" int
+        @"email" string(80)
+        @"fax" string(150)
+        @"limitecredito" decimal(19,8)
+        @"monedero" decimal(19,8)
+        @"nombre" string(150) unique required
+        @"notas" memo
+        @"precio" decimal(19,8)
+        @"puntos" decimal(19,8)
+        @"rfc" string(15)
+        @"saldo" decimal(19,8)
+        @"saldopuntos" decimal(19,8)
+        @"status" ref:"cstatusorg"
+        @"telefonos" string(150)
+        @"website" string(150)
+        @"agente" ref:"agente"
+        @"contacto1" ref:"contacto"
+        @"contacto2" ref:"contacto"
+        @"contacto3" ref:"contacto"
+        @"domicilio1" ref:"domicilio"
+        @"domicilio2" ref:"domicilio"
+        @"domicilio3" ref:"domicilio"
+        @"idivisa" ref:"divisa"  required
+        @"tipo" ref:"tipocliente" required
+        @"zona" ref:"zona"
+        @"uf_sys_baja" bool
+        @"uf_addenda" bool
+        @"regfiscal" string(3)
+    }
+
+    entity "sales_pipeline" : "TableModel"
+    {
+        @"name" string(50)
+        @"probability" bool
+    }
+
+    entity "sales_pipeline_stage" : "TableModel"
+    {
+        @"ref_pipeline" ref:"sales_pipeline" required
+        @"sequence" int required
+        @"name" string(50) required
+        @"probability" decimal(4,1)
+        @"stuck_in_days" int
+    }
+
+    entity "ut_crmtipocaso" : "TableModel"
+    {
+        @"descripcion" string(100) unique required
+        @"status" int required
+    }
+
+    entity "ut_crmprioridad" : "TableModel"
+    {
+        @"descripcion" string(512) required
+        @"tduracion" decimal(10,5)
+        @"dduracion" string(50)
+    }
+
+    entity "ut_crmcasos" : "TableModel"
+    {
+        @"fechaapertura" datetime required
+        @"horaapertura" datetime required
+        @"fechacierre" datetime
+        @"horacierre" datetime
+        @"usuarioabre" string(50) required
+        @"usuariocierra" string(50)
+        @"usuarioasignado" string(50) required
+        @"status" int
+        @"asunto" string(255) required
+        @"descripcion" string(1024) required
+        @"fk_cliente" ref:"cliente" required
+        @"fk_tipocaso" ref:"ut_crmtipocaso" required
+        @"fk_prioridad" ref:"ut_crmprioridad"
+        @"duracion" string(50)
+        @"uf_color" int
+        @"fechavencimiento" datetime
+    }
+
+    entity "ut_crmnotacaso" : "TableModel"
+    {
+        @"fk_caso" ref:"ut_crmcasos" required
+        @"notas" string(1024) required
+        @"usuario" string(50) required
+    }
+
+    entity "ut_crm_alerts" : "TableModel"
+    {
+        @"activa" int required
+        @"descripcion" string(4096) required
+        @"usuariocrea" string(50) required
+        @"usuariocierra" string(50)
+        @"fechacierre" datetime
+        @"fk_cliente" ref:"cliente" required
+    }
+
+    entity "ut_crmnotacliente" : "TableModel"
+    {
+        @"fk_cliente" ref:"cliente" required
+        @"notas" string(1024) required
+        @"usuario" string(50) required
+    }
+
+    entity "ut_bitcliente" : "TableModel"
+    {
+        @"uf_icliente" int
+        @"uf_usuario" string(50)
+        @"uf_mensaje" string(2048)
+    }
+
+    entity "ut_crm_acuerdos" : "TableModel"
+    {
+        @"referencia" string(10) unique required
+        @"numacuerdo" int
+        @"fecha" date
+        @"fpagoacordada" date
+        @"fechacumplimiento" date
+        @"iventa" int required
+        @"ipagare" int
+        @"iusuario" int required
+        @"importeacordado" decimal(19,8) required
+        @"cumplido" bool
+        @"responsableacuerdo" string(255)
+        @"irecibo" int
+        @"notas" memo
+    }
+
+    entity "blockdocumentos" : "TableModel"
+    {
+        @"activo" bool required
+        @"datos" string(255)
+        @"documento" ref:"cdocumentos" required
+        @"finicial" int required
+        @"fiscal" bool required
+        @"fultimo" int required
+        @"idcontrol" string(32)
+        @"numcontrol" int
+        @"serie" string(10)
+        @"uf_cfdfolio" int
+        @"uf_cfdi_info" int
+    }
+
+    entity "foliosdocumentos" : "TableModel"
+    {
+        @"cancelado" bool required
+        @"fecha" date required
+        @"folio" int required
+        @"block" ref:"blockdocumentos" required
+
+        index "idx_foliodoc" unique
+        {
+            field "folio"
+            field "block"
+        }
+    }
+
+    entity "doclink" : "TableModel"
+    {
+        @"fk_doc" string(32)
+        @"fk_parent" string(32)
+        @"sis" bool
+        @"typeparent" string(50)
+    }
+
+    entity "docs" : "TableModel"
+    {
+        @"data" longblob
+        @"description" string(500)
+        @"minidata" blob
+        @"name" string(50)
+        @"typedata" string(5)
+        @"words" string(200)
+        @"urlfile" string(4096)
+        @"storeout" bool
+    }
+
+    //* ======================================== [ ... ]
+    // Información de la aplicación
+    entity "sys_app_catalog"
+    {
+        @"pack_id" string(32) required
+        @"app_id" string(32) key
+        @"app_title" string(255)
+        @"created" datetime required
+        @"app_info" mmemo
+    }
+    // Categoria de la aplicación
+    entity "sys_app_category"
+    {
+        @"id" string(32) key
+        @"title" string(255) required
+    }
+    // Recursos de la aplicación
+    entity "sys_app_shortcut" 
+    {
+        @"id" string(32) key
+        @"title" string(255) required
+        @"icon96x96" string(1024) required
+        @"src" string(1024) required
+        @"_blank" bool
+        @"appid" ref:"sys_app_catalog"
+        @"cat" ref:"sys_app_category"
+    }
+}

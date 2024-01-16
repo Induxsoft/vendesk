@@ -1,0 +1,924 @@
+#include "dkli.dkh"
+#!
+
+module "form.dk"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "uielements.dkl"
+
+    do @context.begin(@crud_context)
+
+    new def_tipo_cliente
+    {
+        @"datatable*":dbr.list(@("&database"),"select sys_pk, concat('[',codigo,'] ',descripcion) nombre from tipocliente order by codigo;",@null)
+        @"id":"tipo"
+        member "attributes"
+        {
+            @"class":"form-select"
+            @"name":"tipo"
+        }
+        @"value_field":"sys_pk"
+        @"text_field":"nombre"
+        @"selected":@('./tipo')
+    }
+     new def_pais
+    {
+        @"datatable*":dbr.list(@("&database"),"select sys_pk, codigotel, nombre from pais order by nombre;",@null)
+        @"id":"domicilio_pais"
+        member "attributes"
+        {
+            @"class":"form-select pais"
+            @"name":"domicilio_pais"
+        }
+        
+        @"value_field":"sys_pk"
+        @"text_field":"nombre"
+        @"selected":@("./estado/IPais")
+    }
+    // new def_contacto
+    // {
+    //     @"datatable*":dbr.list(@("&database"),"select sys_pk,concat(Nombre,' ',Apellidos) nombre from contacto order by nombre;",@null)
+    //     @"id":"contacto1"
+    //     member "attributes"
+    //     {
+    //         @"class":"form-select contacto1"
+    //         @"name":"contacto1"
+    //     }
+    //     @"first_text":" "
+    //     @"first_value":"@"
+    //     @"value_field":"sys_pk"
+    //     @"text_field":"nombre"
+    // }
+    new def_agente
+    {
+        @"datatable*":dbr.list(@("&database"),"select sys_pk,concat('[',codigo,'] ',Nombre) nombre from agente order by nombre;",@null)
+        @"id":"Agente"
+        member "attributes"
+        {
+            @"class":"form-select contacto1"
+            @"name":"Agente"
+        }
+        @"first_text":" "
+        @"first_value":"@"
+        @"value_field":"sys_pk"
+        @"text_field":"nombre"
+        @"selected":@("./agente")
+    }
+    new def_divisa
+    {
+        @"datatable*":dbr.list(@("&database"),"select sys_pk,concat('[',codigo,'] ',Descripcion) nombre from divisa order by codigo;",@null)
+        @"id":"IDivisa"
+        member "attributes"
+        {
+            @"class":"form-select contacto1"
+            @"name":"IDivisa"
+        }
+        @"value_field":"sys_pk"
+        @"text_field":"nombre"
+        @"selected":ifstr(@("$./idivisa")=="",1,@("./idivisa"))
+    }
+     new def_status
+    {
+        @"datatable*":dbr.list(@("&database"),"SELECT id AS sys_pk,const as nombre FROM cstatusorg",@null)
+        @"id":"status"
+        member "attributes"
+        {
+            @"class":"form-select "
+            @"name":"status"
+        }
+        @"value_field":"sys_pk"
+        @"text_field":"nombre"
+        @"selected":@("./status")
+    }
+    new def_zona
+    {
+        @"datatable*":dbr.list(@("&database"),"SELECT sys_pk,nombre FROM zona;",@null)
+        @"id":"zona"
+        member "attributes"
+        {
+            @"class":"form-select"
+            @"name":"zona"
+        }
+        @"value_field":"sys_pk"
+        @"text_field":"nombre"
+        @"first_text":" "
+        @"first_value":"@"
+        @"selected":@("./zona")
+    }
+    if @count(@@(def_zona,"&datatable"))<=0{
+        using def_zona
+        {
+            @"first_text":" "
+            @"first_value":"@"
+        }
+    }
+    if @count(@@(def_divisa,"&datatable"))<=0{
+        using def_divisa
+        {
+            @"first_text":" "
+            @"first_value":"@"
+        }
+    }
+    if @count(@@(def_pais,"&datatable"))<=0{
+        using def_pais
+        {
+            @"first_text":" "
+            @"first_value":"@"
+        }
+    }
+    if @count(@@(def_tipo_cliente,"&datatable"))<=0{
+        using def_tipo_cliente
+        {
+            @"first_text":" "
+            @"first_value":"@"
+        }
+    }
+    filter=ifstr(@("parameters/text_filter")!="","?text_filter="+@("parameters/text_filter"),"")
+    #$
+    div(class="d-flex justify-content-center" id="")
+    {
+        #!
+        if @("$./nombre")!=""
+        {
+            #$
+            script
+            {
+                $'
+                $("#form_name_client").text("#<@("$./nombre")>");
+                '
+            }
+        }
+        #$
+        div(class="mt-4 container container-sm" id="div-cliente")
+        {
+            div(class="shadow py-2")
+            {
+                div(class="network_wrapper col-sm p-2")
+                {
+                    div(class="card")
+                    {
+                        div(class="#<ifstr(@('error/message')!='','alert alert-danger','')>"){$"#<@('error/message')>"}
+                        div(class="card-header bg-white")
+                        {
+                            div(class="mt-3 mb-4 d-flex align-items-center")
+                            {
+                                a(href="#" class="btn btn-sm btn-light bg-white border-0" id="go_back_btn"){
+                                    svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16"){
+                                        path("fill-rule"="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z")
+                                    }
+                                }
+                                h5(class="m-0 flex-grow-1"){$"Nuevo cliente"}
+                            }
+                            ul(class="nav nav-tabs card-header-tabs" "data-bs-tabs"='tabs')
+                            {
+                                li(class="nav-item")
+                                {
+                                    a(class="nav-link active" "aria-current"='true' href="#general" "data-bs-toggle"='tab'){$"General"}
+                                }
+                                li(class="nav-item")
+                                {
+                                    a(class="nav-link"  href="#administracion" "data-bs-toggle"='tab'){$"Administración"}
+                                }
+                                li(class="nav-item")
+                                {
+                                    a(class="nav-link"  href="#datos_adicionales" "data-bs-toggle"='tab'){$"Datos adicionales"}
+                                }
+                                li(class="nav-item")
+                                {
+                                    a(class="nav-link"  href="#notas" "data-bs-toggle"='tab'){$"Notas"}
+                                }
+                            }
+                        }
+
+                        form(action="./#<filter>" method="POST" class="card-body tab-content p-3" onsubmit="return validateForm()")
+                        {	
+                           
+                            div(class="tab-pane active" id="general")
+                            {
+                                div
+                                {
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-12")
+                                        {
+                                            label{small(class="text-secondary"){$"Código:"}}
+                                            input(type="text" name="codigo" maxlength="35" class="form-control" value="#<@('./codigo')>")
+                                        }
+                                    }
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-12")
+                                        {
+                                            label{small(class="text-secondary"){$"Nombre:"}}
+                                            input(type="text" id="nombre" maxlength="150" name="nombre" class="form-control" value="#<@('./nombre')>")
+                                        }
+                                    }
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-12")
+                                        {
+                                            label{small(class="text-secondary"){$"Tipo:"}}
+                                            ##
+                                            do uie.dbSelect(def_tipo_cliente)
+                                            ##
+                                            //input(type="text" name="tipo" class="form-control" value="#<@('./tipo')>")
+                                        }
+                                    }
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-6")
+                                        {
+                                            label{small(class="text-secondary"){$"RFC:"}}
+                                            input(type="text" name="rfc" maxlength="15" style="text-transform: uppercase;" id="rfc" class="form-control" value="#<@('./rfc')>")
+                                        }
+                                        div(class="col-6")
+                                        {
+                                            // label{small(class="text-secondary"){$"CURP:"}}
+                                            input(type="hidden" name="curp" maxlength="25" class="form-control" value="#<@('./curp')>")
+                                        }
+                                    }
+                                    input(type="hidden" name="sys_pk" class="form-control" value="#<@('./sys_pk')>")
+                                    input(type="hidden" name="sys_recver" class="form-control" value="#<@('./sys_recver')>")
+                                }
+                                
+                                div
+                                {
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-12")
+                                        {
+                                            label{small(class="text-secondary"){$"Teléfonos:"}}
+                                            input(type="text" name="telefonos" maxlength="150" class="form-control" value="#<@('./telefonos')>")
+                                        }
+                                    }
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-12")
+                                        {
+                                            label{small(class="text-secondary"){$"Fax:"}}
+                                            input(type="text" name="fax" maxlength="150" class="form-control" value="#<@('./fax')>")
+                                        }
+                                    }
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-12")
+                                        {
+                                            label{small(class="text-secondary"){$"E-mail:"}}
+                                            input(type="text" name="email" class="form-control" maxlength="80" value="#<@('./email')>")
+                                        }
+                                    }
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-12")
+                                        {
+                                            label{small(class="text-secondary"){$"Sitio web:"}}
+                                            input(type="text" name="website" maxlength="150" class="form-control" value="#<@('./website')>")
+                                        }
+                                    }
+                                    
+                                }
+                                div(class="card mt-4 mb-4")
+                                {
+                                    div(class="card-header bg-transparent")
+                                    {
+                                        h6{small(class="text-secondary"){$"Domicilio fiscal"}}
+                                    }
+                                    div(class="card-body")
+                                    {
+                                        div(class="row m-2")
+                                        {
+                                            div(class="col-6")
+                                            {
+                                                label{small(class="text-secondary"){$"País:"}}
+                                                ##
+                                                do uie.dbSelect(def_pais)
+                                                ##
+                                                //input(type="text" name="domicilio_pais" class="form-control" value="#<@('./pais/nombre')>")
+                                            }
+                                            div(class="col-6")
+                                            {
+                                                label{small(class="text-secondary"){$"Estado:"}}
+                                                select(id="estado" name="iestado" class="form-select"){""}
+                                                //input(type="text" name="domicilio_estado" class="form-control" value="#<@('./estado/nombre')>")
+                                            }
+                                        }
+                                        div(class="row m-2")
+                                        {
+                                            div(class="col-12")
+                                            {
+                                                label{small(class="text-secondary"){$"Ciudad:"}}
+                                                select(id="ciudad" name="iciudad" class="form-select"){""}
+                                                //input(type="text" name="domicilio_ciudad" class="form-control" value="#<@('./ciudad/nombre')>")
+                                            }
+                                        }
+                                        h6(class="m-4"){"Dirección:"}
+                                        #!
+                                        ref dom_list =  split(@('./domicilio/direccion'), "|")
+                                        calle=""
+                                        no_ext=""
+                                        no_int=""
+                                        if list.count(dom_list)>3
+                                        {
+                                            calle = list.str(dom_list,2)
+                                            no_ext = list.str(dom_list,3)
+                                            no_int = list.str(dom_list,4)
+                                        }else{
+                                            calle=@('./domicilio/direccion')
+                                        }
+                                        #$
+                                        div(class="row m-2" data="#<@('./domicilio/direccion')>")
+                                        {
+                                            div(class="col-6")
+                                            {
+                                                label{small(class="text-secondary"){$"Calle:"}}
+                                                input(type="text" name="calle" class="form-control" value="#<calle>")
+                                            }
+                                            div(class="col-3")
+                                            {
+                                                label{small(class="text-secondary"){$"No. ext:"}}
+                                                
+                                                input(type="text" name="next" class="form-control" value="#<no_ext>")
+                                            }
+                                            div(class="col-3")
+                                            {
+                                                label{small(class="text-secondary"){$"No int:"}}
+                                                input(type="text" name="nint" class="form-control" value="#<no_int>")
+                                            }
+                                        }
+                                        div(class="row m-2")
+                                        {
+                                            div(class="col-12")
+                                            {
+                                                label{small(class="text-secondary"){$"Colonia:"}}
+                                                input(type="text" name="colonia" maxlength="150" class="form-control" value="#<@('./domicilio/colonia')>")
+                                            }
+                                        }
+                                        div(class="row m-2")
+                                        {
+                                            div(class="col-4")
+                                            {
+                                                label{small(class="text-secondary"){$"Código postal:"}}
+                                                input(type="text" name="codpos" maxlength="10" class="form-control" value="#<@('./domicilio/codpos')>")
+                                            }
+                                            div(class="col-8")
+                                            {
+                                                label{small(class="text-secondary"){$"Tel:"}}
+                                                input(type="text" name="domtelefonos" class="form-control" maxlength="150" value="#<@('./domicilio/telefonos')>")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+
+
+                            div(class="tab-pane" id="administracion")
+                            {
+                                div
+                                {
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-12")
+                                        {
+                                            label{small(class="text-secondary"){$"Agente:"}}
+                                            ##
+                                            do uie.dbSelect(def_agente)
+                                            ##
+                                            // input(type="text" name="general_codigo" class="form-control" value="#<@('./agente/nombre')>" readonly="")
+                                        }
+                                    }
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-12")
+                                        {
+                                            label{small(class="text-secondary"){$"Divisa:"}}
+                                            ##
+                                            do uie.dbSelect(def_divisa)
+                                            ##
+                                            //input(type="text" name="general_nombre" class="form-control" value="#<@('./divisa/descripcion')>")
+                                        }
+                                    }
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-8")
+                                        {
+                                            label{small(class="text-secondary"){$"Precio:"}}
+                                            #!
+                                            precio=parse.num(ifstr(@('#./precio')==0,6,@('#./precio')))
+                                            #$
+                                            select(id="precio" name="Precio" class="form-select" data="#<precio>")
+                                            {
+                                                option(value="1" "#<ifstr(precio==1,'selected','')>"="true"){"Precio 1"}
+                                                option(value="2" "#<ifstr(precio==2,'selected','')>"="true"){"Precio 2"}
+                                                option(value="3" "#<ifstr(precio==3,'selected','')>"="true"){"Precio 3"}
+                                                option(value="4" "#<ifstr(precio==4,'selected','')>"="true"){"Precio 4"}
+                                                option(value="5" "#<ifstr(precio==5,'selected','')>"="true"){"Precio 5"}
+                                                option(value="106" "#<ifstr(precio==106,'selected','')>"="true"){"Precio 6"}
+                                                option(value="107" "#<ifstr(precio==107,'selected','')>"="true"){"Precio 7"}
+                                                option(value="108" "#<ifstr(precio==108,'selected','')>"="true"){"Precio 8"}
+                                                option(value="109" "#<ifstr(precio==109,'selected','')>"="true"){"Precio 9"}
+                                                option(value="110" "#<ifstr(precio==110,'selected','')>"="true"){"Precio 10"}
+                                                option(value="111" "#<ifstr(precio==111,'selected','')>"="true"){"Precio 11"}
+                                                option(value="112" "#<ifstr(precio==112,'selected','')>"="true"){"Precio 12"}
+                                                option(value="113" "#<ifstr(precio==113,'selected','')>"="true"){"Precio 13"}
+                                                option(value="114" "#<ifstr(precio==114,'selected','')>"="true"){"Precio 14"}
+                                                option(value="115" "#<ifstr(precio==115,'selected','')>"="true"){"Precio 15"}
+                                                option(value="116" "#<ifstr(precio==116,'selected','')>"="true"){"Precio 16"}
+                                                option(value="117" "#<ifstr(precio==117,'selected','')>"="true"){"Precio 17"}
+                                                option(value="118" "#<ifstr(precio==118,'selected','')>"="true"){"Precio 18"}
+                                                option(value="119" "#<ifstr(precio==119,'selected','')>"="true"){"Precio 19"}
+                                                option(value="120" "#<ifstr(precio==120,'selected','')>"="true"){"Precio 20"}
+                                                option(value="6" "#<ifstr(precio==6,'selected','')>"="true"){"El del centro de consumo"}
+                                            }
+                                            //input(type="text" name="general_tipo" class="form-control" value="#<@('./precio')>")
+                                        }
+                                        div(class="col-4")
+                                        {
+                                            label{small(class="text-secondary"){$"%Descuento:"}}
+                                            input(type="number" name="descuento" min="0" class="form-control" value="#<@('#./descuento'):#,#.00>")
+                                        }
+                                    }
+                                    div(class="row m-2")
+                                    {
+                                        ##
+                                        ismenor=@false
+                                        ismayor=@false
+                                        if @("#./limitecredito")==-1
+                                        {
+                                            ismenor=@true
+                                        }
+                                        if @("#./limitecredito")>0
+                                        {
+                                            ismayor=@true
+                                        }
+                                        ##
+                                        div(class="col-12 mb-3")
+                                        {
+                                            input(class="form-check-input" type="checkbox" "#<ifstr(ismenor || ismayor,'checked','')>"="true" value="" id="flexCheckDefault")
+                                            label(class="form-check-label" "for"="flexCheckDefault"){small(class="text-secondary ms-1"){$" Otorgar crédito:"}}
+                                        }
+                                        hr(class="col-12"){$""}
+                                        div(class="col-8 pt-2 pb-2" style="background:#F2F2F2")
+                                        {
+                                            input(class="form-check-input" type="radio" "#<ifstr(ismenor,'checked','')>"="true" value="" name="checkLimitCredit" id="checkLimitCredit")
+                                            label(class="form-check-label" style="margin-right:10px" "for"="checkLimitCredit"){small(class="text-secondary ms-1"){$"Ilimitado"}}
+                                            input(class="form-check-input" "#<ifstr(ismayor,'checked','')>"="true" type="radio" value="" name="checkLimitCredit" id="checkLimitCredit1")
+                                            label(class="form-check-label" "for"="checkLimitCredit1"){small(class="text-secondary ms-1"){$"Límite"}}
+                                            input(class="form-control form-control-sm"  name="LimiteCredito" value="#<@('#./limitecredito'):#.00>" id="LimiteCredito" type="hidden")
+                                        }
+                                            
+                                        
+                                    }
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-12")
+                                        {
+                                            label{small(class="text-secondary"){$"Días de crédito:"}}
+                                            input(type="number" maxlength="11" name="diascredito" class="form-control" value="#<ifstr(@('#./diascredito')==0,30,@('#./diascredito'))>")
+                                        }
+                                    }
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-12")
+                                        {
+                                            label{small(class="text-secondary"){$"Cuenta contable:"}}
+                                            input(type="text" name="codcuenta" maxlength="50" class="form-control" value="#<@('./codcuenta')>")
+                                        }
+                                    }
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-12")
+                                        {
+                                            label{small(class="text-secondary"){$"Zona:"}}
+                                            ##
+                                            do uie.dbSelect(def_zona)
+                                            ##
+                                            // input(type="number" name="general_nombre" class="form-control" value="#<@('./tratamiento')>")
+                                        }
+                                    }
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-12")
+                                        {
+                                            label{small(class="text-secondary"){$"Estatus:"}}
+                                            ##
+                                            do uie.dbSelect(def_status)
+                                            ##
+                                            // input(type="number" name="general_nombre" class="form-control" value="#<@('./tratamiento')>")
+                                        }
+                                    }
+                                    hr{$""}
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-12")
+                                        {
+                                            label{small(class="text-secondary"){$"Saldo por cobrar:"}}
+                                            input(type="number" readonly="true" name="saldo" class="form-control" value="#<@('#./saldo'):#.00>")
+                                        }
+                                    }
+                                    // hr{$""}
+                                    // div(class="row m-2")
+                                    // {
+                                    //     div(class="col-12")
+                                    //     {
+                                    //         label{small(class="text-secondary"){$"Saldo en monedero:"}}
+                                    //         input(type="number" readonly="true" name="monedero" class="form-control" value="#<@('#./monedero'):#.00>")
+                                    //     }
+                                    //     div(class="col-12")
+                                    //     {
+                                    //         label{small(class="text-secondary"){$"Puntos disponibles:"}}
+                                    //         input(type="number"  readonly="true" name="puntos" class="form-control" value="#<@('#./saldopuntos'):#.00>")
+                                    //     }
+                                    // }
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-12")
+                                        {
+                                            $""
+                                            // input(class="form-check-input" type="checkbox" value="" id="flexCheckDefault")
+                                            // label(class="form-check-label" for="flexCheckDefault"){"Incluir addenda en comprobante fiscal digital:"}
+                                        }
+                                    }
+                                }
+                            }
+
+
+
+                            div(class="tab-pane" id="datos_adicionales")
+                            {
+                                div
+                                {
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-12")
+                                        {
+                                            label{small(class="text-secondary"){$"Contacto:"}}
+                                            // ##
+                                            // do uie.dbSelect(def_contacto)
+                                            // ##
+                                            div(class="p-2 m-0 d-flex align-items-end gap-2")
+                                            {
+                                                input(type="text" readonly="true" name="contacto1" data="#<@('./contacto1/sys_pk')>" id="contacto1" class="form-control" value="#<@('./contacto1/nombre')>")
+                                                button(type="button" class="btn btn-primary d-flex align-items-center gap-2" onclick="showmodalcontactos('contacto1')"){
+                                                    $"Buscar"
+                                                    svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16"){
+                                                        path(d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z")
+                                                    }
+                                                }
+                                            }
+                                            
+                                        }
+                                    }
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-12")
+                                        {
+                                            label{small(class="text-secondary"){$"Contacto 2:"}}
+                                            // ##
+                                            // def_contacto<"id">:"contacto2"
+                                            // do uie.dbSelect(def_contacto)
+                                            // ##
+                                            div(class="p-2 m-0 d-flex align-items-end gap-2")
+                                            {
+                                                input(type="text" readonly="true" name="contacto2" data="#<@('./contacto2/sys_pk')>" id="contacto2" class="form-control" value="#<@('./contacto2/nombre')>")
+                                                button(type="button" class="btn btn-primary d-flex align-items-center gap-2" onclick="showmodalcontactos('contacto2')"){
+                                                    $"Buscar"
+                                                    svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16"){
+                                                        path(d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z")
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-12")
+                                        {
+                                            label{small(class="text-secondary"){$"Contacto 3:"}}
+                                            // ##
+                                            // def_contacto<"id">:"contacto3"
+                                            // do uie.dbSelect(def_contacto)
+                                            // ##
+                                            div(class="p-2 m-0 d-flex align-items-end gap-2")
+                                            {
+                                                input(type="text" readonly="true" name="contacto2" data="#<@('./contacto3/sys_pk')>" id="contacto3" class="form-control" value="#<@('./contacto3/nombre')>")
+                                                button(type="button" class="btn btn-primary d-flex align-items-center gap-2" onclick="showmodalcontactos('contacto3')"){
+                                                    $"Buscar"
+                                                    svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16"){
+                                                        path(d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z")
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                div(class="card mt-4 mb-4")
+                                {
+                                    div(class="card-header bg-transparent")
+                                    {
+                                        h6{small(class="text-secondary"){$"Domicilio 2(alterno)"}}
+                                    }
+                                    div(class="card-body")
+                                    {
+                                        div(class="row m-2")
+                                        {
+                                            div(class="col-6")
+                                            {
+                                                label{small(class="text-secondary"){$"País:"}}
+                                                ##
+                                                def_pais<"id">:"domicilio_pais2"
+                                                def_pais<"selected">:@("./estado1/IPais")
+                                                do uie.dbSelect(def_pais)
+                                                ##
+                                                // input(type="text" name="general_codigo" class="form-control" value="#<@('./tratamiento')>")
+                                            }
+                                            div(class="col-6")
+                                            {
+                                                label{small(class="text-secondary"){$"Estado:"}}
+                                                select(id="estado2" name="iestado2" class="form-select"){""}
+                                                // input(type="text" name="general_codigo" class="form-control" value="#<@('./tratamiento')>")
+                                            }
+                                        }
+                                        div(class="row m-2")
+                                        {
+                                            div(class="col-12")
+                                            {
+                                                label{small(class="text-secondary"){$"Ciudad:"}}
+                                                select(id="ciudad2" name="iciudad2" class="form-select"){""}
+                                                // input(type="text" name="general_codigo" class="form-control" value="#<@('./tratamiento')>")
+                                            }
+                                        }
+                                        h6(class="m-3}"){$"Dirección:"}
+                                        div(class="row m-2")
+                                        {
+                                             #!
+                                            ref dom_list =  split(@('./domicilio2/direccion'), "|")
+                                            calle=""
+                                            no_ext=""
+                                            no_int=""
+                                            if list.count(dom_list)>3
+                                            {
+                                                calle = list.str(dom_list,2)
+                                                no_ext = list.str(dom_list,3)
+                                                no_int = list.str(dom_list,4)
+                                            }
+                                            #$
+                                            div(class="col-6")
+                                            {
+                                                label{small(class="text-secondary"){$"Calle:"}}
+                                                input(type="text" name="calle2" class="form-control" value="#<calle>")
+                                            }
+                                            div(class="col-3")
+                                            {
+                                                label{small(class="text-secondary"){$"No. ext:"}}
+                                                input(type="text" name="next2" class="form-control" value="#<no_ext>")
+                                            }
+                                            div(class="col-3")
+                                            {
+                                                label{small(class="text-secondary"){$"No int:"}}
+                                                input(type="text" name="nint2" class="form-control" value="#<no_int>")
+                                            }
+                                        }
+                                        div(class="row m-2")
+                                        {
+                                            div(class="col-12")
+                                            {
+                                                label{small(class="text-secondary"){$"Colonia:"}}
+                                                input(type="text" name="colonia2" maxlength="150" class="form-control" value="#<@('./domicilio2/colonia')>")
+                                            }
+                                        }
+                                        div(class="row m-2")
+                                        {
+                                            div(class="col-4")
+                                            {
+                                                label{small(class="text-secondary"){$"Código postal:"}}
+                                                input(type="text" name="codpos2" maxlength="10" class="form-control" value="#<@('./domicilio2/codpos')>")
+                                            }
+                                            div(class="col-8")
+                                            {
+                                                label{small(class="text-secondary"){$"Tel:"}}
+                                                input(type="text" name="telefonos2" maxlength="150" class="form-control" value="#<@('./domicilio2/telefonos')>")
+                                            }
+                                        }
+                                    }
+                                }
+                                div(class="card mt-4 mb-4")
+                                {
+                                    div(class="card-header bg-transparent")
+                                    {
+                                        h6{small(class="text-secondary"){$"Domicilio 3(alterno)"}}
+                                    }
+                                    div(class="card-body")
+                                    {
+                                        div(class="row m-2")
+                                        {
+                                            div(class="col-6")
+                                            {
+                                                label{small(class="text-secondary"){$"País:"}}
+                                                ##
+                                                def_pais<"id">:"domicilio_pais3"
+                                                def_pais<"selected">:@("./estado2/IPais")
+                                                do uie.dbSelect(def_pais)
+                                                ##
+
+                                                // input(type="text" name="general_codigo" class="form-control" value="#<@('./tratamiento')>")
+                                            }
+                                            div(class="col-6")
+                                            {
+                                                label{small(class="text-secondary"){$"Estado:"}}
+                                                select(id="estado3" name="iestado3" class="form-select"){""}
+
+                                                // input(type="text" name="general_codigo" class="form-control" value="#<@('./tratamiento')>")
+                                            }
+                                        }
+                                        div(class="row m-2")
+                                        {
+                                            div(class="col-12")
+                                            {
+                                                label{small(class="text-secondary"){$"Ciudad:"}}
+                                                select(id="ciudad3" name="iciudad3" class="form-select"){""}
+
+                                                // input(type="text" name="general_codigo" class="form-control" value="#<@('./tratamiento')>")
+                                            }
+                                        }
+                                        h6(class="m-3"){"Dirección:"}
+                                        div(class="row m-2")
+                                        {
+                                             #!
+                                            ref dom_list =  split(@('./domicilio3/direccion'), "|")
+                                            calle=""
+                                            no_ext=""
+                                            no_int=""
+                                            if list.count(dom_list)>3
+                                            {
+                                                calle = list.str(dom_list,2)
+                                                no_ext = list.str(dom_list,3)
+                                                no_int = list.str(dom_list,4)
+                                            }
+                                            #$
+                                            div(class="col-6")
+                                            {
+                                                label{small(class="text-secondary"){$"Calle:"}}
+                                                input(type="text" name="clle3" class="form-control" value="#<calle>")
+                                            }
+                                            div(class="col-3")
+                                            {
+                                                label{small(class="text-secondary"){$"No. ext:"}}
+                                                input(type="text" name="next3" class="form-control" value="#<no_ext>")
+                                            }
+                                            div(class="col-3")
+                                            {
+                                                label{small(class="text-secondary"){$"No int:"}}
+                                                input(type="text" name="nint3" class="form-control" value="#<no_int>")
+                                            }
+                                        }
+                                        div(class="row m-2")
+                                        {
+                                            div(class="col-12")
+                                            {
+                                                label{small(class="text-secondary"){$"Colonia:"}}
+                                                input(type="text" name="colonia3" maxlength="150" class="form-control" value="#<@('./domicilio3/colonia')>")
+                                            }
+                                        }
+                                        div(class="row m-2")
+                                        {
+                                            div(class="col-4")
+                                            {
+                                                label{small(class="text-secondary"){$"Código postal:"}}
+                                                input(type="text" name="codpos3" maxlength="10" class="form-control" value="#<@('./domicilio3/codpos')>")
+                                            }
+                                            div(class="col-8")
+                                            {
+                                                label{small(class="text-secondary"){$"Tel:"}}
+                                                input(type="text" name="telefonos3" maxlength="150" class="form-control" value="#<@('./domicilio3/telefonos')>")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+
+
+                            div(class="tab-pane" id="notas")
+                            {
+                                div
+                                {
+                                    div(class="row m-2")
+                                    {
+                                        div(class="col-12")
+                                        {
+                                            textarea(class="form-control" maxlength="32000"  name="notas" id="textarea" rows="20"){$"#<@('./notas')>"}
+                                        }
+                                    }
+                                }
+                            }
+
+
+                            input(type="hidden" id="cont1" name="cont1" value="")
+                            input(type="hidden" id="cont2" name="cont2" value="")
+                            input(type="hidden" id="cont3" name="cont3" value="")
+                            div(class="text-end pt-4")
+                            {
+                                button(type="submit" class="btn btn-primary m-1"){"Guardar"}
+                                #!
+                                uri="../"+filter
+                                if @('parameters/url')!=""{uri=url_dcode(@('parameters/url'))}
+                                #$
+                                a(class="btn btn-light border-secondary m-1" href="#<uri>" ){"Cancelar"}
+                            }
+                        }
+                    }
+                }    
+            }
+        }
+        #$
+        style
+        {
+            $'
+            @media only screen and(max-width:500px) and (min-width:100px)
+            {
+                #div-cliente
+                {
+                    width:100% !important;
+                }
+            }
+            '
+        }
+
+        //****************************modal para cantactos del cliente************************
+        div(class="modal fade" style="pointer-events: none;" id="modalcantactos" tabindex="-1" role="dialog" "aria-labelledby"="modalforms" "aria-hidden"="true" "data-keyboard"="false" "data-backdrop"="static")
+        {
+            div(class= "modal-dialog modal-lg modal-dialog-centered" role ="document")
+            {
+                div(class="modal-content")
+                {
+                    div(class="modal-header")
+                    {
+                        h5(class="modal-title" id="textomdl"){"Contactos."}
+                        button(type="button" id="" onclick="hidemodalContactos()" class="" style="border: 1px solid #CED4DA;background: transparent;" "data-dismiss"="modal" "aria-label"="Close")
+                        {
+                            span ("aria-hidden"="true") {$"&times;"}
+                        }
+                    }
+                    div(class="modal-body" id="bdymsg")
+                    {
+                        div(class="card-body" style="padding-left:0")
+                        {
+                            div(class="input-group")
+                            {
+                                span(class="input-group-text" id="basic-addon1"){
+                                    $""
+                                    // svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16")
+                                    // {
+                                    //   path(d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"){""}
+                                    // }
+                                }
+                                input(type="text" id="txtcontactossearch" class="form-control" placeholder="Buscar contactos..." "aria-label"="Input group example" "aria-describedby"="basic-addon1")
+                                span(class="input-group-text" id="basic-addon1" id="spasearch"){
+                                    $""
+                                    svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16")
+                                    {
+                                      path(d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"){""}
+                                    }
+                                }
+                            }
+                        }
+                       div(class="card table-responsive" style="max-height:50vh")
+                        {
+                                   
+                            table(class="table table-hover")
+                            {
+                                thead{
+                                    tr{
+                                        th{"Sys_pk"}
+                                        th{"Tratamiento"}
+                                        th{"Nombre"}
+                                    }
+                                }
+                                tbody(id="body-contactos")
+                                {
+                                    $""
+                                }
+                            }
+                            $""
+                        }
+                    }
+                    div(class="modal-footer" id="ftrAddClt")
+                    {
+                        button(type="button" id="" class="btn btn-danger " onclick="hidemodalContactos()" "data-dismiss"="modal") {"Cerrar"}
+                    }
+                }
+            }       
+        }
+    #!
+     #include "cliente.dkl"
+    #$
+    }
+    
+    
+
+    #!
+    do @context.end()
+}

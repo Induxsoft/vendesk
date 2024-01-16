@@ -1,0 +1,47 @@
+#include "dkli.dkh"
+#!
+module "lib"
+{
+	#!
+	address_workspace::config
+	{
+		if not(field.exist(@http_context,"session")){@http_context<"session*">:record.create()}
+
+		ref listobj=list.create()
+
+		ws=@@(@http_context,"request/get/ws")
+		namews=list.str(split(cookie.get("namews"),";"),0)
+		new address
+		{
+			@"type":"Workspace"
+			@"target":@url_workspace+ws
+			@"link":ifstr(@@(@http_context,"request/get/namews")!="",@@(@http_context,"request/get/namews"),namews)
+		}
+		new address1
+		{
+			@"type":"CRM"
+			@"target":"../"//@url_workspace+@@(@http_context,"request/get/ws")
+			@"link":"Crm"//:@@(@http_context,"request/get/namews")
+		}
+		new address2
+		{
+			@"type":"Configuración"
+			@"target":"../"+@@(@http_context,"request/get/_entities_type")+"/"
+			@"link":"Configuración"//:@@(@http_context,"request/get/namews")
+		}
+		new address3
+		{
+			@"type":"Pipelines"
+			@"target":""
+			@"link":"Pipelines"
+		}
+		
+		do list.add(listobj,address)
+		do list.add(listobj,address1)
+		do list.add(listobj,address2)
+		
+		if not(config){do list.add(listobj,address3)}
+		
+		@http_context<"session/address_workspaces*">:listobj
+	}
+}

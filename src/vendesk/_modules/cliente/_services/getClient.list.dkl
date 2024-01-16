@@ -1,0 +1,42 @@
+#include "dkli.dkh"
+#!
+program
+{
+    #include "functions.dkh"
+    #include "dbr.dkh"
+    #include "serialize.dkh"
+    
+    new res{}
+    ref datos=from.json(field.dstr(@http_context,"request/POST_STRING","{}"))
+
+    ref bd=@null
+    if not(isnull(datos)){
+        ref bd=dbr.open(@@(datos,"$bd"))
+    }
+    else{do rise_error(500,"falta una conexión hacia la base de datos")}
+    
+    if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
+    
+    query="SELECT c.sys_pk, c.sys_guid, c.sys_recver, c.sys_timestamp, c.sys_dtcreated, c.sys_deleted,
+    ifnull(c.codigo,'')codigo, ifnull(c.nombre,'')nombre, ifnull(c.rfc,'')rfc, ifnull(c.email,'')email, 
+    ifnull(c.saldo,'')saldo,ifnull(c.curp,'')curp
+    FROM cliente c where nombre like '%@{text_filter}%' or rfc like '%@{text_filter}%' or curp like '%@{text_filter}%' or email like '%@{text_filter}%' limit 500"
+    ref lista=dbr.list(bd,query,datos)
+    
+    using res 
+    { 
+        @"success": @true
+        @"data*":lista
+    }
+
+    exception
+    {
+        using res{}
+        res<"message">:last_error()
+        res<"success">:@false
+    }
+
+    @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+    @http_context<"response/output">:"text"
+    @http_context<"response/text">: to.json(res)
+}

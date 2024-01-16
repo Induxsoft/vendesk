@@ -1,0 +1,93 @@
+#include "dkli.dkh"
+#!
+program
+{
+    #include "functions.dkh"
+    #include "dbr.dkh"
+    #include "serialize.dkh"
+    
+    new res{}
+    ref datos=from.json(field.dstr(@http_context,"request/POST_STRING","{}"))
+
+    ref bd=@null
+    if not(isnull(datos)){
+        ref bd=dbr.open(@@(datos,"$bd"))
+    }
+    else{do rise_error(500,"falta una conexión hacia la base de datos")}
+    
+    if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
+    
+    new data{@"sys_pk":@@(datos,"sys_pk")}
+    switch @@(datos,"act")
+    {
+        case "edit_cat_prioridad"{
+            query="update ut_crmprioridad set descripcion=@descripcion,tduracion=@cantidad,dduracion=@dduracion where sys_pk=@sys_pk"
+            do dbr.execute(bd,query,datos)
+            ref resp=@null
+        }
+        case "edit_tipocaso"{
+            query="update ut_crmtipocaso set uf_descripcion=@descripcion where sys_pk=@sys_pk"
+            do dbr.execute(bd,query,datos)
+            ref resp=@null
+        }
+        case "del_cat_prioridad"
+        {
+            do dbr.delete(bd,"ut_crmprioridad","sys_pk=@sys_pk",datos)
+            ref resp=@null
+        }
+        case "insert_catalog"
+        {
+            new d
+            {
+                @"Sys_TimeStamp*":now()
+                @"Sys_GUID":cut(uuid(),31)
+                @"Sys_DTCreated*":now()
+                @"descripcion":@@(datos,"$descripcion")
+                @"tduracion":@@(datos,"#cantidad")
+                @"dduracion":ifstr(@@(datos,"$dduracion")=="@","",@@(datos,"$dduracion"))
+            }
+
+            do dbr.insert(bd,"ut_crmprioridad",d)
+            ref resp=@null
+        }
+        case "insert_tipocaso"
+        {
+            new d
+            {
+                @"Sys_TimeStamp*":now()
+                @"Sys_GUID":cut(uuid(),31)
+                @"Sys_DTCreated*":now()
+                @"uf_descripcion":@@(datos,"$descripcion")
+                @"status":1
+            }
+
+            do dbr.insert(bd,"ut_crmtipocaso",d)
+            ref resp=@null
+        }
+        case "del_tipocaso"
+        {
+            do dbr.delete(bd,"ut_crmtipocaso","sys_pk=@sys_pk",datos)
+            ref resp=@null
+        }
+    }
+    
+    
+    
+    using res 
+    { 
+        @"success": @true
+        @"data*":resp
+    }
+
+    exception
+    {
+        using res{}
+        res<"message">:last_error()
+        res<"success">:@false
+
+    }
+
+        @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+        @http_context<"response/output">:"text"
+        @http_context<"response/text">: to.json(res)
+}

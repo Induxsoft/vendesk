@@ -1,0 +1,11 @@
+#include "dkli.dkh"
+#!
+
+module "edoprov.dk"
+{
+    @list_query="select edoprov.sys_pk,edoprov.sys_recver, edoprov.codigo,edoprov.nombre,pais.nombre pais from edoprov inner join pais on ipais=pais.sys_pk
+     where ipais=@pais or isnull(@pais) order by codigo;"
+     
+    @read_query="select #<@sys_fields>, codigo,nombre,ipais from #<@table_name> where #<@keyfield>=@_entity_id limit 1;"
+    
+}

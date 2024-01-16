@@ -1,0 +1,42 @@
+#include "dkli.dkh"
+#!
+program
+{
+    #include "functions.dkh"
+    #include "dbr.dkh"
+    #include "serialize.dkh"
+    
+    new res{}
+    ref datos=from.json(field.dstr(@http_context,"request/POST_STRING","{}"))
+    if not(isnull(datos)){
+        ref bd=dbr.open(@@(datos,"$bd"))
+    }
+    else{do rise_error(500,"falta una conexión hacia la base de datos")}
+    color = @@(datos, "id_color")
+    solicitud = @@(datos, "id_solicitud")
+    
+    new data{@"uf_color":@@(datos,"#color")}
+
+    using res 
+    { 
+        @"sys_pk": @@(datos,"sys_pk")
+    }
+    
+    do dbr.update(bd,"ut_crmcasos",data,"sys_pk=@sys_pk",res)
+    using res 
+    { 
+        @"success": @true
+        @"data": @null
+    }
+
+    exception
+    {
+        using res{}
+        res<"message">:last_error()
+        res<"success">:@false
+    }
+
+    @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+    @http_context<"response/output">:"text"
+    @http_context<"response/text">: to.json(res)
+}

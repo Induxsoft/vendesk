@@ -1,0 +1,41 @@
+#include "dkli.dkh"
+#!
+program
+{
+    #include "functions.dkh"
+    #include "dbr.dkh"
+    #include "serialize.dkh"
+    
+    new res{}
+    ref datos=from.json(field.dstr(@http_context,"request/POST_STRING","{}"))
+
+    ref bd=@null
+    if not(isnull(datos)){
+        ref bd=dbr.open(@@(datos,"$bd"))
+    }
+    else{do rise_error(500,"falta una conexión hacia la base de datos")}
+    
+    if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
+    
+    query="SELECT dc.sys_pk,dc.sys_guid,dc.Name,dc.Words pclaves,ifnull(dc.Description,'')descripcion,dc.typedata,dc.Sys_TimeStamp AS modificado,dc.Sys_DTCreated AS alta FROM doclink d 
+        INNER JOIN docs dc ON d.FK_Doc=dc.Sys_GUID
+        WHERE d.FK_Parent=@fk_parent;"
+    ref lista=dbr.list(bd,query,datos)
+    
+    using res 
+    { 
+        @"success": @true
+        @"data*":lista
+    }
+
+    exception
+    {
+        using res{}
+        res<"message">:last_error()
+        res<"success">:@false
+    }
+
+    @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+    @http_context<"response/output">:"text"
+    @http_context<"response/text">: to.json(res)
+}

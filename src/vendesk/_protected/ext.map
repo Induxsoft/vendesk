@@ -1,0 +1,16 @@
+.color >  $web/r8-clientes.ws.induxsoft.net/_modules/cliente/_services/change_color.color.dkl
+.add >  $web/r8-clientes.ws.induxsoft.net/_modules/cliente/_services/additem.add.dkl
+.update > $web/r8-clientes.ws.induxsoft.net/_modules/cliente/_services/updateitem.update.dkl
+.com > $web/r8-clientes.ws.induxsoft.net/_modules/cliente/_services/addCom.com.dkl
+.case > $web/r8-clientes.ws.induxsoft.net/_modules/cliente/_services/update.case.dkl
+.nota > $web/r8-clientes.ws.induxsoft.net/_modules/cliente/_services/addnota.nota.dkl
+.list > $web/r8-clientes.ws.induxsoft.net/_modules/cliente/_services/getClient.list.dkl
+.files > $web/r8-clientes.ws.induxsoft.net/_modules/cliente/_services/getAdjuntos.files.dkl
+.upad > $web/r8-clientes.ws.induxsoft.net/_modules/cliente/_services/updateAdjunto.upad.dkl
+.close > $web/r8-clientes.ws.induxsoft.net/_modules/cliente/_services/closeCase.close.dkl
+.down > $web/r8-clientes.ws.induxsoft.net/_modules/cliente/_services/download_file.down.dkl
+.del > $web/r8-clientes.ws.induxsoft.net/_modules/cliente/_services/deleteDatafile.del.dkl
+.tables > $web/r8-clientes.ws.induxsoft.net/_modules/cliente/_services/gettables.tables.dkl
+.cont > $web/r8-clientes.ws.induxsoft.net/_modules/cliente/_services/list_contact.cont.dkl
+.data > $web/r8-clientes.ws.induxsoft.net/_modules/cliente/_services/get_data.dkl
+.entity > $web/r8-clientes.ws.induxsoft.net/_modules/cliente/_services/insert_update_entity.dkl

@@ -1,0 +1,7 @@
+get:/apps/usersman/* > $web/$shared/apps/usersman/*
+get:/banner_img/* > $web/ws.induxsoft.net/banner_img/*
+get:/assets/* > $web/ws.induxsoft.net/assets/*
+get:/icons/* > $web/ws.induxsoft.net/icons/*
+
+
+

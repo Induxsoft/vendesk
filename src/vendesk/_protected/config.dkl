@@ -1,0 +1,26 @@
+#include "dkli.dkh"
+#!
+module "config"
+{
+	protocol=ifstr(parse.bool(@@(@http_context,"request/headers/HTTPS")),"https","http")
+	host=@@(@http_context,"request/headers/HTTP_HOST")
+	//link del icono home de la barra de navegación
+	@icon_home=protocol+"://"+host+"/icons/home.icon.png"
+	if not(file.exists(@icon_home)){@icon_home="https://ws.induxsoft.net/icons/home.icon.png"}
+	//lisnk del icono setting de la barra de navegacion
+	@icon_setting=protocol+"://"+host+"/icons/settings.icon.png"
+	//lenguaje por default que va colocado en el contenido html
+	@lang="es-MX"
+	@toc_file="default.toc"
+	//ruta de la plantilla default que ejecuta el body, contenido del html
+    @template="web/r8-clientes.ws.induxsoft.net/_protected/default.htt"
+	@filesviewer="web/$shared/apps/docs-viewer/viewer.dkl"
+	//ruta de la plantilla que muestra cuando el ids esta vencido
+	@session_error_page="web/r8-clientes.ws.induxsoft.net/_protected/page1.htt"
+	//ruta del dk que ejecuta el renderizador
+	@default_render_template= "web/r8-clientes.ws.induxsoft.net/_protected/default.dk"
+
+	@__getParameterOutputType="_output"
+
+	@url_origin="https://ws.induxsoft.net/"
+}

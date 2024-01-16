@@ -1,0 +1,61 @@
+#include "dkli.dkh"
+#!
+module "lib.dk"
+{
+	#include "functions.dkh"
+	#include "serialize.dkh"
+	#include "webcl.dkh"
+	#!
+	api_base_service::
+    {
+        expose responseJSONdata
+
+        new responseJSONdata
+        {
+            @"success":@true
+        }
+        
+        that
+        
+        @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+        @http_context<"response/output">:"text"
+        @http_context<"response/text">: to.json(responseJSONdata)
+    }
+    #!
+	getDataWorkspace::idws
+	{
+		new data
+		{
+			@"ids":@@(@http_context,"session/user/ids")
+			@"operation":"read"
+			@"id":@@(@http_context,"request/get/ws")
+		}
+		new h{@"Content-Type":"application/json;charset=utf-8"}
+		res=http.request(@url_service_workspace,"POST",h,to.json(data))
+
+		ref result=from.json(res)
+		if not(@@(result,"success")){do rise_error(99,@@(result,"message"))}
+
+		return @@(result,"&data")
+		exception
+		{
+			new result
+			{
+				@"message":last_error()
+			}
+			return result
+		}
+	}
+	#!
+	current_url::root
+	{
+
+		host=@@(@http_context,"request/headers/HTTP_HOST")
+		protocol=ifstr(parse.bool(@@(@http_context,"request/headers/HTTPS")),"https","http")
+		path=replace(field.dstr(@http_context,"request/headers/request_uri","/"),"\\","/")
+
+	  if root{path=list.str(split(path,"?"),0)}
+
+		return protocol+"://"+path.concat(host,path)
+	}
+}

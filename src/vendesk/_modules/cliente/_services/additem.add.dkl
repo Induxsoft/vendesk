@@ -1,0 +1,99 @@
+#include "dkli.dkh"
+#!
+program
+{
+    #include "functions.dkh"
+    #include "dbr.dkh"
+    #include "serialize.dkh"
+    
+    new res{}
+    ref datos=from.json(field.dstr(@http_context,"request/POST_STRING","{}"))
+
+    ref bd=@null
+    if not(isnull(datos)){
+        ref bd=dbr.open(@@(datos,"$bd"))
+    }
+    else{do rise_error(500,"falta una conexión hacia la base de datos")}
+    color = @@(datos, "id_color")
+    solicitud = @@(datos, "id_solicitud")
+    
+    new data
+    {
+        @"Sys_TimeStamp*":now()
+        @"Sys_GUID":cut(uuid(),30)
+        @"Sys_DTCreated*":now()
+    }
+    table_name=""
+
+    switch trim(@@(datos,"item"))
+    {
+        case "alert"
+        {
+            table_name="ut_crm_alerts"
+            using data
+            {
+                @"activa":1
+                @"descripcion":@@(datos,"texto")
+                @"fk_cliente":@@(datos,"cliente")
+                @"usuariocrea":@@(datos,"user")
+            }
+        }
+        case "case"
+        {
+            table_name="ut_crmcasos"
+            using data
+            {
+                @"fechaapertura":@@(datos,"fechaapertura")
+                @"horaapertura*":str2dt(@@(datos,"horaapertura"),"dd-mm-dd 00:00:00")
+                @"usuarioabre":@@(datos,"user")
+                @"usuarioasignado":@@(datos,"$usuarioasignado")
+                @"asunto":@@(datos,"asunto")
+                @"descripcion":@@(datos,"texto")
+                @"fk_cliente":@@(datos,"cliente")
+                @"fk_tipocaso":@@(datos,"tipocaso")
+                @"fk_cliente":@@(datos,"cliente")
+            }
+        }
+        case "aten"
+        {
+            table_name="ut_crmnotacliente"
+            using data
+            {
+                @"fk_cliente":@@(datos,"cliente")
+                @"usuario":@@(datos,"user")
+                @"notas":ifstr(@@(datos,"atencion")=="",@@(datos,"texto"),@@(datos,"atencion"))
+            }
+        }
+    }
+    if table_name==""{do rise_error(99,"Tabla no especificada.")}
+    if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
+    
+    do dbr.insert(bd,table_name,data)
+    
+    if trim(@@(datos,"item"))=="case"
+    {
+        ref d=record.copy(data,"Sys_TimeStamp,Sys_GUID,Sys_DTCreated")
+        d<"fk_caso">:dbr.num(bd,"select max(sys_pk) from "+table_name,@null)
+        d<"usuario">:@@(data,"usuarioabre")
+        tipo=dbr.str(bd,"select uf_descripcion from ut_crmtipocaso where sys_pk=@tipocaso",datos)
+        d<"notas">:"<< Caso de tipo: "+tipo+" >>"
+        table_name="ut_crmnotacaso"
+        do dbr.insert(bd,table_name,d)
+    }
+    using res 
+    { 
+        @"success": @true
+        @"data": @null
+    }
+
+    exception
+    {
+        using res{}
+        res<"message">:last_error()
+        res<"success">:@false
+    }
+
+    @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+    @http_context<"response/output">:"text"
+    @http_context<"response/text">: to.json(res)
+}

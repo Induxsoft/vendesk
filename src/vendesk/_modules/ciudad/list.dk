@@ -1,0 +1,42 @@
+#include "dkli.dkh"
+#!
+
+module "list.dk"
+{
+    #include "functions.dkh"
+    #include "uielements.dbtable.dkl"
+    #include "uielements.dkl"
+    #include "../../../config.dkl"
+    new @table_definition
+    {
+        @"datatable*":@@(@crud_context,"&.")
+        member @"columns"
+        {   
+            member @"codigo"
+            {
+                @"caption":"Código"
+            }
+            member @"nombre"
+            {
+                @"caption":"Nombre"
+            }
+            member @"estado"
+            {
+                @"caption":"estado"
+            }
+            member @"_actions"
+            {
+                @"caption":"Acciones"
+                
+            }
+        }
+    }
+    #$
+    div(class="m-0 justify-content-center" )
+    {
+        #!
+        #include "ciudad.dkl"
+        include @path_common
+    }
+    
+}

@@ -1,0 +1,446 @@
+script
+{
+	$'
+		$(document).ready(function(){
+			var nvlink=document.querySelector(".nav-link");
+
+			if(nvlink) nvlink.addEventListener("click",function(e){
+				var attr=nvlink.getAttribute("data-target");
+				var colapse=document.querySelector(attr);
+				if(colapse)
+					$(colapse).slideToggle("show");
+			});
+
+			
+			module.init();
+			module.filter_enabled(null,true);
+			if(rango_fecha)rango_fecha.addEventListener("change",function(e){
+				if(this.value=="@closed")
+				{
+					if(showclosed)showclosed.checked=true;
+				}else{
+					if(showclosed)showclosed.checked=false;
+				}
+			});
+			if(text_filter_admin)
+				text_filter_admin.addEventListener("keyup",function(e){
+					if(e.which===13){
+						var btns=document.querySelector("#btn-search-admin");
+						if(btns)btns.click();
+					}
+					
+				});
+		});
+
+		var module=
+		{
+				btn_apply:null,btn_cancel:null,btn_edit:null,rango_fecha:null,de:null,a:null,tipo_caso:null,asignado:null,por_vencimiento:null,showclosed:null,text_filter_admin:null,
+				init:function()
+				{
+					module.btn_apply=document.querySelector("#btn-apply");
+					module.btn_cancel=document.querySelector("#btn-cancel");
+					module.btn_edit=document.querySelector("#btn-edit");
+					rango_fecha=document.querySelector("#rango_fechas")
+					de=document.querySelector("#fecha_de");
+					a=document.querySelector("#fecha_a");
+					tipo_caso=document.querySelector("#tipocaso_admin");
+					asignado=document.querySelector("#selectasignado_admin");
+					por_vencimiento=document.querySelector("#por_vencimiento");
+					showclosed=document.querySelector("#check_show_cancelados");
+					text_filter_admin=document.querySelector("#text_filter_admin");
+				},
+				filter_enabled:function(btn=null,prop=false)
+				{
+					var module_filter=document.querySelectorAll(".module-filter input,.module-filter select");
+
+					if(module_filter )
+						for(var i=0;i<module_filter.length;i++)
+						{
+							var elem=module_filter[i];
+							if(prop){
+								elem.classList.add("disabled");
+								if(elem.type=="checkbox")
+									elem.disabled=true;
+							}
+							else{
+								elem.classList.remove("disabled");
+								if(elem.type=="checkbox")
+									elem.disabled=false;
+							}
+							
+						}
+
+					if(btn!=null)
+					{
+						btn.classList.toggle("hidden");
+						module.btn_apply.classList.toggle("hidden");
+						module.btn_cancel.classList.toggle("hidden");
+					}
+
+						
+				},
+				filter_cancel:function()
+				{
+					module.btn_edit.classList.toggle("hidden");
+					module.btn_apply.classList.toggle("hidden");
+					module.btn_cancel.classList.toggle("hidden");
+					module.filter_enabled(null,true);
+				},
+				open_modal:function(id,event=null)
+				{
+					if(event!=null)
+					{
+						var elem=event;
+						if(elem)
+						{
+
+							var trigger=elem.getAttribute("trigger");
+							if(trigger!="")
+								eval(trigger);
+						}
+					}
+					
+					$("#"+id).modal("show");
+				},
+				hide_modal:function(id)
+				{
+					$("#"+id).modal("hide");
+				},
+				trigger_load_catalogos:function()
+				{
+					var data={
+						bd:"#<@("$database")>",
+						act:"cat_prioridad"
+					}
+					definitive.rest("/list_catalogo.tables","POST",data,
+                    function(entity){
+	                    if(!entity.success)
+	                    {
+	                        hideLoading();
+	                        alert(entity.message);
+	                        return;
+	                    }
+	                    var elem=document.querySelector("#catalogo_prioridad");
+	                    elem.innerHTML=entity.data;
+                    },
+                    function(error){
+                        hideLoading();
+                        alert(error)
+                    },
+                    function(error){
+                        hideLoading();
+                        var er=JSON.stringify(error);
+                        if(error.status!=200)
+                        	alert(er);
+                    });
+				},
+				trigger_load_tiposcasos:function()
+				{
+					var data={
+						bd:"#<@("$database")>",
+						act:"cat_tiposcasos"
+					}
+					definitive.rest("/tiposcasos.tables","POST",data,
+                    function(entity){
+	                    if(!entity.success)
+	                    {
+	                        hideLoading();
+	                        alert(entity.message);
+	                        return;
+	                    }
+	                    var elem=document.querySelector("#tiposdecasos");
+	                    elem.innerHTML=entity.data;
+                    },
+                    function(error){
+                        hideLoading();
+                        alert(error)
+                    },
+                    function(error){
+                        hideLoading();
+                        var er=JSON.stringify(error);
+                        if(error.status!=200)
+                        	alert(er);
+                    });
+				},
+				edit_catalog :function(sys_pk)
+				{
+					var data={
+						bd:"#<@("$database")>",
+						act:"edit_cat_prioridad",
+						sys_pk:sys_pk
+					}
+					definitive.rest("/edit_catalog.data","POST",data,
+                    function(entity){
+	                    if(!entity.success)
+	                    {
+	                        hideLoading();
+	                        alert(entity.message);
+	                        return;
+	                    }
+	                   var txtdesdript=document.querySelector("#txtdescripcioncatalogo");
+	                   var txtduracion=document.querySelector("#txtduracionprevistacatalogo");
+	                   var selectduracion=document.querySelector("#selectDuration");
+	                   var btnsave=document.querySelector("#btnsavecatlogoprioridad");
+
+	                   txtdesdript.value=entity.data.descripcion;
+	                   txtduracion.value=entity.data.cantidad;
+	                   selectduracion.value=entity.data.dduracion;
+	                   btnsave.setAttribute("onclick","module.save_catalogo_prioridad(`"+sys_pk+"`,`modal_edit_catalog_prioridad`)");
+
+	                   module.open_modal("modal_edit_catalog_prioridad");
+
+                    },
+                    function(error){
+                        hideLoading();
+                        alert(error)
+                    },
+                    function(error){
+                        hideLoading();
+                        var er=JSON.stringify(error);
+                        if(error.status!=200)
+                        	alert(er);
+                    });
+				},
+				save_catalogo_prioridad:function(sys_pk,id,act="edit_cat_prioridad")
+				{
+					var txtdesdript=document.querySelector("#txtdescripcioncatalogo");
+	                   var txtduracion=document.querySelector("#txtduracionprevistacatalogo");
+	                   var selectduracion=document.querySelector("#selectDuration");
+	                   var btnsave=document.querySelector("#btnsavecatlogoprioridad");
+
+	                   var data={
+	                   	bd:"#<@("$database")>",
+	                   	descripcion:txtdesdript.value,
+	                   	cantidad:txtduracion.value,
+	                   	dduracion:selectduracion.value,
+	                   	act:act,
+	                   	sys_pk:sys_pk
+	                   }
+
+	                   definitive.rest("/edit_catalogo.entity","POST",data,
+                    function(entity){
+	                    if(!entity.success)
+	                    {
+	                        hideLoading();
+	                        alert(entity.message);
+	                        return;
+	                    }
+	                    module.trigger_load_catalogos();
+	                    module.hide_modal(id);
+                    },
+                    function(error){
+                        hideLoading();
+                        alert(error)
+                    },
+                    function(error){
+                        hideLoading();
+                        var er=JSON.stringify(error);
+                        if(error.status!=200)
+                        	alert(er);
+                    });
+				},
+				edit_tipocaso:function(sys_pk)
+				{
+					var data={
+						bd:"#<@("$database")>",
+						act:"edit_tipocaso",
+						sys_pk:sys_pk
+					}
+					definitive.rest("/edit_catalog.data","POST",data,
+                    function(entity){
+	                    if(!entity.success)
+	                    {
+	                        hideLoading();
+	                        alert(entity.message);
+	                        return;
+	                    }
+	                   var txtdesdript=document.querySelector("#txtdescripciontipocaso");
+	                   var btnsave=document.querySelector("#btnsavetipodecaso");
+	                  txtdesdript.value=entity.data.descripcion;
+	                   btnsave.setAttribute("onclick","module.save_tipocaso(`"+sys_pk+"`,`modal_edit_tipocaso`)");
+
+	                   module.open_modal("modal_edit_tipocaso");
+
+                    },
+                    function(error){
+                        hideLoading();
+                        alert(error)
+                    },
+                    function(error){
+                        hideLoading();
+                        var er=JSON.stringify(error);
+                        if(error.status!=200)
+                        	alert(er);
+                    });
+				},
+				save_tipocaso:function(sys_pk,id,act="edit_tipocaso")
+				{
+					var txtdesdript=document.querySelector("#txtdescripciontipocaso");
+
+	                   var data={
+	                   	bd:"#<@("$database")>",
+	                   	descripcion:txtdesdript.value,
+	                   	sys_pk:sys_pk,
+	                   	act:act
+	                   }
+
+	                   definitive.rest("/edit_catalogo.entity","POST",data,
+                    function(entity){
+	                    if(!entity.success)
+	                    {
+	                        hideLoading();
+	                        alert(entity.message);
+	                        return;
+	                    }
+	                    module.trigger_load_tiposcasos();
+	                    module.hide_modal(id);
+                    },
+                    function(error){
+                        hideLoading();
+                        alert(error)
+                    },
+                    function(error){
+                        hideLoading();
+                        var er=JSON.stringify(error);
+                        if(error.status!=200)
+                        	alert(er);
+                    });
+				},
+				delete_catalogo:function(sys_pk)
+				{
+					 var data={
+	                   	bd:"#<@("$database")>",
+	                   	sys_pk:sys_pk,
+	                   	act:"del_cat_prioridad"
+	                   }
+
+	                   definitive.rest("/del_catalogo.entity","POST",data,
+                    function(entity){
+	                    if(!entity.success)
+	                    {
+	                        hideLoading();
+	                        alert(entity.message);
+	                        return;
+	                    }
+	                    module.trigger_load_catalogos();
+                    },
+                    function(error){
+                        hideLoading();
+                        alert(error)
+                    },
+                    function(error){
+                        hideLoading();
+                        var er=JSON.stringify(error);
+                        if(error.status!=200)
+                        	alert(er);
+                    });
+				},
+				new_catalogo:function(btn)
+				{
+					var btnsave=document.querySelector("#btnsavecatlogoprioridad");
+					btnsave.setAttribute("onclick","module.save_catalogo_prioridad(0,`modal_edit_catalog_prioridad`,`insert_catalog`)");
+					module.open_modal("modal_edit_catalog_prioridad");
+				},
+				new_tipocaso:function()
+				{
+					var btnsave=document.querySelector("#btnsavetipodecaso");
+					btnsave.setAttribute("onclick","module.save_tipocaso(0,`modal_edit_tipocaso`,`insert_tipocaso`)");
+					module.open_modal("modal_edit_tipocaso");
+				},
+				delete_tipocaso:function(sys_pk)
+				{
+					 var data={
+	                   	bd:"#<@("$database")>",
+	                   	sys_pk:sys_pk,
+	                   	act:"del_tipocaso"
+	                   }
+
+	                   definitive.rest("/del_tipocaso.entity","POST",data,
+                    function(entity){
+	                    if(!entity.success)
+	                    {
+	                        hideLoading();
+	                        alert(entity.message);
+	                        return;
+	                    }
+	                    module.trigger_load_tiposcasos();
+                    },
+                    function(error){
+                        hideLoading();
+                        alert(error);
+                    },
+                    function(error){
+                        hideLoading();
+                        var er=JSON.stringify(error);
+                        if(error.status!=200)
+                        	alert(er);
+                    });
+				},
+				search_cliente:function()
+				{
+					module.open_modal("modalclientes");
+					document.querySelector("#divcaso").style.display="block";
+				},
+				filter_apply:function()
+				{
+					var rango_fecha=document.querySelector("#rango_fechas");
+					var de=document.querySelector("#fecha_de");
+					var a=document.querySelector("#fecha_a");
+					var tipo_caso=document.querySelector("#tipocaso_admin");
+					var asignado=document.querySelector("#selectasignado_admin");
+					var por_vencimiento=document.querySelector("#por_vencimiento");
+					var showclesed=document.querySelector("#check_show_cancelados");
+
+					var data={
+						"fecha":rango_fecha.value,
+						"de":de.value,
+						"a":a.value,
+						"tipo":tipo_caso.value,
+						"assing":asignado.value,
+						"por_vnmt":por_vencimiento.value,
+						"showclosed":showclesed.checked
+					}
+					var uri=JSON.stringify(data);
+					
+					var url= window.btoa(unescape(encodeURIComponent(uri)));
+					url=url.replaceAll("=","|");
+					url=url.replaceAll("/","_");
+					url=url.replaceAll("+","-");
+					window.location.href="./?params="+url;
+				},
+				text_filter:function()
+				{
+					var text=document.querySelector("#text_filter_admin");
+					if(text.value=="")
+					{
+						alert("Caampo de busqueda vacío");
+						return;
+					}
+					window.location.href="./?text_filter="+text.value;
+				}
+
+		}
+	'
+}
+style
+{
+	$'
+	
+		#div-seccion-filter
+		{
+			ustify-content: center;
+		    justify-items: center;
+		    align-items: center;
+		}
+		.disabled
+		{
+			pointer-events: none;
+			background-color: #e9ecef;
+    		opacity: 1;
+		}
+		.hidden
+		{
+			display:none !important;
+		}
+	'
+}

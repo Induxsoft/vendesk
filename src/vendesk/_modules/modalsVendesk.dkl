@@ -1,0 +1,53 @@
+#!
+module
+{
+	#$
+	 //**********************************************modal notas  y recordatorio****************************
+        div(class="modal fade" style="pointer-events: none;" id="modal_notas_recordatorio" tabindex="-1" role="dialog" "aria-labelledby"="modalforms" "aria-hidden"="true" "data-keyboard"="false" "data-bs-backdrop"="false")
+        {
+            div(class= "modal-dialog modal-md modal-dialog-centered" role ="document")
+            {
+                div(class="modal-content border-0 rounded-0 shadow")
+                {
+                    div(class="modal-header")
+                    {
+                        h6(class="modal-title" id="textomdl"){"Registro"}
+                        button(type="button" id="close" class="close" style="border: 1px solid #CED4DA;background: transparent;" "data-bs-dismiss"="modal" "aria-label"="Close")
+                        {
+                            span ("aria-hidden"="true") {$"&times;"}
+                        }
+                    }
+                    div(class="modal-body" id="bdymsg")
+                    {
+                    	div(class="grid-modal1" id="mdl-registro")
+                    	{
+                    		div(class="dv-notas")
+                    		{
+                    			label{small(class="text-secondary" id="et-notas"){$"Notas:"}}
+                            	textarea(id="txtNotas" class="form-control form-control-sm textarea-normal"){$""}
+                    		}
+                    		div(class="recordatorio" style="padding:1rem" id="recordatorio")
+                    		{
+                    			label{input(type="checkbox" checked="true" disabled="true")"Programar próximo contacto"}
+                    			input(type="date" class="form-control form-control-sm" id="next_contact" value="#<date_str(now(),'yyyy-MM-dd')>")
+                    			div(class="" style="padding-top:3px")
+                    			{
+                    				select(class="form-select""aria-label"="multiple select" style="font-size: larger;" id="newt_contact_hours")
+	                    			{$""
+	                    			}
+                    			}
+                    			
+                    		}
+                    	}
+                            
+                    }
+                    div(class="modal-footer" id="ftrAddClt")
+                    {
+                        button(type="button" onclick="model.save_registro();" id="btnAceptardml" class="btn btn-sm btn-primary") {$"Aceptar"}
+                        button(type="button" id="close" class="btn btn-sm btn-light close" "data-bs-dismiss"="modal") {$"Cerrar"}
+                    }
+                }
+            }       
+        }
+        //*************************************************************************************
+}

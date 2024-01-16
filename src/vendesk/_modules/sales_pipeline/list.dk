@@ -1,0 +1,99 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+	#include "functions.dkh"
+	#include "serialize.dkh"
+	#include "cookies.dkl"
+	 @SITE_INCLUDES="config.dkl,lib.dk"
+     #include "lib.dk"
+    
+	do @context.begin(@crud_context)
+    
+     ref @http_context=@@(@crud_context,"&http")
+     @ws=@@(@http_context,"request")
+
+	#include "website.dkl"
+    do address_workspace(@true)
+
+    ref data=getDataWorkspace(@@(@http_context,"request/get/ws"))
+    @isplazamundial=@false
+	if @@(data,"$database/source_type")=="plazamundial"{@isplazamundial=@true}
+
+	idtienda=""
+	nametienda=""
+	if not(isnull(@@(data,"&crm")))
+	{
+		idtienda=@@(data,"$crm/plazamundial_id")
+		nametienda=@@(data,"$crm/plazamundial_name")
+
+		if @isplazamundial==@true
+		{
+			idtienda=@@(data,"$database/source_id")
+			nametienda=@@(data,"$database/source_type")
+		}
+	}
+	else if not(isnull(@@(data,"&database")))
+	{
+		idtienda=@@(data,"$database/source_id")
+		nametienda=@@(data,"$database/source_type")
+	}
+    
+	#$
+
+	div(class="container-fluid p-4" style="min-height:80vh;background-color:#F5F5F5;")
+	{
+		script(src="/_js/model.js" crossorigin="anonymous"){""}
+		script
+		{
+			$'
+			model.url_workspace="#<@url_service_workspace>";
+			model.ids="#<@@(@http_context,"session/user/ids")>";
+			model.ws="#<@@(@http_context,"request/get/ws")>";
+			'
+		}
+		div(class="#<ifstr(@@(data,'message')!='','alert alert-danger','')>"){"#<@@(data,'message')>"}
+		div(class="grid-container")
+		{
+			div(class="card bg-white p-2 shadow shadow-sm" )
+			{
+				div(class="mb-4 d-flex align-items-center")
+				{
+					a(href="#" class="btn btn-sm btn-light bg-white border-0" id="go_back_btn"){
+						svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16"){
+							path("fill-rule"="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z")
+						}
+					}
+					h5(class="m-0 flex-grow-1"){$"Pipelines"}
+				}
+				div(class="card-body d-flex align-items-end" style="padding:.10rem .10rem")
+				{
+					a(class="btn btn-sm btn-primary" href="./?ps=1"){"Ver Pipelines"}
+				}
+			}
+			// div(class="card bg-white p-2 shadow shadow-sm")
+			// {
+			// 	div(class=" mb-1 d-flex align-items-center")
+			// 	{
+			// 		h5(class="m-0 flex-grow-1"){$"Conectar a una tienda de plazamundial"}
+			// 	}
+			// 	div(class="card-body" style="padding:.10rem .10rem")
+			// 	{
+			// 		input(class="form-control form-control-sm mt-1" placeholder="Id tienda" id="idtienda" value="#<idtienda>" "#<ifstr(@isplazamundial,'disabled','')>"="true")
+			// 		input(class="form-control form-control-sm mb-1 mt-1" placeholder="Nombre tienda" id="nametienda" value="#<nametienda>" "#<ifstr(@isplazamundial,'disabled','')>"="true")
+			// 		#!
+			// 		if not(@isplazamundial)
+			// 		{
+			// 			#$
+			// 			a(class="btn btn-sm btn-primary" href="#" onclick="model.save_workspace();"){"Guardar"}
+			// 		}
+					
+			// 	}
+			// }
+		}
+		
+
+
+	}
+	// h5{a{"Pipelines"}}
+}

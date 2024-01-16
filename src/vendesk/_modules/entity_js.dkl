@@ -1,0 +1,44 @@
+script{
+	$'
+	function deleteEntity(sys_pk,saldo,sys_pkd1,sys_pkd2,sys_pkd3,e){
+        if(Number(saldo)!=0)
+        {
+            alert("No se puede elimnar un cliente con saldo diferente de cero.");
+            return;
+        }
+        e.stopPropagation();
+                var res=confirm("¿Esta seguro de eliminar la fila?");
+                if(!res)
+                    return;
+
+                definitive.rest("./"+sys_pk+"/?sys_pkd1="+sys_pkd1+"&sys_pkd2="+sys_pkd2+"&sys_pkd3="+sys_pkd3,"DELETE",null,
+                    function(entity){
+                        //Operación exitosa
+                        window.location.reload();
+                    },
+                    function(error){
+                        alert(error)
+                        //Error de aplicación
+                    },
+                    function(error){
+                        var er=JSON.stringify(error);
+                        var p=JSON.parse(er);
+                        alert(p.responseJSON.message);
+                    });
+        }
+        function SelectRow(sys_pk)
+        {
+            if(sys_pk==""){return;}
+            var filter="#<ifstr(@("parameters/text_filter")!="","&text_filter="+@("parameters/text_filter"),"")>"
+            window.location.href="./_detail/?_key="+sys_pk+filter;
+        }
+	'
+}
+style{
+    $'
+    .tr_hover:hover
+    {
+        cursor:pointer;
+    }
+    '
+}

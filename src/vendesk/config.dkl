@@ -1,0 +1,161 @@
+#include "dkli.dkh"
+
+#!
+module "config.dkl"
+{
+	#include "functions.dkh"
+	#include "cookies.dkl"
+	#include "serialize.dkh"
+	#include "linux-fixes.dkh"
+	
+	generarLink::
+	{
+		new addres
+		{
+			@"link":ifstr(@namews=="","workspace",@namews)//"workspace"
+			@"target":"https://ws.induxsoft.net/"+@ws+"?token="+@@(@http_context,"$session/user/ids")
+			@"type":"workspace"
+		}
+		link="Clientes"
+		target="/"+@ws+"/cliente/?token="+@@(@http_context,"$session/user/ids")+ifstr(@@(@http_context,"request/get/text_filter")!="","&text_filter="+@@(@http_context,"request/get/text_filter"),"")
+		if @@(@http_context,"#request/get/cfg") || @@(@http_context,"#request/get/prc")
+		{
+			link="Ventas"
+			target="./?vnts=1"
+		}
+		new addres_menu
+		{
+			@"link":link
+			@"target":target
+			@"type":"Clientes"
+		}
+		new dx
+		{
+			@"link":ifstr(@@(@http_context,"request/get/_key")=="","Cliente","Cliente "+@@(@http_context,"request/get/_key"))
+			@"target":ifstr(@@(@http_context,"request/get/_case")!="","../?_key="+@@(@http_context,"request/get/_key"),"")
+			@"type":"Clientes"
+			@"id":"name_client"
+		}
+		new _case_admin
+		{
+			@"link":"Administración de casos"
+			@"target":"/"+@ws+"/cliente/_admin/?token="+@@(@http_context,"$session/user/ids")+ifstr(@@(@http_context,"request/get/params")!="","&params="+@@(@http_context,"request/get/params"),"")
+			@"type":"Casos"
+		}
+		new _case
+		{
+			@"link":ifstr(@@(@http_context,"request/get/_case")=="","Caso","Caso "+@@(@http_context,"request/get/_case"))
+			@"target":""
+			@"type":"Clientes"
+		}
+		new _new
+		{
+			@"link":ifstr(@@(@http_context,"request/get/_entity_id")=="_new","Cliente nuevo",@@(@http_context,"request/get/_entity_id"))
+			@"target":""
+			@"type":"Cliente"
+			@"id":"form_name_client"
+		}
+	
+		ref lista_address=list.create()
+		if @ws!=""{do list.add(lista_address,addres)}
+		if @ws!=""{do list.add(lista_address,addres_menu)}
+		if @@(@http_context,"request/get/_entity_id")=="_detail"{do list.add(lista_address,dx)}
+		if @@(@http_context,"request/get/_entity_id")=="_admin"{do list.add(lista_address,_case_admin)}
+		if @@(@http_context,"request/get/_case")!=""{do list.add(lista_address,_case)}
+		if @@(@http_context,"request/get/_entity_id")=="_new"{do list.add(lista_address,_new)}
+		if @@(@http_context,"#request/get/_entity_id")>0{do list.add(lista_address,_new)}
+		
+		@http_context<"session/address_workspaces*">:lista_address
+	}
+
+	@catalogs_omit="_protected,_common,gs_solicitud,proveedor,gs_tipo_solicitud,cliente,producto,ciudad,edoprov,tipocliente,tipoproveedor"
+
+	@path_absolute="/usr/dkl_apps/"
+	@name_root="192.168.0.125" //"r8-clientes.ws.induxsoft.net"
+	@path_root="web/192.168.0.125/packs/vendesk" //"web/"+@name_root ///usr/devkron/web/api.erp.test/icons
+	@path_web=""
+
+	@url_root="https://"+@name_root
+
+	@dir_catalogs=@path_root+"/_modules/"
+
+	@crudl.qname=""
+	@path_common=@dir_catalogs+"_common/list.dk"
+	@path_template_protected=@path_root+"/_protected/default.htt"
+
+	@crudl.user="ADMIN"
+	@crudl.pwd=""
+	@ws=""
+	@_entities_type="cliente"
+	@url_home="https://ws.induxsoft.net/"
+	@url_service_workspace="https://api.induxsoft.net/workspaces/"
+	@url_service_vendesk="https://pm.api.induxsoft.net/"
+	
+	if isset("@http_context")
+	{
+		@ws=@@(@http_context,"request/get/ws")
+		@crudl.qname="Connections@induxsoft/ws"+@ws+"@workspaces"
+		@name=@@(@http_context,"request/get/namews")
+		@namews=list.str(split(cookie.get("namews"),";"),0)
+
+		if @name!=""
+		{
+			do cookie.set("namews", @name)
+			@namews=list.str(split(cookie.get("namews"),";"),0)
+		}
+		do generarLink()
+	}
+	if isset("@crud_context")
+	{
+		ref @http_context=@@(@crud_context,"&http")
+		@http_context<"session/idp/database*">:@@(@crud_context,"database")
+		if @@(@http_context,"request/get/ws")!=""{
+			@url_root=path.concat(@url_root,@@(@http_context,"request/get/ws")+"/request/")
+			@url_root_entity=path.concat(@url_root,@@(@http_context,"request/get/_entities_type")+"/")
+		}
+		else{
+			@url_root=path.concat(@url_root,@@(@http_context,"request/get/_app_group"))
+			@url_root=path.concat(@url_root,@@(@http_context,"request/get/_connection"))
+			@url_root_entity=path.concat(@url_root,@@(@http_context,"request/get/_entities_type")+"/")
+		}
+	}
+	@access_privilege='
+	{
+		"access":[{"workspace":"'+@ws+'"}]
+	}
+	'
+
+	if @ws==""{@ws="MaxiComercio.R5/BdR8_MXCR5"}
+
+	@use_bdconfig=@false
+	@accept_qnames=@false
+
+	//si @use_bdconfig es false
+	@qname_app="workspaces"
+	@qname_prefix="connections@induxsoft/"
+
+	//@path_root="web/crm-sales.ws.induxsoft.net/_app"//192.168.1.91
+	@url_workspace="https://ws.induxsoft.net/"
+	//@path_absolute=""
+	@end_point_service="/"
+	@pathjs=@dir_catalogs+"sales_pipeline/_js"
+	@path_views=path.concat(@dir_catalogs,"sales_pipeline/_views")
+
+	@path_js=path.concat(@pathjs,"_js")
+	@model_js=path.concat(@pathjs,"model.js")
+	@driver_js=path.concat(@pathjs,"controller.js")
+	@view_js=path.concat(@pathjs,"views.js")
+	@designer_js=path.concat(@pathjs,"designer.js")
+
+	@message_error=""
+
+	@url="_services/"
+	
+
+	new @config
+	{
+		@"connection":""//pipelines@myapp
+	}
+
+	@VDK_CLIENTE = "/!/vendesk/cliente/"
+}

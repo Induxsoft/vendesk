@@ -1,0 +1,44 @@
+#include "dkli.dkh"
+
+#$
+module "modal"
+{
+    div(class="")
+    {
+        div(class="user_modal hidde_control" id="user_modal")
+        {
+            div(class="modal_info")
+            {
+                h5{"Pipeline"}
+            }
+            div(class="modal_content")
+            {
+                input(type="hidden" id="inpu_syspk")
+
+                div(class="module-create_piline")
+                {
+                    label(class=""){"Nombre"}br{}
+                    input(class="modal_user_input" id="txt_name")
+                    br{}br{}
+                    label(class=""){"Probabilidad"}
+                    label(class="switch") 
+                    {
+                        input(type="checkbox" id="pipeline_probability") 
+                        div(class="slider round") 
+                        {
+                            span(class="on"){""}
+                            span(class="off") {""}
+                        }
+                    }
+                }
+            }
+            div(class="modal_controls")
+            {
+                button(id="modal_acept" onclick="controller.save_pieline()"){"Aceptar"}
+                button(id="modal_cancel" onclick="controller.close_modal()"){"Cancelar"}
+            }
+
+        }
+    
+    }    
+}

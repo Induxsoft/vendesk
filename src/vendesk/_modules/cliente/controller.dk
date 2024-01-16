@@ -1,0 +1,91 @@
+#include "dkli.dkh"
+#!
+module "controller.clientes"
+{
+	@form_detail=parse_view_file(@form_detail)
+	if @form_detail==""{ do rise_error(99,"Vista de detalles no disponible")}	
+
+	@form_caso=parse_view_file(@form_caso)
+	if @form_caso==""{do rise_error(99,"Vista de caso no disponible")}
+
+	@form_admin=parse_view_file(@form_admin)
+	if @form_admin==""{do rise_error(99,"Vista de administración no disponible")}
+	#!
+	view_controller::operation, &params
+	{
+		params<"_operation">:operation
+
+		if @expected_html
+		{
+			point @fail_view to error_view
+			// do rise_error(00,operation)
+			switch operation
+			{
+				case "list" { point @success_view to list_view }
+				case "read" { 
+					if @@(params,"_entity_id")==@entity_id_detail && @@(params,"_case")==""{
+						point @success_view to form_detail
+						params<"_entity_id">:@@(params,"_key")
+						params<"_detail">:@true
+					}
+					else if @@(params,"_entity_id")==@entity_id_admin
+					{
+						point @success_view to form_administracion
+						params<"_admin">:@true
+
+						if field.exist(params,"_key") && @@(params,"_case")!=""{
+							params<"_detail">:@true
+							params<"_entity_id">:@@(params,"_key")
+							params<"_admin">:@false
+							point @success_view to form_case
+						}
+					}
+					else if @@(params,"_case")!=""{
+						point @success_view to form_case
+						params<"_detail">:@true
+						params<"_entity_id">:@@(params,"_key")
+					}
+					else{point @success_view to form_view}
+				}
+				case "create" 
+				{ 
+					if @@(params,"_redirect")=="disabled"
+					{ point @success_view to form_view }
+					else { point @success_view to redirect }
+
+					point @fail_view to form_view
+				}
+				case "update" 
+				{ 
+					if @@(params,"_redirect")=="disabled"
+					{ point @success_view to form_view }
+					else { point @success_view to redirect }
+
+					point @fail_view to form_view
+				}
+				case "delete" 
+				{ 
+					if @@(params,"_redirect")=="disabled"
+					{ point @success_view to form_view }
+					else { point @success_view to redirect }
+				}
+			}
+		}
+	}
+	#!
+	form_detail:: &params, &input_data, &output_data, &error_info
+	{
+		do render_view(@form_detail,params, input_data, output_data,error_info)
+	}
+
+	form_case:: &params, &input_data, &output_data, &error_info
+	{
+		do render_view(@form_caso,params, input_data, output_data,error_info)
+	}
+	 
+	#!
+	form_administracion::&params, &input_data, &output_data, &error_info
+	{
+		do render_view(@form_admin,params, input_data, output_data,error_info)
+	}
+}

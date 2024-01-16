@@ -1,0 +1,27 @@
+#include "dkli.dkh"
+#!
+module "lista de consultas"
+{
+
+	//consultas
+	@keyfield="sys_pk"
+	@fields_system="@uuid,now(),now(),0,0,0,'',''"
+	@list_pipelines="select * from sales_pipeline order by name desc"
+	@get_pipeline="select * from sales_pipeline where #<@keyfield>=@pipeline_id"
+	@list_stages="select * from sales_pipeline_stage "
+	@get_stage="select * from sales_pipeline_stage where #<@keyfield>=@stage_id order by sequence"
+
+	//Varibles para realizar la sentencia insert
+	@insert_pipeline="insert into sales_pipeline values(0,#<@fields_system>,@name,@probability)"
+	@insert_pipeline_stages="insert into sales_pipeline_stage values(0,#<@fields_system>,@ref_pipeline,@sequence,@name,@probability,@stuck_in_days)"
+
+	//variables para usar la sentencia update
+	
+	@update_pipeline="update sales_pipeline set name=@name,probability=@probability where #<@keyfield>=@pipeline_id"
+	@update_stage="update sales_pipeline_stage set name=@name,probability=@probability,stuck_in_days=@stuck_in_days where #<@keyfield>=@pipeline_id and sys_pk=@stage_id"
+	@update_sequences="update sales_pipeline_stage set sequence=@sequence where sys_pk=@sys_pk"
+
+	@delete_stage="delete from sales_pipeline_stage where ref_pipeline=@pipeline_id and sys_pk=@stage_id"
+	@delete_pipeline="delete from sales_pipeline where #<@keyfield>=@pipeline_id"
+	@delete_stages_pipeline="delete from sales_pipeline_stage where #<@keyfield>=@pipeline_id"
+}

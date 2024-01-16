@@ -1,0 +1,78 @@
+#include "dkli.dkh"
+#!
+module "index.dkl"
+{
+	#include "functions.dkh"
+	#include "serialize.dkh"
+	#include "dbr.dkh"
+
+	@SITE_INCLUDES="config.dk,config.dkl,lib.dk,list_query.dk"
+	#include "website.dkl"
+	do _map_function(@lib_dbr,"induxsoft.Connections.Manager","ResetStorage","reset","void","void")
+	
+	@http_context<"response/headers/Access-Control-Allow-Origin">:"*"
+	@http_context<"response/headers/Access-Control-Allow-Methods">:"*"//permite al servicio soportar todos los metodos http
+    @http_context<"response/headers/Access-Control-Allow-Headers">:"*"//"Content-Type, Authorization, X-Requested-With"
+
+    if @@(@http_context,"request/headers/REQUEST_METHOD")=="OPTIONS"{return}
+   	
+	go api_base_service (responseJSONdata:response) 
+	{
+		method=@@(@http_context,"request/headers/REQUEST_METHOD")
+		auth=@@(@http_context,"$request/headers/http_Authorization")
+
+		ref params=@@(@http_context,"&request/get")
+		ref postData=@@(@http_context,"&request/post")
+
+		if isnull(postData)
+		{
+			ref postData=from.json(field.dstr(@http_context,"request/post_string","{}"))
+		}
+		
+		if not(@use_bdconfig)
+		{
+			ref dataws=parse.authorization(auth)
+			qname=@qname_prefix+"ws"+@@(dataws,"ws")+"@"+@qname_app
+		}
+		else{qname=""}
+
+		ref db=open.db(qname)
+
+		switch method
+		{
+			case "GET"
+			{
+				that @get(db,params)->*data
+			}
+			case "POST"
+			{
+				that @post(db,params,postData)->*data
+			}
+			case "PATCH"
+			{
+				that @patch(db,params,postData)->*data
+			}
+			case "DELETE"
+			{
+				that @delete(db,params,postData)->*data
+			}
+			default{that @custom(db,params,postData)->*data}
+		}
+		if dbr.is_open(db){do dbr.close(db)}
+
+		using response
+		{
+			@"success":@true
+			@"data*":data
+		}
+
+		exception
+		{
+			using response
+			{
+				@"success":@false
+				@"message":last_error()
+			}
+		}
+	}
+}

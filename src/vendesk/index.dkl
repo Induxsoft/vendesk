@@ -1,0 +1,7 @@
+#include "dkli.dkh"
+#!
+module "index"
+{
+	#$
+	p{"r8-clientes.ws.induxsoft.net"}
+}

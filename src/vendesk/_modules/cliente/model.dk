@@ -1,0 +1,460 @@
+#include "dkli.dkh"
+#!
+module "cliente.dk"
+{
+    @list_query = "SELECT c.sys_pk, c.sys_guid, c.sys_recver, c.sys_timestamp, c.sys_dtcreated, c.sys_deleted,
+    c.codigo, c.nombre, c.rfc, c.email, c.saldo,c.curp,ifnull(d1.Sys_PK,0) AS sys_pkd1,ifnull(d2.Sys_PK,0) AS sys_pkd2,ifnull(d3.Sys_PK,0) AS sys_pkd3
+    FROM cliente c
+    LEFT JOIN domicilio d1 ON c.Domicilio1=d1.Sys_PK
+    LEFT JOIN domicilio d2 ON c.Domicilio2=d2.Sys_PK
+    LEFT JOIN domicilio d3 ON c.Domicilio3=d3.Sys_PK where c.codigo like '%@{text_filter}%' or nombre like '%@{text_filter}%' or rfc like '%@{text_filter}%' or curp like '%@{text_filter}%' or email like '%@{text_filter}%' order by nombre asc limit 100"
+
+    @read_query = "select sys_pk, sys_guid, sys_recver, sys_timestamp, sys_dtcreated, sys_deleted, 
+    codigo, descuento,precio,limitecredito,saldo,monedero,saldopuntos,nombre, tipo, rfc, curp, domicilio1,domicilio2,domicilio3,diascredito,notas,codcuenta,telefonos, fax, email, website, contacto1,contacto2,contacto3, agente, idivisa,zona,status
+    from cliente where sys_pk=@_entity_id limit 1;"
+    
+    _replace::data
+    {
+        data=replace(data,"|","=")
+        data=replace(data,"_","/")
+        data=replace(data,"-","+")
+        return data
+    }
+    get_query_filter::&get_data,where
+    {
+         if parse.bool(@@(get_data,"showclosed"))
+        {
+            where="1=1"
+        }
+
+        if @@(get_data,"$de")!="" && @@(get_data,"$a")!="" && @@(get_data,"$fecha")!="@cual"
+        {
+            where =where + " and date(u.Sys_TimeStamp) BETWEEN "+"'"+@@(get_data,"$de")+"'"+" and "+"'"+@@(get_data,"$a")+"'"
+        }
+        if @@(get_data,"$fecha")!="" && @@(get_data,"$fecha")!="@cual"
+        {
+            switch @@(get_data,"$fecha")
+            {
+                case "@opened"{where=where+" and ifnull(u.`status`,0)=0"}
+                case "@closed"{where=where+" and ifnull(u.`status`,0)=1"}
+                case "@updated"{where=where+" and date(u.Sys_TimeStamp)=date(now())"}
+            }
+            
+        }
+        if @@(get_data,"$assing")!="" && @@(get_data,"$assing")!="@cual"
+        {
+            switch @@(get_data,"$assing")
+            {
+                case "@ami"
+                    {
+                        where=where + " and usuarioasignado="+"'"+@@(@http_context,"session/user/uid")+"'"
+                    }
+                case "@sin"{where=where + " and COALESCE(usuarioasignado,'')=''"}
+                default{
+                    where=where + " and COALESCE(usuarioasignado,'')='"+@@(get_data,"$assing")+"'"
+                }
+            }
+        }
+        if @@(get_data,"$por_vnmt")!="" && @@(get_data,"$por_vnmt")!="@cual"
+        {
+            switch @@(get_data,"$por_vnmt")
+            {
+                case "@vencid"{where=where + " and date(u.fechavencimiento)<date(now())"}
+                case "@hoy"{where=where + " and date(u.fechavencimiento)=date(now())"}
+                case "@semana"{where=where + " and week(u.fechavencimiento)=week(now())"}
+                case "@mes"{where=where + " and month(u.fechavencimiento)=month(now())"}
+            }
+        }
+        if @@(get_data,"$tipo")!=""
+        {
+            switch @@(get_data,"$tipo")
+            {
+                case "-1"{}
+                case "-2"{}
+                case "-3"{}
+                case "-4"{}
+                case "-5"{}
+                default {where=where + " and u.fk_tipocaso="+@@(get_data,"$tipo")}
+            }
+        }
+        return where
+    }
+    cliente.read::&db,&params
+    {
+        // ********************código de administración***********
+         
+        query="SELECT u.Sys_PK,u.`status` AS completado,ut.uf_descripcion as tipo,ut.`status` ,ifnull(up.descripcion,'') AS prioridad,
+                 u.asunto,u.fechaapertura AS fecha,u.horaapertura,COALESCE(u.usuarioabre,'')usuarioabre,COALESCE(u.usuarioasignado,'')usuarioasignado,
+                      COALESCE(u.usuariocierra,'')usuariocierra,uf_color,u.fk_cliente AS cliente,
+                 COALESCE(u.fechavencimiento,NOW())fechavencimiento,c.codigo,c.nombre
+                 FROM ut_crmcasos u INNER JOIN ut_crmtipocaso ut ON u.fk_tipocaso=ut.Sys_PK
+                 left JOIN ut_crmprioridad up ON u.fk_prioridad=up.Sys_PK
+                 inner JOIN cliente c ON u.fk_cliente=c.sys_pk where "
+                 
+         if parse.bool(@@(params,"_admin"))
+        {
+
+            where="ifnull(u.`status`,0)=0 "
+
+            new cliente{}
+            if @@(params,"params")!=""
+            {
+                // do rise_error(00,to.json(@http_context))
+                base64=from.base64(_replace(@@(params,"params")))
+
+                ref get_data=from.json(base64)
+
+                params<"seccion_filter*">:get_data
+               where= get_query_filter(get_data,where)
+
+            }
+            
+            if @@(params,"text_filter")!=""
+            {
+                cliente<"text_filter">:@@(params,"$text_filter")
+                where=where + " and u.asunto like '%@{text_filter}%' or u.descripcion like '%@{text_filter}%' or u.sys_pk like '%@{text_filter}%' or u.usuarioasignado like '%@{text_filter}%' or u.usuarioabre like '%@{text_filter}%' or c.codigo like '%@{text_filter}%' or c.nombre like '%@{text_filter}%' or c.sys_pk like '%@{text_filter}%'"
+            }
+
+            query=query+" "+where+" ORDER by u.Sys_TimeStamp desc limit 200;"
+            // do rise_error(00,query)
+             cliente<"tablecasos*">:dbr.list(db,query,cliente)
+            return cliente
+        }
+        // *********************************
+        ref cliente=entity.read(db,params)
+
+        // do rise_error(00,to.json(cliente))
+        @http_context<"request/cliente*">:cliente
+        // do rise_error(00,to.json(cliente))
+        if not(parse.bool(@@(params,"_detail")))
+        {
+            new data_agente { @"agente":@@(cliente,"#agente") }
+            new data_divisa { @"divisa":@@(cliente,"#idivisa") }
+            new c{@"domicilio1":@@(cliente,"domicilio1")}
+            new contacto{
+                @"contacto1":@@(cliente,"#contacto1")
+                @"contacto2":@@(cliente,"#contacto2")
+                @"contacto3":@@(cliente,"#contacto3")
+            }
+            new domicilio
+            {
+                @"domicilio1":@@(cliente,"#domicilio1")
+                @"domicilio2":@@(cliente,"#domicilio2")
+                @"domicilio3":@@(cliente,"#domicilio3")
+            }
+            cliente<"domicilio*">:dbr.rec(db,"select codpos,colonia,direccion,notas,telefonos,sys_pk,sys_recver,iciudad from domicilio where sys_pk=@domicilio1",c)
+            cliente<"domicilio2*">:dbr.rec(db,"select codpos,colonia,direccion,notas,telefonos,sys_pk,sys_recver,iciudad from domicilio where sys_pk=@domicilio2",domicilio)
+            cliente<"domicilio3*">:dbr.rec(db,"select codpos,colonia,direccion,notas,telefonos,sys_pk,sys_recver,iciudad from domicilio where sys_pk=@domicilio3",domicilio)
+            
+            cliente<"ciudad*">:dbr.rec(db,"select codigo,codigotel,nombre,sys_pk,sys_recver,Estado from ciudad where sys_pk=@iciudad",@@(cliente,"&domicilio"))
+            cliente<"ciudad2*">:dbr.rec(db,"select codigo,codigotel,nombre,sys_pk,sys_recver,Estado from ciudad where sys_pk=@iciudad",@@(cliente,"&domicilio2"))
+            cliente<"ciudad3*">:dbr.rec(db,"select codigo,codigotel,nombre,sys_pk,sys_recver,Estado from ciudad where sys_pk=@iciudad",@@(cliente,"&domicilio3"))
+            
+            cliente<"estado*">:dbr.rec(db,"select codigo,nombre,IPais,sys_pk,sys_recver from edoprov where sys_pk=@estado",@@(cliente,"&ciudad"))
+            cliente<"estado2*">:dbr.rec(db,"select codigo,nombre,IPais,sys_pk,sys_recver from edoprov where sys_pk=@estado",@@(cliente,"&ciudad2"))
+            cliente<"estado3*">:dbr.rec(db,"select codigo,nombre,IPais,sys_pk,sys_recver from edoprov where sys_pk=@estado",@@(cliente,"&ciudad3"))
+            
+            cliente<"pais*">:dbr.rec(db,"select codigo,codigotel,nombre,sys_pk,sys_recver from pais where sys_pk=@IPais",@@(cliente,"&estado"))
+            cliente<"pais2*">:dbr.rec(db,"select codigo,codigotel,nombre,sys_pk,sys_recver from pais where sys_pk=@IPais",@@(cliente,"&estado2"))
+            cliente<"pais3*">:dbr.rec(db,"select codigo,codigotel,nombre,sys_pk,sys_recver from pais where sys_pk=@IPais",@@(cliente,"&estado3"))
+            //cliente<"agente*">:dbr.rec(db,"select codigo,nombre,sys_pk,sys_recver from agente where sys_pk=@agente",data_agente)
+            cliente<"divisa*">:dbr.rec(db,"select codigo,descripcion,sys_pk,sys_recver from divisa where sys_pk=@divisa",data_divisa)
+            cliente<"contacto1*">:dbr.rec(db,"select sys_pk,ifnull(c.Tratamiento,'')tratamiento,concat(Nombre,' ',Apellidos) nombre from contacto c where c.sys_pk=@contacto1;",contacto)
+            cliente<"contacto2*">:dbr.rec(db,"select sys_pk,ifnull(c.Tratamiento,'')tratamiento,concat(Nombre,' ',Apellidos) nombre from contacto c where c.sys_pk=@contacto2;",contacto)
+            cliente<"contacto3*">:dbr.rec(db,"select sys_pk,ifnull(c.Tratamiento,'')tratamiento,concat(Nombre,' ',Apellidos) nombre from contacto c where c.sys_pk=@contacto3;",contacto)
+            return cliente
+
+        }
+        
+        new p
+        {
+            @"sys_pk":@@(cliente,"#sys_pk")
+            @"text_alert":@@(params,"filter_alert")
+            @"filter_casos":@@(params,"/filter_case")
+        }
+        // *********************************código para mostrar los casos de cada cliente*************
+        if @@(params,"$_case")!=""
+        {
+            cliente<"caso*">:dbr.rec(db,"SELECT u.sys_pk,u.sys_guid,u.Sys_TimeStamp AS fecha,u.`status` AS completado,u.asunto,u.descripcion,u.usuarioabre,
+            u.usuarioasignado,u.horaapertura,u.fk_tipocaso,date(IFNULL(u.fechavencimiento,NOW())) AS fechavencimiento,
+            TIME(ifnull(u.fechavencimiento,NOW())) AS horavencimiento,u.fk_prioridad,u.uf_color,
+            SUBSTRING_INDEX(SUBSTRING_INDEX(u.duracion, '-', 1), '-', -1) AS dayduration,
+            SUBSTRING_INDEX(SUBSTRING_INDEX(u.duracion, '-', 2), '-', -1)AS selectduration
+            FROM ut_crmcasos u WHERE u.Sys_PK=@_case order BY u.Sys_TimeStamp desc;",params)
+            cliente<"casonota*">:dbr.list(db,"SELECT u.Sys_PK,u.Sys_TimeStamp AS fecha,u.notas,u.usuario FROM ut_crmnotacaso u WHERE u.fk_caso=@_case order BY u.Sys_TimeStamp desc",params)
+            
+            return cliente
+        }
+
+
+        if not(field.exist(params,"i")) && not(field.exist(params,"_key")){return cliente}
+
+        switch @@(params,"i")
+        {
+            case "alert"
+            {
+                cliente<"tablealertas*">:dbr.list(db,"SELECT u.Sys_PK,u.activa,u.Sys_TimeStamp AS fecha,u.descripcion,u.usuariocrea FROM ut_crm_alerts u 
+              WHERE u.fk_cliente=@sys_pk AND (u.descripcion like '%@{text_alert}%' or u.usuariocrea like '%@{text_alert}%') ORDER BY u.Sys_TimeStamp desc",p)
+                break
+            }
+            case "aten"
+            {
+               cliente<"tableatencion*">:dbr.list(db,"SELECT  u.Sys_PK,u.Sys_TimeStamp as fecha,u.notas,u.usuario FROM ut_crmnotacliente u WHERE u.fk_cliente=@sys_pk ORDER BY u.Sys_TimeStamp desc",p)
+                break
+            }
+            case "case"
+            {
+                cliente<"tablecasos*">:dbr.list(db,query + " u.fk_cliente=@sys_pk AND (u.Sys_PK like '%@{filter_casos}%' or u.asunto like '%@{filter_casos}%') ORDER by u.Sys_TimeStamp desc;",p)
+                break
+            }
+            default
+            {
+                if not(field.exist(params,"i"))
+                {
+                    cliente<"count_alerts">:dbr.num(db,"SELECT COUNT(*) FROM ut_crm_alerts u WHERE u.activa and u.fk_cliente=@sys_pk;",p)
+                    if @@(cliente,"#count_alerts")>0
+                    {
+                        params<"i">:"alert"
+                        cliente<"tablealertas*">:dbr.list(db,"SELECT u.Sys_PK,u.activa,u.Sys_TimeStamp AS fecha,u.descripcion,u.usuariocrea FROM ut_crm_alerts u 
+                        WHERE u.fk_cliente=@sys_pk AND (u.descripcion like '%@{text_alert}%' or u.usuariocrea like '%@{text_alert}%') ORDER BY u.Sys_TimeStamp desc",p)
+                        return cliente
+                    }
+                }
+                cliente<"saldovenc">:dbr.num(db,"select coalesce(sum(z.saldo),0) as Total from qryCRMSaldoClientes z where dias > 0 and z.PKCliente =@sys_pk",p)
+                cliente<"vtnanio">:dbr.num(db,"Select round(coalesce(sum(z.Importe),0),2) as Total from qryCRMVentas z Where z.Anio =YEAR(NOW()) AND z.ICliente =@sys_pk",p)
+                cliente<"vtnaniopas">:dbr.num(db,"Select round(coalesce(sum(z.Importe),0),2) as Total from qryCRMVentas z Where z.Anio =YEAR(NOW())-1 AND z.ICliente =@sys_pk",p)
+                cliente<"vtnmesaniocurrent">:@@(cliente,"#vtnanio") /parse.num(date_str(now(),"MM"))
+                cliente<"vtnmesaniopas">:@@(cliente,"#vtnaniopas") / 12
+                cliente<"comentarios*">:dbr.list(db,"SELECT u.Sys_PK,concat(u.Sys_TimeStamp,' -',u.uf_Usuario)AS usuario,u.uf_Mensaje AS mensaje  FROM ut_bitcliente u 
+                WHERE u.uf_ICliente=@sys_pk ORDER BY u.Sys_TimeStamp desc",p)
+                break
+            }
+        }
+        
+        return cliente
+    }
+    entity.blank::&db, &params
+    {
+        new read
+        {
+            @"codigo":"<A>"
+        }
+        return read
+    }
+
+    cliente.create::&db,&params,&data
+    {
+        if @@(data,"monedero")==""{data<"monedero">:0}
+        if @@(data,"puntos")==""{data<"puntos">:0}
+        if @@(data,"saldo")==""{data<"saldo">:0}
+        if @@(data,"SaldoPuntos")==""{data<"SaldoPuntos">:0}
+        if @@(data,"codigo")=="<A>"
+        {
+            data<"codigo">:dbr.str(db,"select (if(count(*)>=1,CONCAT('cl',LPAD(Cast(MAX(SUBSTR(codigo,4,4))+1 as char),'4','0')),'cl0001')) as codigo from cliente where codigo like 'cl%'" ,@null)
+        }
+        
+        ref cliente=record.copy(data,"codcuenta,codigo,curp,descuento,diascredito,email,fax,LimiteCredito,nombre,notas,Precio,rfc,status,telefonos,website")
+        if @@(cliente,"codcuenta")=="0" || @@(cliente,"codcuenta")==""
+            {do field.remove(cliente,"codcuenta")}
+        if @@(cliente,"curp")==""{do field.remove(cliente,"curp")}
+        cliente<"puntos">:@@(data,"puntos")
+        cliente<"monedero">:@@(data,"monedero")
+        cliente<"saldo">:@@(data,"saldo")
+        cliente<"Sys_DTExported*">:now()
+        if @@(data,"cont1")!="" && @@(data,"cont1")!="@"
+        {
+            cliente<"contacto1">:@@(data,"#cont1")
+        }
+        if @@(data,"cont2")!="" && @@(data,"cont2")!="@"
+        {
+            cliente<"contacto2">:@@(data,"#cont2")
+        }
+        if @@(data,"cont3")!="" && @@(data,"cont3")!="@"
+        {
+            cliente<"contacto3">:@@(data,"#cont3")
+        }
+        if @@(data,"agente")!="" && @@(data,"agente")!="@"
+        {
+            cliente<"agente">:@@(data,"#agente")
+        }
+        if @@(data,"tipo")!="" && @@(data,"tipo")!="@"
+        {
+            cliente<"tipo">:@@(data,"#tipo")
+        }
+        if @@(data,"zona")!="" && @@(data,"zona")!="@"
+        {
+            cliente<"zona">:@@(data,"#zona")
+        }
+        if @@(data,"IDivisa")!="" && @@(data,"IDivisa")!="@"
+        {
+            cliente<"IDivisa">:@@(data,"#IDivisa")
+        }
+        if @@(data,"status")!="" && @@(data,"status")!="@"
+        {
+            cliente<"status">:@@(data,"#status")
+        }
+
+        if @@(data,"iciudad")!=""{
+            data<"direccion">:"||"+@@(data,"calle")+"|"+@@(data,"next")+"|"+@@(data,"nint")+"||"
+            if length(@@(data,"direccion"))>1024{data<"direccion">:@@(data,"calle")}
+            new domicilio1
+            {
+                @"CodPos":@@(data,"codpos")
+                @"colonia":@@(data,"colonia")
+                @"direccion":cut(@@(data,"direccion"),1024)
+                @"telefonos":@@(data,"domtelefonos")
+                @"iciudad":@@(data,"iciudad")
+            }
+            ref domi1=dbr.save(db,"domicilio",domicilio1)
+            cliente<"Domicilio1">:@@(domi1,"sys_pk")
+        }
+         
+        if @@(data,"iciudad2")!=""{
+            data<"direccion">:"||"+@@(data,"calle2")+"|"+@@(data,"next2")+"|"+@@(data,"nint2")+"||"
+            if length(@@(data,"direccion"))>1024{data<"direccion">:@@(data,"calle")}
+            new domicilio2
+            {
+                @"CodPos":@@(data,"codpos2")
+                @"colonia":@@(data,"colonia2")
+                @"direccion":cut(@@(data,"direccion"),1024)
+                @"telefonos":@@(data,"telefonos2")
+                @"iciudad":@@(data,"iciudad2")
+            }
+            ref domi1=dbr.save(db,"domicilio",domicilio2)
+            cliente<"Domicilio2">:@@(domi1,"sys_pk")
+        }
+        if @@(data,"iciudad3")!=""{
+            data<"direccion">:"||"+@@(data,"clle3")+"|"+@@(data,"next3")+"|"+@@(data,"nint3")+"||"
+            if length(@@(data,"direccion"))>1024{data<"direccion">:@@(data,"calle")}
+            new domicilio3
+            {
+                @"CodPos":@@(data,"codpos3")
+                @"colonia":@@(data,"colonia3")
+                @"direccion":cut(@@(data,"direccion"),1024)
+                @"telefonos":@@(data,"telefonos3")
+                @"iciudad":@@(data,"iciudad3")
+            }
+            ref domi1=dbr.save(db,"domicilio",domicilio3)
+            cliente<"Domicilio3">:@@(domi1,"sys_pk")
+        }
+        
+        ref res=entity.create(db,params,cliente)
+    }
+
+    cliente.update::&db,&params,&data
+    {
+        if @@(data,"monedero")==""{data<"monedero">:0}
+        if @@(data,"puntos")==""{data<"puntos">:0}
+        if @@(data,"saldo")==""{data<"saldo">:0}
+        if @@(data,"SaldoPuntos")==""{data<"SaldoPuntos">:0}
+        if @@(data,"codigo")=="<A>"
+        {
+            data<"codigo">:dbr.str(db,"select (if(count(*)>=1,CONCAT('cl',LPAD(Cast(MAX(SUBSTR(codigo,4,4))+1 as char),'4','0')),'cl0001')) as codigo from cliente where codigo like 'cl%'" ,@null)
+        }
+        
+        ref cliente=record.copy(data,"codcuenta,codigo,curp,descuento,diascredito,email,fax,LimiteCredito,nombre,notas,Precio,rfc,status,telefonos,website")
+        cliente<"sys_pk">:@@(data,"sys_pk")
+        cliente<"sys_recver">:@@(data,"sys_recver")
+        if @@(cliente,"codcuenta")=="0" || @@(cliente,"codcuenta")==""
+            {do field.remove(cliente,"codcuenta")}
+        if @@(cliente,"curp")==""{do field.remove(cliente,"curp")}
+        cliente<"puntos">:@@(data,"puntos")
+        cliente<"monedero">:@@(data,"monedero")
+        cliente<"saldo">:@@(data,"saldo")
+        
+        if @@(data,"cont1")!="" && @@(data,"cont1")!="@"
+        {
+            cliente<"contacto1">:@@(data,"#cont1")
+        }
+        if @@(data,"cont2")!="" && @@(data,"cont2")!="@"
+        {
+            cliente<"contacto2">:@@(data,"#cont2")
+        }
+        if @@(data,"cont3")!="" && @@(data,"cont3")!="@"
+        {
+            cliente<"contacto3">:@@(data,"#cont3")
+        }
+        if @@(data,"agente")!="" && @@(data,"agente")!="@"
+        {
+            cliente<"agente">:@@(data,"#agente")
+        }
+        if @@(data,"tipo")!="" && @@(data,"tipo")!="@"
+        {
+            cliente<"tipo">:@@(data,"#tipo")
+        }
+        if @@(data,"zona")!="" && @@(data,"zona")!="@"
+        {
+            cliente<"zona">:@@(data,"#zona")
+        }
+        if @@(data,"IDivisa")!="" && @@(data,"IDivisa")!="@"
+        {
+            cliente<"IDivisa">:@@(data,"#IDivisa")
+        }
+        if @@(data,"status")!="" && @@(data,"status")!="@"
+        {
+            cliente<"status">:@@(data,"#status")
+        }
+
+        if @@(data,"iciudad")!=""{
+            data<"direccion">:"||"+@@(data,"calle")+"|"+@@(data,"next")+"|"+@@(data,"nint")+"||"
+            if length(@@(data,"direccion"))>1024{data<"direccion">:@@(data,"calle")}
+            new domicilio1
+            {
+                @"CodPos":@@(data,"codpos")
+                @"colonia":@@(data,"colonia")
+                @"direccion":cut(@@(data,"direccion"),1024)
+                @"telefonos":@@(data,"domtelefonos")
+                @"iciudad":@@(data,"iciudad")
+            }
+            ref domi1=dbr.save(db,"domicilio",domicilio1)
+            cliente<"Domicilio1">:@@(domi1,"sys_pk")
+        }
+        if @@(data,"iciudad2")!=""{
+            data<"direccion">:"||"+@@(data,"calle2")+"|"+@@(data,"next2")+"|"+@@(data,"nint2")+"||"
+            if length(@@(data,"direccion"))>1024{data<"direccion">:@@(data,"calle")}
+            new domicilio2
+            {
+                @"CodPos":@@(data,"codpos2")
+                @"colonia":@@(data,"colonia2")
+                @"direccion":cut(@@(data,"direccion"),1024)
+                @"telefonos":@@(data,"telefonos2")
+                @"iciudad":@@(data,"iciudad2")
+            }
+            ref domi1=dbr.save(db,"domicilio",domicilio2)
+            cliente<"Domicilio2">:@@(domi1,"sys_pk")
+        }
+        if @@(data,"iciudad3")!=""{
+            data<"direccion">:"||"+@@(data,"clle3")+"|"+@@(data,"next3")+"|"+@@(data,"nint3")+"||"
+            if length(@@(data,"direccion"))>1024{data<"direccion">:@@(data,"calle")}
+            new domicilio3
+            {
+                @"CodPos":@@(data,"codpos3")
+                @"colonia":@@(data,"colonia3")
+                @"direccion":cut(@@(data,"direccion"),1024)
+                @"telefonos":@@(data,"telefonos3")
+                @"iciudad":@@(data,"iciudad3")
+            }
+            ref domi1=dbr.save(db,"domicilio",domicilio3)
+            cliente<"Domicilio3">:@@(domi1,"sys_pk")
+        }
+        
+        ref res=entity.update(db,params,cliente)
+    }
+
+    cliente.delete::&db, &params
+    {
+        do entity.delete(db,params)
+        do dbr.delete(db,"domicilio","sys_pk=@sys_pkd1",params)
+        do dbr.delete(db,"domicilio","sys_pk=@sys_pkd2",params)
+        do dbr.delete(db,"domicilio","sys_pk=@sys_pkd3",params)
+        exception{do rise_error(99,last_error())}
+        return @null
+    }
+
+    point @read to cliente.read
+    point @blank to entity.blank
+    point @create to cliente.create
+    point @update to cliente.update
+    point @delete to cliente.delete
+}
+

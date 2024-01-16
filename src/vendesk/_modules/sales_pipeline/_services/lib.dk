@@ -1,0 +1,215 @@
+#include "dkli.dkh"
+#!
+module "lib.dk"
+{
+	#!
+	api_base_service::
+    {
+        expose responseJSONdata
+
+        new responseJSONdata
+        {
+            @"success":@true
+        }
+        
+        that
+        
+        @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+        @http_context<"response/output">:"text"
+        @http_context<"response/text">: to.json(responseJSONdata)
+    }
+
+    #!
+    parse.authorization::auth
+    {
+        if contains(tolower(auth),"bearer"){ auth=trim(replace(tolower(auth),"bearer","")) }
+
+        if auth==""{do rise_error(99,"No se pudo procesar el encabezado con la autorización básica. base64(jobsgroup:clave_de_api).")}
+
+        if not(contains(auth,":")){auth=from.base64(trim(auth))}
+
+        ref dauth=split(auth,":")
+        
+        if @count(dauth)>1
+        {
+            new dataAuth
+            {
+                @"ws":list.str(dauth,0)
+                @"ids":list.str(dauth,1)
+            }
+            return dataAuth
+        }
+        do rise_error(99,"No se pudo procesar el encabezado con la autorización básica. base64(jobsgroup:clave_de_api).")
+    }
+
+    #!
+    crm.post_action::&db,&params,&postData
+    {
+        if @@(params,"pipeline_id")==""{ref newpipeline=crm.create_pipeline(db,params,postData)}
+        else{ref newpipeline=crm.create_stage(db,params,postData)}
+
+        return newpipeline
+    }
+
+    #!
+    crm.patch_action::&db,&params,&postData
+    {
+        ref newdata=crm.update_pipeline(db,params,postData)
+        return newdata
+    }
+
+    #!
+    crm.del_action::&db,&params,&postData
+    {
+        
+        if @@(params,"stage_id")!=""{do crm.delete_stage(db,params)}
+        else{do crm.delete_pipeline(db,params)}
+        
+        do field.remove(params,"pipeline_id")
+        return crm.get_pipelines(db,params)
+    }
+
+
+    #!
+    open.db::qname
+    {
+        module
+        {
+            do reset()
+            exception{}
+        }
+        if qname!=""{return dbr.open(qname)}
+        
+        return dbr.open(@@(@config,"connection"))
+    }
+
+    #!
+    crm.get_pipelines::&db,&params
+    {
+        if @@(params,"pipeline_id")!=""{ref pipelines=dbr.list(db,ftext(@get_pipeline),params)}
+        else{ref pipelines=dbr.list(db,ftext(@list_pipelines),params)}
+
+        for i=0;i<@count(pipelines)
+        {
+            ref pipeline=@item(pipelines,i)
+            params<"pipeline_id">:@@(pipeline,"sys_pk")
+            pipeline<"stages*">:crm.get_pipeline_stages(db,params)
+        }
+        
+        return pipelines
+    }
+
+    #!
+    crm.get_pipeline_stages::&db,&params
+    {
+        
+        if @@(params,"stage_id")!=""{ref stages=dbr.list(db,ftext(@get_stage),params)}
+        else if @@(params,"$pipeline_id")!=""{
+            @keyfield="ref_pipeline"
+            params<"stage_id">:@@(params,"$pipeline_id")
+            ref stages=dbr.list(db,ftext(@get_stage),params)
+        }
+        else{ref stages=dbr.list(db,ftext(@list_stages),params)}
+        
+        return stages
+    }
+
+    #!
+    crm.create_pipeline::&db,&params,&postData
+    {
+        postData<"uuid">:cut(uuid(),31)
+        do dbr.execute(db,ftext(@insert_pipeline),postData)
+        @keyfield="sys_guid"
+        params<"pipeline_id">:@@(postData,"uuid")
+        return crm.get_pipelines(db,params)
+    }
+
+    #!
+    crm.create_stage::&db,&params,&postData
+    {
+
+        ref stages=@@(postData,"&stages")
+
+        do dbr.begin(db)
+            stages<"ref_pipeline">:@@(params,"pipeline_id")
+            stages<"uuid">:cut(uuid(),31)
+            do dbr.execute(db,ftext(@insert_pipeline_stages),stages)
+        do dbr.commit(db)
+        // @keyfield="sys_guid"
+        // params<"stage_id">:@@(stages,"uuid")
+        return crm.get_pipelines(db,params)
+
+        exception
+        {
+            if dbr.in_transaction(db){do dbr.rollback(db)}
+            do rise_error(99,last_error())
+        }
+    }
+
+    #!
+    crm.update_pipeline::&db,&params,&postData
+    {
+        postData<"pipeline_id">:@@(params,"pipeline_id")
+        if @@(params,"stage_id")!=""{do crm.update_stage(db,params,postData)}
+        else if @@(postData,"#secuences"){do crm.update_stage_secuence(db,params,postData)}
+        else{do dbr.execute(db,ftext(@update_pipeline),postData)}
+        
+        @keyfield="sys_pk"
+        return crm.get_pipelines(db,params)
+    }
+
+    #!
+    crm.update_stage_secuence::&db,&params,&postData
+    {
+        ref secuences=@@(postData,"&dataSecuences")
+        
+        for i=0;i<@count(secuences)
+        {
+            secuence=list.str(secuences,i)
+            new p
+            {
+                @"sys_pk":secuence
+                @"sequence":i
+            }
+            do dbr.execute(db,@update_sequences,p)
+        }
+    }
+
+    #!
+    crm.update_stage::&db,&params,&postData
+    {
+        @keyfield="ref_pipeline"
+        ref data=@@(postData,"&stages")
+        data<"pipeline_id">:@@(params,"pipeline_id")
+        data<"stage_id">:@@(params,"stage_id")
+        do dbr.execute(db,ftext(@update_stage),data)
+
+    }
+
+    #!
+    crm.delete_pipeline::&db,&params
+    {
+        @keyfield="ref_pipeline"
+        do dbr.execute(db,ftext(@delete_stages_pipeline),params)
+        @keyfield="sys_pk"
+        do dbr.execute(db,ftext(@delete_pipeline),params)
+    }
+
+    #!
+    crm.delete_stage::&db,&params
+    {
+        do dbr.execute(db,ftext(@delete_stage),params)
+    }
+
+    #!
+    crm.custom::&db,&params,&postData
+    {
+        return @null
+    }
+    point @post   to crm.post_action
+    point @patch   to crm.update_pipeline
+    point @delete   to crm.del_action
+    point @get     to crm.get_pipelines
+    point @custom to crm.custom
+   
+}

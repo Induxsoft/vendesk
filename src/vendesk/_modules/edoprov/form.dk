@@ -1,0 +1,88 @@
+#include "dkli.dkh"
+#!
+
+module "form.dk"
+{
+    #include "functions.dkh"
+    #include "dbr.dkh"
+    #include "uielements.dkl"
+
+    do @context.begin(@crud_context)
+
+    new def_pais
+    {
+        @"datatable*":dbr.list(@("&database"),"select sys_pk, nombre from pais order by nombre;",@null)
+        member "attributes"
+        {
+            @"class":"form-control"
+            @"name":"ipais"
+        }
+
+        @"text_field":"nombre"
+        @"value_field":"sys_pk"
+        @"selected":@('./ipais')
+    }
+
+    ##
+    div(class = "d-flex justify-content-center")
+		{
+			div(class= "w-50 mt-4" id="dv-w")
+			{
+                div(class="card")
+                {
+                    div(class="#<ifstr(@('error/message')!='','alert alert-danger','')>"){$"#<@('error/message')>"}
+
+                    div(class= "card-body")
+                    {	
+                        form(action="#" method="POST")
+                        {
+                            div(class="mb-3 row")       
+                            {
+                                div(class="col-sm-6")
+                                {
+                                    label("style"="font-weight:bold"){"Código:"}
+                                    input(type="text" class="form-control" name="codigo" value="#<@('./codigo')>" required="true" maxlength="8")
+                                }
+                                div(class="col-sm-6")
+                                {
+                                    label("style"="font-weight:bold"){"Nombre:"}
+                                    input(type="text" class="form-control" name="nombre" value="#<@('./nombre')>" required="true" maxlength="50")
+                                }
+                                        
+                            }
+                           
+                            div(class="mb-3")
+                            {
+                                label(class="form-label"){"País:"}
+                                ##
+                                    do uie.dbSelect(def_pais)
+                                ##
+                            }
+                           
+                            input(type="hidden" name="sys_recver" value="#<@('./sys_recver')>")
+                            div(class="text-center pt-4")
+                            {
+                                button(type="submit" class="btn btn-primary m-1"){"Guardar"}
+                                a(class="btn btn-danger m-1" href="../" ){"Cancelar"}
+                            }
+                            
+                        }
+                    }
+                }
+            }
+            #$
+            style{
+                $'
+                @media only screen and (max-width: 500px) and (min-width: 100px)
+                {
+                    #dv-w{
+                        margin-top:30 !important;
+                        width:80% !important;
+                    }
+                }
+                '
+            }
+        }
+        ##
+        do @context.end()
+}

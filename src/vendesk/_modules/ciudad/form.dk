@@ -1,0 +1,59 @@
+#include "dkli.dkh"
+#!
+
+module "form.dk"
+{
+    #include "functions.dkh"
+    #include "dbr.dkh"
+    #include "uielements.dkl"
+    do @context.begin(@crud_context)
+
+    new def_ciudad
+    {
+        @"datatable*":dbr.list(@("&database"),"select sys_pk, codigo, nombre from edoprov order by nombre;",@null)
+        member "attributes"
+        {
+            @"class":"form-control"
+            @"name":"estado"
+        }
+
+        @"text_field":"nombre"
+        @"value_field":"sys_pk"
+        @"selected":@('./estado')
+    }
+    #$
+     div(class="m-0 row justify-content-center" )
+    {
+        div(class="col-lg-6")
+        {
+            div(class="card")
+            {
+                div(class="card-body")
+                {
+                    div(class="#<ifstr(@('error/message')!='','alert alert-danger','')>"){$"#<@('error/message')>"}
+                    form(action="." method="POST")
+                    {
+                        
+                        label("style"="font-weight:bold"){"Código:"}
+                        input(type="text" class="form-control" name="codigo" value="#<@('./codigo')>" required="true" maxlength="8")
+                        label("style"="font-weight:bold"){"Nombre:"}
+                        input(type="text" class="form-control" name="nombre" value="#<@('./nombre')>" required="true" maxlength="50")
+                        label("style"="font-weight:bold"){"Código de área:"}
+                        input(type="text" class="form-control" name="codigotel" value="#<@('./codigotel')>"  maxlength="5")
+                        label{"Estado:"}
+                        ##
+                        do uie.dbSelect(def_ciudad)
+                        ##br{}
+                        input(type="hidden" name="sys_recver" value="#<@('./sys_recver')>")
+                        button(class="btn btn-primary m-1"){"Guardar"}
+                        a(href="../" class="btn btn-danger m-1"){"Cancelar"}
+                    }
+                }
+            }
+            
+        }
+        
+    }
+    #!
+    do @context.end()
+}

@@ -1,0 +1,41 @@
+#include "dkli.dkh"
+#!
+program
+{
+    #include "functions.dkh"
+    #include "dbr.dkh"
+    #include "serialize.dkh"
+    #include "uielements.dkl"
+    #include "uielements.dbtable.dkl"
+    
+    new res{}
+    ref datos=from.json(field.dstr(@http_context,"request/POST_STRING","{}"))
+    
+    switch @@(datos,"act")
+    {
+        case "antsld"{resp=runscript("list_Atiguedad_saldo.dkl","listData",datos)}
+        case "ultvnts"{resp=runscript("ultimas_ventas.dkl","listData",datos)}
+        case "cat_prioridad"{resp=runscript("list_catalogos.dkl","listData",datos)}
+        case "cat_tiposcasos"{resp=runscript("list_tiposcasos.dkl","listData",datos)}
+    }
+    
+    
+    
+    using res 
+    { 
+        @"success": @true
+        @"data":resp
+    }
+
+    exception
+    {
+        using res{}
+        res<"message">:last_error()
+        res<"success">:@false
+
+    }
+
+        @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+        @http_context<"response/output">:"text"
+        @http_context<"response/text">: to.json(res)
+}

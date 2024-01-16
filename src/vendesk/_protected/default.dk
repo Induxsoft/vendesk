@@ -1,0 +1,484 @@
+#include "dkli.dkh"
+#!
+program
+{
+	#include "config.dkl"
+	#include "dbr.dkh"
+	//Esta función establece las etiquetas para Google Analytics y los Pixeles de Google
+	analytics::
+	{
+		html_tags=""
+		//Etiquetas para todos los sitios de Induxsoft
+		html_tags='
+		<!-- Global site tag (gtag.js) - Google Ads -->
+		<script async src="https://www.googletagmanager.com/gtag/js?id=AW-983585543"></script>
+		<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag() { dataLayer.push(arguments); }
+			gtag("js", new Date());
+
+			gtag("config", "AW-983585543");
+		</script>
+
+		<!-- Facebook Pixel Code -->
+		<script>
+			!function (f, b, e, v, n, t, s) {
+				if (f.fbq) return; n = f.fbq = function () {
+					n.callMethod ?
+					n.callMethod.apply(n, arguments) : n.queue.push(arguments)
+				};
+				if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = "2.0";
+				n.queue = []; t = b.createElement(e); t.async = !0;
+				t.src = v; s = b.getElementsByTagName(e)[0];
+				s.parentNode.insertBefore(t, s)
+			}(window, document, "script",
+				"");
+			fbq("init", "448581942562055");
+			fbq("track", "PageView");
+		</script>
+		<noscript><img height="1" width="1" style="display:none"
+				src="https://www.facebook.com/tr?id=448581942562055&ev=PageView&noscript=1" /></noscript>
+		<!-- End Facebook Pixel Code -->
+		'
+
+		//Etiquetas por nombre de host
+		switch tolower(@@(@http_context,"request/headers/http_host"))
+		{
+			case "es.induxsoft.net"
+			{
+				html_tags=html_tags+'
+				<!-- Global site tag (gtag.js) - Google Analytics -->
+				<script async src="https://www.googletagmanager.com/gtag/js?id=G-PPGEGLQ2RH"></script>
+				<script>
+					window.dataLayer = window.dataLayer || [];
+					function gtag(){dataLayer.push(arguments);}
+					gtag("js", new Date());
+
+					gtag("config", "G-PPGEGLQ2RH");
+				</script>
+
+				<script src="/js/simplevalid.js"></script>
+				'
+			}
+			case "docs.induxsoft.net"
+			{
+				html_tags=html_tags+'
+				<!-- Global site tag (gtag.js) - Google Analytics -->
+				<script async src="https://www.googletagmanager.com/gtag/js?id=G-SYXZZQV0KD"></script>
+				<script>
+				window.dataLayer = window.dataLayer || [];
+				function gtag(){dataLayer.push(arguments);}
+				gtag("js", new Date());
+
+				gtag("config", "G-SYXZZQV0KD");
+				</script>
+				'
+			}
+			case "marketing.induxsoft.net"
+			{
+
+			}
+			case "intranet.induxsoft.net"
+			{
+				html_tags=""
+			}
+		}
+
+		exception{}
+		
+		return html_tags
+	}
+
+	// Esta sección de código debe mejorarse, la manera como se está obteniendo el correo del usuario no es la mejor
+	correo_usuario::
+	{
+		ref db=dbr.open("connections@induxsoft/epifania@induxsoft")
+		new p
+		{
+			@"uid":@@(@http_context,"session/user/uid")
+		}
+
+		return dbr.str(db,"select correo from epifania_pefiles.ws_perfil where sys_guid=@uid limit 1;",p)
+
+		exception{}
+
+		return ""
+	}
+	// ************************************************************************
+
+	chatWidget::
+	{
+		if not(isanyword(tolower(@@(@http_context,"request/headers/http_host")),"es.induxsoft.net,docs.induxsoft.net")) { return "" }
+		user_data=""
+
+		if @@(@http_context,"session/user/name")!=""
+		{
+			user_data=ftext('
+			Tawk_API.visitor = {
+			name : "#<@@(@http_context,"session/user/name")>",
+			email : "#<correo_usuario()>"
+			};
+			')
+		}
+
+		html='<!--Start of Tawk.to Script-->
+			<script type="text/javascript">
+			var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+			#<user_data>
+			(function(){
+			var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+			s1.async=true;
+			s1.src="https://embed.tawk.to/5d277b62bfcb827ab0cb5895/default";
+			s1.charset="UTF-8";
+			s1.setAttribute("crossorigin","*");
+			s0.parentNode.insertBefore(s1,s0);
+			})();
+			</script>
+			<!--End of Tawk.to Script-->
+			'
+
+			return ftext(html)
+	}
+
+    htmlReplace::txt
+	{
+		txt=replace(txt,"&","&amp;")		
+		txt=replace(txt,"<","&lt;")
+		txt=replace(txt,">","&gt;")
+		return txt
+	}
+
+	renderMarkDown:: input
+	{
+		
+		text html{$'
+			<script src="/js/showdown.min.js"></script>
+			<div id="markdown_viewer" style="overflow: auto;">#<htmlReplace(input)></div>
+			<script>
+				$(document).ready(function(){
+					$("#markdown_viewer").html((new showdown.Converter({"tables":true})).makeHtml($("#markdown_viewer").text()));
+				});
+			</script>
+		'}
+
+		return ftext(html)
+	}
+
+	renderText:: input
+	{
+		text html{$'
+			<pre><code id="text_viewer">#<htmlReplace(input)></code></pre>
+		'}
+
+		return ftext(html)
+	}
+
+	current_url::hst
+	{
+		host=@@(@http_context,"request/headers/HTTP_HOST")
+		protocol=ifstr(parse.bool(@@(@http_context,"request/headers/HTTPS")),"https","http")
+		path=replace(field.dstr(@http_context,"request/headers/request_uri","/"),"\\","/")
+		if hst{return protocol+"://"+path.concat(host,"/"+ifstr(@@(@http_context,"request/get/ws")!="",@@(@http_context,"request/get/ws")+"/",""))}
+		path=list.str(split(path,"?"),0)
+
+		return protocol+"://"+path.concat(host,path)
+	}
+
+	add_url_params::url, params
+	{
+		return ifstr(contains(url,"?"),url+"&"+params,url+"?"+params)
+	}
+
+	isInduxsoftInternalUser::
+	{
+		return @@(@http_context,"session/user/user_type")=="induxsoft_internal"
+	}
+
+	prepare_urls::
+	{
+		@url_induxsoft="https://es.induxsoft.net/mx/"
+		@url_soluciones="https://es.induxsoft.net/mx/soluciones/"
+		@url_productos="https://es.induxsoft.net/mx/productos/"
+		@url_documentacion="https://docs.induxsoft.net/es/"
+		@url_soporte="https://es.induxsoft.net/mx/soporte/"
+
+		//@url_login="https://api.induxsoft.net/auth/login/form/?success="+url_encode(add_url_params(current_url(),"ids=@token"))
+		@url_login="https://api.induxsoft.net/auth/login/form/?success="+url_encode(add_url_params("https://induxsoft.net/?idpf=c82c5d6cad4a4ff7bb9e6c82e9e4b6d6","induxsoft_ids=@token"))
+		if not(field.exist(@http_context,"session/user")) { return }
+		@url_logout="https://api.induxsoft.net/auth/logout/?ids="+@@(@http_context,"session/user/ids")+"&url="+url_encode(current_url(@false))
+		@url_intranet="https://intranet.induxsoft.net/?ids="+@@(@http_context,"session/user/ids")
+		@url_portal="https://induxsoft.net/?idpf=c82c5d6cad4a4ff7bb9e6c82e9e4b6d6&induxsoft_ids="+@@(@http_context,"session/user/ids")
+		@url_perfil="https://induxsoft.net/?idpf=caf8d2ced3e348d6bf47571f92aed99e&induxsoft_ids="+@@(@http_context,"session/user/ids")
+
+		//@url_induxsoft=@url_induxsoft+"?ids="+@@(@http_context,"session/user/ids")
+		@url_soluciones=@url_soluciones+"?ids="+@@(@http_context,"session/user/ids")
+		//@url_productos=@url_productos+"?ids="+@@(@http_context,"session/user/ids")
+		@url_documentacion=@url_documentacion+"?ids="+@@(@http_context,"session/user/ids")
+		@url_soporte=@url_soporte+"?ids="+@@(@http_context,"session/user/ids")
+
+	}
+	
+	url_folderview::
+	{
+		switch @@(@http_context,"session/resource/type")
+		{
+			case "folder"
+			{
+				return path.concat(replace(@@(@http_context,"session/resource/fullpath"),"\\","/"),".folderview")
+			}
+			case "file"
+			{
+				return path.concat(replace(@@(@http_context,"session/resource/path"),"\\","/"),".folderview")
+			}
+		}
+
+		return ""
+	}
+
+	html_session::
+	{
+		if not(field.exist(@http_context,"session/user")) 
+		{ 
+			return '<li class="nav-item"><a href="'+@url_login+'" 
+					class="nav-link">Iniciar sesión</a></li>'
+		}
+
+		internal_user=isInduxsoftInternalUser()
+		
+		return '<li class="nav-item"><a href="'+@url_portal+'" class="nav-link">Portal</a></li>'+ifstr(internal_user,'
+				<li class="nav-item"><a href="'+@url_intranet+'" class="nav-link">Intranet</a></li>
+				'+FolderViewNavVarItem(),'')+'
+				<li class="nav-item"><a href="'+@url_perfil+'" 
+					class="nav-link">'+cut(@@(@http_context,"session/user/name"),15)+'</a></li>
+				<li class="nav-item"><a href="'+@url_logout+'" class="nav-link"><i class="fas fa-sign-out-alt mt-1"></i></a></li>'
+	}
+
+	#!
+	get_tocfile::
+	{
+		f=replace(dir.name(@@(@http_context,"request/headers/document_uri")),"\\","/")
+		
+		while f!="" && f!="/"
+		{
+			if file.exists(path.concat(f,@toc_file)) { return path.concat(f,@toc_file) }
+			f=replace(dir.name(f),"\\","/")
+		}
+		exception{ }
+		return ""
+	}
+
+	FolderViewNavVarItem::
+	{
+		url=url_folderview()
+		if trim(url)=="" { return "" }
+		html='<li class="nav-item"><a href="'+url+'" class="nav-link"><i class="fa-regular fa-folder mt-1"></i></a></li>'
+		return html
+	}
+	//para obtener la url actual
+   
+    html_session_error::
+    {
+    	//request/get/url debe venir codificada con la funcion url_encode
+    	if @@(@http_context,"request/get/url")!=""
+    	{
+    		url=@@(@http_context,"request/get/url")
+    	}else{url=url_encode(current_url(@true)+"?token=@token")}
+        
+        return ftext('<div class="">
+        <h1>Debe iniciar sesión</h1>
+        <p>El contenido al que intenta acceder, requiere autenticación.</p>
+        <a href="https://api.induxsoft.net/auth/login/form/?success=#<url>" class="btn btn-success">Iniciar sesión</a></div>')
+    }
+    show_page_session_error::page
+    {
+        // @http_context<"response/headers/content-type">:"text/html;charset=utf-8"
+        // @http_context<"response/output">:"text"
+        // @http_context<"response/text">: 
+       return ftext(page)
+    }
+	#!
+	html_toc:: content
+	{
+		toc=get_tocfile()
+		toc_content=""
+		if @@(@http_context,"$session/user/ids")==""{
+	        return show_page_session_error(file.rtext(@session_error_page))
+	    }
+		if toc==""
+		{
+			html='<div class="">
+			#<printNav_Bar()>
+			#<content>
+			</div>'//container-fluid
+		}
+		else
+		{
+			toc_content=runscript(toc,"http_context",@http_context)
+			exception{ toc_content=last_error()}
+			html='
+				<div class="container-fluid ">
+					<div class="row">
+						<nav id="sideTOC" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+							<div class="position-sticky pt-3">
+								#<toc_content>
+							</div>
+						</nav>
+						<div class="col-md-9 ms-sm-auto col-lg-10 px-md-4 id="markdown_container">
+							#<content>
+						</div>
+					</div>
+				</div>
+			'
+		}
+		return ftext(html)
+	}
+	get_address::&objs
+	{
+		html=""
+		url_back = "#"
+		count = @count(objs)
+
+		for i=0;i<count
+        {
+            ref obj = list.obj(objs,i)
+            html=ftext(html+'<span class="nav_span">></span>
+             <a class="nav_a" title="#<@@(obj,"type")>" id="#<@@(obj,"id")>" href="#<@@(obj,"target")>">#<@@(obj,"link")></a>')
+        }
+
+		if count == 1 {
+			url_back = @@(list.obj(objs,0), "target")
+		}
+		else if count > 1 {
+			url_back = @@(list.obj(objs,count-2), "target")
+		}
+
+		html=html+'<script>
+			$(document).ready(function(){
+				$("#go_back_btn").attr("href","#<url_back>");
+			});
+		</script>'
+		
+        return ftext(html)
+	}
+	printNav_Bar::
+	{
+		last_path=@@(@http_context,"last_path")
+		isadmin=@@(@http_context,"#session/get_permission")
+		isleader=@@(@http_context,"#session/get_permission_leader")
+		setting=""
+
+		if field.exist(@http_context,"last_path") && last_path!="" && (isadmin || isleader){
+			setting=ftext('<a title="Ajustes" id="" href="/#<last_path>" style="color: #0d6efd;text-decoration:none;">
+		                    <img height="25"; src="#<@icon_setting>"/>
+		                </a>')
+		}
+		return ftext('<nav class="navbar_path fixed-top " style="z-index:100000000000">
+			<a class="nav_a" title="home" href="#<path.concat(@url_origin,"?token="+@@(@http_context,"session/user/ids"))>"> <img src="#<@icon_home>"></a>
+			'+get_address(@@(@http_context,"&session/address_workspaces"))+'
+	        <div id="a_logout">
+	        	#<@@(@http_context,"session/user/name")>
+	        	#<setting>
+	            <a title="Cerrar sesión" href="https://api.induxsoft.net/auth/logout/?ids=#<@@(@http_context,"session/user/ids")>&url=#<url_encode(current_url(@true))>" id="a_logout1">
+	                <i style="font-size:20px;" class="fas fa-sign-out-alt" "aria-hidden"="true" id="btn-logout"></i>
+	            </a>
+	        </div></nav><br>
+	        <style>
+			
+			.navbar_path{
+			    display: flex;
+			    align-items: center;
+			    flex-wrap: wrap;
+			    padding: 0 1rem 0 2rem;
+			    background-color: #eee;
+			    outline: 1px solid #ddd;
+			}
+			.nav_a{
+			    text-decoration: none;
+			    color: var(--medium-gray-color);
+			}
+			.nav_a:hover{
+			    color: #000;
+			}
+			.nav_a img{
+			    height: 1.5rem;
+			}
+			#btn-logout
+			{
+			    color: #555;
+			}
+			#a_logout
+			{
+			    flex-grow: 1;
+			    text-align: right;
+			    display:flex;
+			    justify-content:end;
+			    align-items:center;
+			    gap:2px;
+			}
+			
+			.nav_span{
+			    color: #ccc;
+			    font-weight: 800;
+			    margin: 0 .5rem;
+			}
+
+			
+		</style>
+
+	        ')
+	}
+
+    
+	do prepare_urls()
+    root_path=@@(@http_context,"request/headers/document_root")
+    content=@@(@http_context,"response/text")
+    doc_ext=tolower(file.extension(@@(@http_context,'session/resource/fullpath')))
+	doc_name=tolower(file.name(@@(@http_context,'session/resource/fullpath')))
+	doc_folder=""
+	if @@(@http_context,'session/resource/type')=="folder" && doc_ext==""
+	{
+		doc_ext=tolower(file.extension(@@(@http_context,'request/headers/path_translated')))
+		doc_name=tolower(file.name(@@(@http_context,'request/headers/path_translated')))
+		doc_folder=@@(@http_context,'session/resource/fullpath')
+	}
+
+    @http_context<"response/headers/Content-Type">:"text/html;charset=utf-8"
+
+	
+    switch doc_ext
+    {
+        case ".md"
+        {
+            @http_context<"response/text">:renderMarkDown(content)
+			if doc_name=="readme.md" && doc_folder!=""
+			{
+				@http_context<"request/get/uri">:doc_folder
+				@http_context<"response/text">:ftext('
+				<div class="row">
+					<div class="col">
+						#<@@(@http_context,"response/text")>
+					</div>
+				</div>
+				<div class="row">
+					<div class="col">
+						#<runscript(@filesviewer,"http_context",@http_context)>
+					</div>
+				</div>
+				')
+			}
+        }
+        case ".txt"
+        {
+            @http_context<"response/text">: renderText(content)
+        }
+    }
+	@http_context<"response/text">:html_toc(@@(@http_context,"response/text"))
+    @http_context<"response/text">:ftext(file.rtext(@template))
+
+	exception
+	{
+		##
+		div{$"#<last_error()>"}
+		##
+	}
+}

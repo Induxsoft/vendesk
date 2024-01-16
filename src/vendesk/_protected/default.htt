@@ -1,0 +1,102 @@
+<html lang="#<@lang>" id="top">
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- HTML Meta Tags -->
+    <title>#<field.dstr(@http_context,'session/resource/properties/web_meta_tags/title','Induxsoft')>
+    </title>
+    <link rel="icon" sizes="192x192" href="#<field.dstr(@http_context,'session/resource/properties/web_meta_tags/favicon','')>">
+    <meta name="description"
+        content="#<field.dstr(@http_context,'session/resource/properties/web_meta_tags/description','')>">
+
+    <meta name="keywords"
+        content="#<field.dstr(@http_context,'session/resource/properties/web_meta_tags/keywords','')>">
+
+    <!-- Facebook Meta Tags -->
+    <meta property="og:url" content="#<field.dstr(@http_context,'session/resource/properties/web_meta_tags/og/url','')>">
+    <meta property="og:type" content="#<field.dstr(@http_context,'session/resource/properties/web_meta_tags/og/type','website')>">
+    <meta property="og:title"
+        content="#<field.dstr(@http_context,'session/resource/properties/web_meta_tags/og/title','Induxsoft')>">
+    <meta property="og:description"
+        content="#<field.dstr(@http_context,'session/resource/properties/web_meta_tags/og/description','')>">
+    <meta property="og:image" content="#<field.dstr(@http_context,'session/resource/properties/web_meta_tags/og/image','')>">
+	
+    <!-- Twitter Meta Tags -->
+    <meta name="twitter:card" content="#<field.dstr(@http_context,'session/resource/properties/web_meta_tags/twitter/card','summary')>">
+    <meta property="twitter:domain" content="#<field.dstr(@http_context,'session/resource/properties/web_meta_tags/twitter/domain','induxsoft.net')>">
+    <meta property="twitter:url" content="#<field.dstr(@http_context,'session/resource/properties/web_meta_tags/twitter/url','')>">
+    <meta name="twitter:title"
+        content="#<field.dstr(@http_context,'session/resource/properties/web_meta_tags/twitter/title','Induxsoft')>">
+    <meta name="twitter:description"
+        content="#<field.dstr(@http_context,'session/resource/properties/web_meta_tags/twitter/description','')>">
+    <meta name="twitter:image" content="#<field.dstr(@http_context,'session/resource/properties/web_meta_tags/twitter/image','')>">
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"
+        integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
+
+    <!-- Bootstrap & POPPER JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-gtEjrD/SeCtmISkJkNUaaKMoLD0//ElJ19smozuHV6z3Iehds+3Ulb9Bn9Plx0x4"
+        crossorigin="anonymous"></script>
+
+    <script src="https://kit.fontawesome.com/bbbd9b9be4.js" crossorigin="anonymous"></script>
+	<script src="/_js/definitive.api.js" crossorigin="anonymous"></script>
+	<link href="/_css/styles.css" rel="stylesheet"></link>
+
+
+</head>
+
+<body style="padding-top:20px;">
+    <style>
+        :root{
+            --filter-panel-height: 15.648rem;
+            --table-cases-height: 30rem;
+        }
+        .table-cases-filter-height{
+            height: calc(var(--table-cases-height) - var(--filter-panel-height)) !important;
+        }
+        body {
+            margin-top: 0;
+        }
+        #main_navbar {
+            opacity: 1;
+        }
+        th{font-size:.9rem !important;color:#777 !important;font-weight:400 !important;}
+        tr{font-size:.9rem;}
+        .nav-tabs .nav-link.active{
+            border:none !important;
+            border-bottom:2px solid #0B5ED7 !important;
+            text-decoration: none !important;
+            color: #000 !important;
+            background-color: #F0F8FF !important;
+        }
+        .gray-hover:hover{color:#000 !important;}
+		.placeholder-glow .placeholder
+		{animation: placeholder-glow 2s ease-in-out infinite;}
+		.placeholder {
+			/*display: inline-block;*/
+			min-height: 1em;
+			vertical-align: middle;
+			cursor: wait;
+			background-color: currentcolor;
+			opacity: .5;
+		}
+		@keyframes placeholder-glow {
+		  50% {
+			opacity: .2;
+		  }
+		}
+    </style>
+    
+    #<@@(@http_context,"response/text")>
+        
+    <footer>    
+    </footer>
+</body>
+
+</html>

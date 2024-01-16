@@ -1,0 +1,129 @@
+﻿#include "dkli.dkh"
+#!
+module "Controller configs"
+{
+	#include "functions.dkh"
+	#include "serialize.dkh"
+	#include "dbr.dkh"
+	#include "crudl/crudl.dk"
+
+	@base_path = "_modules"
+	@path_root = "web/192.168.0.125/packs/vendesk"
+	
+	//No modifique a menos que sepa lo que está haciendo
+	if not(field.exist(@@(@http_context,"&session"),"resource")) { @http_context<"session/resource*"> : record.create() }
+	if not(field.exist(@@(@http_context,"&session/resource"),"properties")) { @http_context<"session/resource/properties*"> : record.create() }
+	if not(field.exist(@@(@http_context,"&session/resource/properties"),"web_meta_tags")) { @http_context<"session/resource/properties/web_meta_tags*"> : record.create() }
+	if not(field.exist(@@(@http_context,"&session/resource/properties/web_meta_tags"),"web_page")) {@http_context<"session/resource/properties/web_meta_tags/web_page*"> : record.create() }
+	if not(field.exist(@@(@http_context,"&session/resource/properties"),"web_page")) { @http_context<"session/resource/properties/web_page*"> : record.create() }
+
+	@http_context<"session/resource/properties/web_meta_tags/title"> : "VenDesk"
+	text end_head
+	{$'
+	<!-- VenDesk -->
+	<link href="/$/vendesk/css/styles.css" rel="stylesheet"></link>
+	<style>
+        :root{
+            --filter-panel-height: 15.648rem;
+            --table-cases-height: 30rem;
+        }
+        .table-cases-filter-height{
+            height: calc(var(--table-cases-height) - var(--filter-panel-height)) !important;
+        }
+        body {
+            margin-top: 0;
+        }
+        #main_navbar {
+            opacity: 1;
+        }
+        th{font-size:.9rem !important;color:#777 !important;font-weight:400 !important;}
+        tr{font-size:.9rem;}
+        .nav-tabs .nav-link.active{
+            border:none !important;
+            border-bottom:2px solid #0B5ED7 !important;
+            text-decoration: none !important;
+            color: #000 !important;
+            background-color: #F0F8FF !important;
+        }
+        .gray-hover:hover{color:#000 !important;}
+		.placeholder-glow .placeholder
+		{animation: placeholder-glow 2s ease-in-out infinite;}
+		.placeholder {
+			/*display: inline-block;*/
+			min-height: 1em;
+			vertical-align: middle;
+			cursor: wait;
+			background-color: currentcolor;
+			opacity: .5;
+		}
+		@keyframes placeholder-glow {
+		  50% {
+			opacity: .2;
+		  }
+		}
+    </style>
+	<!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+	<!-- FontAwesome -->
+	<script src="https://kit.fontawesome.com/bbbd9b9be4.js" crossorigin="anonymous"></script>
+	<!-- JS -->
+	<script src="/$/vendesk/js/definitive.api.js" crossorigin="anonymous"></script>
+	'}
+	@http_context<"session/resource/properties/web_page/end_head"> : end_head
+
+	_entities_type=ifstr(@@(@http_context,"$request/get/_view")!="",@@(@http_context,"$request/get/_view"),@@(@http_context,"$request/get/_program"))
+	_entity_id=ifstr(@@(@http_context,"$request/get/_view")!="",@@(@http_context,"$request/get/_entity_id")+"/"+@@(@http_context,"$request/get/_view")+"/","")
+	if _entities_type!=@@(@http_context,"$request/get/_program"){@http_context<"request/get/_entity_id">:""}
+
+	do crudl.routes.pattern("/_program/")
+	do crudl.routes.entity(_entities_type,_entities_type)
+
+	@dbmvc_path="crudl/"
+	
+	@auto_crud=@true
+
+	@db_engine="MY_SQL"	
+
+	@list_view="list.dk"
+	@form_view="form.dk"
+	@error_view="error.dk"
+
+	if @@(@http_context,"#request/get/vnts"){@list_view="ventas.dk"}
+	if @@(@http_context,"#request/get/cfg"){@list_view="cfg_lead.dk"}
+	if @@(@http_context,"#request/get/prc"){@list_view="prospecto.dk"}
+
+	@entity_id_blank="_new"
+
+	@dkl_view_ext=".dk"
+	@websencia_ext=".jsnwm"
+
+    @crudl.user=""
+    @crudl.pwd=""
+
+    @path_template_protected=@path_root+"/_protected/default.htt"
+
+    @crudl.enable_idreplacement=@true
+
+    @ws=@@(@http_context,"request/get/ws")
+
+    @crudl.qname=""
+
+	@crudl.access_privilege='
+	{
+		"access":[{"workspace":"'+@ws+'"}]
+	}'
+
+	@form_detail="detail.dk"
+	@form_caso="view_caso.dkl"
+	@form_admin="administracion.dkl"
+	@entity_id_detail="_detail"
+	@entity_id_admin="_admin"
+
+	#include "./config.dkl"
+
+	t=path.concat(@path_root, @base_path) 
+	t=path.concat(t,@list_view)
+
+	#include "crudl/controller.dkl"
+	// do rise_error(00,operation)
+}

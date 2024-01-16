@@ -1,0 +1,17 @@
+#include "dkli.dkh"
+#!
+program
+{
+	#include "functions.dkh"
+	#include "serialize.dkh"
+	#include "webauth.dkl"
+	#include "fso/fso.config.dk"
+	#include "fso/fso.dk"
+
+
+    default_doc="index.dkl,index.html,index.htm,index.txt,default.dkl,default.html,default.htm,default.txt,readme.md"
+    
+     // do rise_error(99,to.json(@http_request))
+   
+    
+}

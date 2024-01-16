@@ -1,0 +1,10 @@
+#include "dkli.dkh"
+#!
+module "error"
+{
+	#$
+	div(class="")
+	{
+		div(class="error"){"#<@message_error>"}
+	}
+}

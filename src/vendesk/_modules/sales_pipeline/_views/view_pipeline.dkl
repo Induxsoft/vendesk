@@ -1,0 +1,108 @@
+#include "dkli.dkh"
+
+
+#!
+module "body"
+{
+    #$
+    div(style="background-color:#F5F5F5;")
+    {
+        div(class="bg-white")
+        {
+            div(class="mt-3 d-flex p-4 pt-2 align-items-center border-bottom")
+            {
+                a(href="#" class="btn btn-sm btn-light bg-white border-0" onclick="controller.redirect(controller.getParams())" id="go_back_btn"){
+                    svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16"){
+                        path("fill-rule"="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z")
+                    }
+                }
+                h5(class="m-0 flex-grow-1"){$"Pipelines"}
+            }
+            div(class="line-row ps-5 pe-4 gap-2 border-bottom" id="body-first")
+            {
+                button(class="btn btn-sm btn-edit btn-light bg-white border-0 d-flex align-items-center gap-2" id="btn-edit" onclick="controller.view_modal('user_modal',true);"){
+                    svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16"){
+                        path(d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z")
+                    }
+                    $"Editar"
+                }
+                button(class="btn btn-create btn-light bg-white border-0 d-flex align-items-center gap-2" id="btn-more" onclick="controller.view_modal(); controller.clear()"){
+                    svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16"){
+                        path("fill-rule"="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2Z")
+                    }
+                    $"Agregar"
+                }
+                button(class="btn btn-delete btn-light bg-white border-0 d-flex align-items-center gap-2" id="btn-edit" onclick="controller.delete();"){
+                    svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16"){
+                        path(d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6Z")
+                        path(d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1ZM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118ZM2.5 3h11V2h-11v1Z")
+                    }
+                    $"Eliminar"
+                }
+            }
+            div(class="p-5 pt-2 pb-2 border-bottom")
+            {
+                select(id="pipelines" class="form-control-sm border-0 p-1" style="font-size:1rem;width:100%;background-color:#F5F5F5;"){option{""}}
+            }
+        }        
+
+        div(class="body-padre ps-5 pe-5 pt-5")
+        {
+            h6(class="text-secondary mb-2"){$"Stages"}
+            div(class="container p-3" id="conten-padre" style="margin-left:0 !important;min-width: 100%;")
+            {       
+                div(class="container-pruebas" id="first_stage")
+                {  
+                    div(class="head" draggable="true" id="head"){$""}
+                    div(class="container1"){
+                        div(class="grid-item grid-item-2  active" id="form" ){
+                            div(class="letras"){
+                                label(for="" class="label"){"Nombre"}
+                                br{}
+                                input(class="inputs input_name" type="text" placeholder="New stage" value="New stage" id="name")
+                                br{}br{}br{}
+                                
+                                label(for="" class="label"){"Probabilidad"}
+                                icons(class="ico popup"){
+                                    svg (xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" onclick="" class="bi bi-question-circle-fill" viewBox="0 0 16 16"){
+                                        path( d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.496 6.033h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286a.237.237 0 0 0 .241.247zm2.325 6.443c.61 0 1.029-.394 1.029-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94 0 .533.425.927 1.01.927z")
+                                        span (class="popuptext" id="prueba"){""}
+                                    }
+                                }
+                                br{}
+                                input(class="inputs" type="number" placeholder="100" value="0" min="0") br{}br{}
+                            }
+
+                            label(for="" class="label"){"Estancado en (dias)"}
+                            icons(class="ico popup"){
+                                svg (xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" id="icon1" onclick="" class="bi bi-question-circle-fill" viewBox="0 0 16 16"){
+                                    path( d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.496 6.033h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286a.237.237 0 0 0 .241.247zm2.325 6.443c.61 0 1.029-.394 1.029-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94 0 .533.425.927 1.01.927z")
+                                    span (class="popuptext" id="myPopup"){ h4{"Función de estancamiento"}"
+                                        El estancamiento de tratos te alerta de tratos inactivos coloreándolos en rojo.
+                                        Define aquí el período de estancamiento."}
+                                }
+                            }
+                            label(class="switch2") 
+                            {
+                                input(type="checkbox" id="togBtn2") 
+                                div(class="slider2 round2") {
+                                    span( class="on"){""}
+                                    span(class="off") {""}
+                                }
+                            }
+                        }
+                    }       
+                }
+                div(class="container-pruebas nuevo" id="new")
+                {
+                    svg(xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-file-plus" viewBox="0 0 16 16"){
+                        path(d="M8.5 6a.5.5 0 0 0-1 0v1.5H6a.5.5 0 0 0 0 1h1.5V10a.5.5 0 0 0 1 0V8.5H10a.5.5 0 0 0 0-1H8.5V6z")
+                        path(d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z")
+                    }
+                    h6(class="text-center" style="width:20rem;"){"Añadir una etapa"}
+                    button(class="btn btn-sm btn-light d-none"){"Nueva etapa"}     
+                }
+            }
+        }
+    }
+}

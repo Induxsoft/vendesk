@@ -1,0 +1,1163 @@
+#include "dkli.dkh"
+#!
+module "view-detail"
+{
+	//******************************************************** tablas generales **********************************************
+	cell_func_general::&params, &row, &cell
+    {
+        new headers
+        {
+            @"style":"position: sticky !important;top:0 !important;background-color:#fff;background:#ADD8E6"
+            @"class":"h6"
+        }
+        // do rise_error(99,to.json(params))
+        if @@(cell,"element")=="th"{cell<"attributes*">:headers}
+        if @@(cell,"element")=="th" && not(isnull(@@(params,"&columns/notas")))
+        {
+        	headers<"style">:"position: sticky !important;top:0 !important;background-color:#fff;"
+        	cell<"attributes*">:headers
+        }
+        if @@(cell,"cell_type")=="summary"{
+        	new head
+        	{
+        		@"style":"background:#ADD8E6"
+        	}
+        	cell<"attributes*">:head
+        }
+    }
+
+	#!
+	table.general::
+	{
+		new p
+		{
+			@"sys_pK":@("#./sys_pk")
+		}
+		new table_general
+	    {
+	    	@"datatable*":@("&./tablegeneral")
+
+	        @"value_field":"sys_pk"
+	        member @"attributes"
+	        {
+	        	@"class":"table table-hover"
+	        }
+	        member @"columns"
+	        {
+	            member @"fecha"
+	            {
+	                @"caption":"Fecha"
+	                // @"format":"dd/mm/yyyy"
+	            }
+	            member @"producto"
+	            {
+	                @"caption":"Producto"
+	            }
+				member @"referencia"
+	            {
+	                @"caption":"Referencia"
+	                @"summary":"Totales:"
+	            }
+				 member @"cantidad"
+	            {
+	                @"caption":"Cantidad"
+	                @"format":"#,#.00"
+	                @"summary":"sum"
+	                member @"attributes"
+	                {
+	                	@"style":"text-align:right"
+	                }
+	            }
+	            member @"importe"
+	            {
+	                @"caption":"Importe"
+	                 @"format":"$ #,#.00"
+	                 @"summary":"sum"
+
+	                member @"attributes"
+	                {
+	                	@"style":"text-align:right"
+	                }
+	            }
+	        }
+	    }
+	    point cell_link to cell_func_general
+	    using table_general
+	    {
+	    	@"before_cell*":cell_link
+	    }
+	    if @count(@@(table_general,"&datatable"))<=0
+	    {
+	    	#$
+            div(class="text-center")
+            {
+                h4(style="margin-top:5%"){"No se encontraron ventas."}
+            }
+            #!
+	    }else{
+	    	do uie.dbtable(table_general)
+	    }
+	    
+	}
+
+	#!
+	table.general_antigsaldo::
+	{
+		new p
+		{
+			@"sys_pK":@("#./sys_pk")
+		}
+		new table_general
+	    {
+	    	@"datatable*":@("&./antigsaldo")
+
+	        @"value_field":"sys_pk"
+	        member @"attributes"
+	        {
+	        	@"class":"table table-hover"
+	        }
+	        member @"columns"
+	        {
+	            member @"Fecha"
+	            {
+	                @"caption":"Fecha"
+	                // @"format":"dd/mm/yyyy"
+	            }
+	            member @"Aplicacion"
+	            {
+	                @"caption":"Vencimiento"
+	            }
+				member @"Referencia"
+	            {
+	                @"caption":"Documentos"
+	                @"summary":"Totales:"
+	            }
+				 member @"No_Vencido"
+	            {
+	                @"caption":"No Vencido"
+	                @"format":"$ #,#.00"
+	                 @"summary":"sum"
+	                member @"attributes"
+	                {
+	                	@"style":"text-align:right"
+	                }
+	            }
+	            member @"menor30"
+	            {
+	                @"caption":"1 - 30 dias"
+	                 @"format":"$ #,#.00"
+	                 @"summary":"sum"
+
+	                member @"attributes"
+	                {
+	                	@"style":"text-align:right"
+	                }
+	            }
+	            member @"menor60"
+	            {
+	                @"caption":"31 - 60 dias"
+	                 @"format":"$ #,#.00"
+	                 @"summary":"sum"
+
+	                member @"attributes"
+	                {
+	                	@"style":"text-align:right"
+	                }
+	            }
+	            member @"menor90"
+	            {
+	                @"caption":"61 - 90 dias"
+	                 @"format":"$ #,#.00"
+	                 @"summary":"sum"
+
+	                member @"attributes"
+	                {
+	                	@"style":"text-align:right"
+	                }
+	            }
+	            member @"mayor90"
+	            {
+	                @"caption":"Mayor a 90 dias"
+	                 @"format":"$ #,#.00"
+	                 @"summary":"sum"
+
+	                member @"attributes"
+	                {
+	                	@"style":"text-align:right"
+	                }
+	            }
+	        }
+	    }
+	    point cell_link to cell_func_general
+	    using table_general
+	    {
+	    	@"before_cell*":cell_link
+	    }
+	    if @count(@@(table_general,"&datatable"))<=0
+	    {
+	    	#$
+            div(class="text-center")
+            {
+                h4(style="margin-top:10%"){"No se encontraron ventas."}
+            }
+            #!
+	    }else{
+	    	do uie.dbtable(table_general)
+	    }
+	}
+	
+	#!
+	table.atencion::
+	{
+		new p
+		{
+			@"sys_pK":@("#./sys_pk")
+		}
+
+		new table_general
+	    {
+	        //@"datatable*":dbr.list(@("&database"),"SELECT  u.Sys_PK,u.Sys_TimeStamp as fecha,u.notas,u.usuario FROM ut_crmnotacliente u WHERE u.fk_cliente=@sys_pk ORDER BY u.Sys_TimeStamp desc",p)
+	    	@"datatable*":@("&./tableatencion")
+	        @"value_field":"sys_pk"
+	        member @"attributes"
+	        {
+	        	@"class":"table table-hover"
+	        }
+	        member @"columns"
+	        {
+	            member @"fecha"
+	            {
+	                @"caption":"Fecha"
+	                member @"attributes"
+	                {
+	                	@"style":"width:20%"
+	                }
+	            }
+	            member @"notas"
+	            {
+	                @"caption":"Notas"
+	                member @"attributes"
+	                {
+	                	@"style":"width:50%"
+	                }
+	            }
+				member @"usuario"
+	            {
+	                @"caption":"Usuario"
+	            }
+				
+	        }
+	    }
+	    point cell_link to cell_func_general
+	    using table_general{@"before_cell*":cell_link}
+	    if @count(@@(table_general,"&datatable"))<=0
+	    {
+	    	#$
+            div(class="text-center m-5 text-secondary")
+			{
+				h6{"Ningún dato encontrado."}
+			}
+            #!
+	    }else{
+	    	do uie.dbtable(table_general)
+	    }
+	}
+	
+	#!
+	cell_link_func::&params, &row, &cell
+    {
+        new headers
+        {
+            @"style":"position: sticky !important;top:0 !important;background-color:#fff;z-index:1000"
+            @"class":"h6"
+        }
+        if @@(cell,"element")=="th"{cell<"attributes*">:headers}
+        if @@(cell,"cell_type")!="data" &&  @@(cell,"cell_type")!="unknow" { return }
+        if @@(cell,"column")=="color"
+        {
+            cell<"text">:ftext('<div class="d-flex flex-wrap" id="group-colors">
+            	<button type="button" onclick=\'selectColor("#<@@(row,"sys_pk")>","255","#dc3545",event);\' style="background-color:#dc3545;" title="Rojo" class="color border-0 sinBorde"></button>
+            	<button type="button" onclick=\'selectColor("#<@@(row,"sys_pk")>","16711680","#007bff",event);\' style="background-color:#007bff;" title="Azul" class="color border-0 conBorde"></button>
+            	<button type="button" onclick=\'selectColor("#<@@(row,"sys_pk")>","65535","#ffc107",event);\' style="background-color:#ffc107;" title="Amarillo" class="color border-0 sinBorde"></button>
+            	<button type="button" onclick=\'selectColor("#<@@(row,"sys_pk")>","49152","#28a745",event);\' style="background-color:#28a745;" title="Verde" class="color border-0 sinBorde"></button>
+            	<button type="button" onclick=\'selectColor("#<@@(row,"sys_pk")>","16777215","#FCFCFC",event);\' style="border:1px solid #DFDFDF !important;background-color:#FFFFFF;border-color: #DFDFDF !important; " title="Sin color" class="color border-0 sinBorde"></button>
+            	</div>')
+
+			// cell<"text">:ftext('
+			// 	<div class="btn-group" role="group" aria-label="Button group with nested dropdown">
+            //         <div class="btn-group" role="group">
+            //             <button id="btnGroupDrop2" type="button" onclick="event.stopPropagation()" class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            //                 Seleccionar
+            //             </button>
+            //             <ul class="dropdown-menu" aria-labelledby="btnGroupDrop2" id="group-colors">
+            //                 <li class="d-flex align-items-center gap-2 p-2">
+            //                     <button type="button" onclick=\'selectColor("#<@@(row,"sys_pk")>","255","#dc3545",event);\' style="background-color:#dc3545;" title="Rojo" class="color border-0 sinBorde"></button>
+			// 					Rojo
+            //                 </li>
+            //                 <li class="d-flex align-items-center gap-2 p-2">
+            //                     <button type="button" onclick=\'selectColor("#<@@(row,"sys_pk")>","16711680","#007bff",event);\' style="background-color:#007bff;" title="Azul" class="color border-0 conBorde"></button>
+			// 					Azul
+            //                 </li>
+            //                 <li class="d-flex align-items-center gap-2 p-2">
+            //                     <button type="button" onclick=\'selectColor("#<@@(row,"sys_pk")>","65535","#ffc107",event);\' style="background-color:#ffc107;" title="Amarillo" class="color border-0 sinBorde"></button>
+			// 					Amarillo
+            //                 </li>
+			// 				<li class="d-flex align-items-center gap-2 p-2">
+            //                     <button type="button" onclick=\'selectColor("#<@@(row,"sys_pk")>","49152","#28a745",event);\' style="background-color:#28a745;" title="Verde" class="color border-0 sinBorde"></button>
+			// 					Verde
+            //                 </li>
+			// 				<li class="d-flex align-items-center gap-2 p-2">
+            //                     <button type="button" onclick=\'selectColor("#<@@(row,"sys_pk")>","16777215","#FCFCFC",event);\' style="border:1px solid #DFDFDF !important;background-color:#FFFFFF;border-color: #DFDFDF !important; " title="Sin color" class="color border-0 sinBorde"></button>
+			// 					Sin color
+            //                 </li>
+            //             </ul>
+            //         </div>
+            //     </div>
+			// ')
+            
+        }
+        if @@(cell,"column")=="completado"
+        {
+        	check=ifstr(@@(row,"#completado"),"checked","")
+        	cell<"text">:ftext('<input type="checkbox" style="pointer-events: none;opacity: .5;" #<check>="true">')
+        } 
+        if @@(cell,"column")=="_actions"
+        {
+        	style=ifstr(@@(row,"#completado"),"opacity: .5;","")
+        	event=ifstr(not(@@(row,"#completado")),"CloseCase("+@@(row,"$sys_pk")+",event)","event.stopPropagation();alert('El caso ya esta cerrado.');return;")
+        	// cell<"text">:ftext('<a id="btnEditar" href="#" onclick="EditCase(#<@@(row,"sys_pk")>,\'#<@@(row,"cliente")>\')" >
+        	// 	<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16" style="">
+			// 	  <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"></path>
+			// 	</svg>Editar</a> 
+        	// 	| <a href="#" onclick="#<event>" id="btnclose" style="#<style>">
+        	// 	<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lock-fill" viewBox="0 0 16 16">
+        	// 		<path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"></path>
+        	// 	</svg>Cerrar caso</a>')
+
+			cell<"text">:ftext('
+				<div class="btn-group" role="group" aria-label="Button group with nested dropdown">
+                    <div class="btn-group" role="group">
+                        <button id="btnGroupDrop2" type="button" onclick="event.stopPropagation()" class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            Opciones
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="btnGroupDrop2" onclick="event.stopPropagation()">
+                            <li class="d-flex align-items-center gap-2 p-2">
+                                <a id="btnEditar" href="#" onclick="EditCase(#<@@(row,"sys_pk")>,\'#<@@(row,"cliente")>\')"  class="text-decoration-none text-secondary d-flex align-items-center gap-2">
+									<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16" style="">
+								  		<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"></path>
+									</svg>
+									Editar
+								</a>
+                            </li>
+                            <li class="d-flex align-items-center gap-2 p-2">
+                                <a href="#" onclick="#<event>" id="btnclose" style="#<style>" class="text-decoration-none text-secondary d-flex align-items-center gap-2">
+									<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lock-fill" viewBox="0 0 16 16">
+										<path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"></path>
+									</svg>
+									Cerrar caso
+								</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+			')
+        }
+        
+    }
+    
+    #!
+    row.color::color
+    {
+    	switch color
+    	{
+    		case 255{return "border-left:6px solid #dc3545;border-bottom:3px solid #dc3545"} //rojo
+    		case 16711680{return "border-left:6px solid #007bff;border-bottom:3px solid #007bff"}//azul
+    		case 65535{return "border-left:6px solid #ffc107;border-bottom:3px solid #ffc107"}//amarillo
+    		case 49152{return "border-left:6px solid #28a745;border-bottom:3px solid #28a745"}//verde
+    		case 16777215{return "border-left:6px solid #FCFCFC;border-bottom:3px solid #FCFCFC"}//blanco sin color
+    		default{return ""}
+    	}
+    }
+
+    #!
+    get.color::color
+    {
+    	switch color
+    	{
+    		case 255{return "#dc3545"} //rojo
+    		case 16711680{return "#007bff"}//azul
+    		case 65535{return "#ffc107"}//amarillo
+    		case 49152{return "#28a745"}//verde
+    		case 16777215{return "#FCFCFC"}//blanco sin color
+    		default{return ""}
+    	}
+    }
+
+	#!
+    get.colorword::color
+    {
+    	switch color
+    	{
+    		case 255{return "#fff"}
+    		case 16711680{return "#fff"}
+    		case 65535{return "#000"}
+    		case 49152{return "#fff"}
+    		case 16777215{return "#000"}
+    		default{return ""}
+    	}
+    }
+
+    #!
+	table.casos::
+	{
+		new p
+		{
+			@"sys_pk":@("#./sys_pk")
+			@"filter_casos":@("$http/request/get/filter_case")
+		}
+
+		new table_general
+	    {
+	    	@"datatable*":@("&./tablecasos")
+	        @"value_field":"sys_pk"
+	        member @"attributes"
+	        {
+	        	@"class":"table table-hover"
+				@"style":"font-size:.9rem; th{border-bottom:1px solid #888;}"
+	        }
+	        member @"columns"
+	        {
+	        	member @"sys_pk"
+	            {
+	                @"caption":"#"
+	            }
+				member @"completado"
+	            {
+	                @"caption":"Status"
+	            }
+	            member @"tipo"
+	            {
+	                @"caption":"Tipo de caso"
+	            }
+	            member @"prioridad"
+	            {
+	                @"caption":"Prioridad"
+	            }
+	            member @"asunto"
+	            {
+	                @"caption":"Asunto"
+	            }
+	            member @"fecha"
+	            {
+	                @"caption":"Fecha de apertura"
+	                @"format":"dd/MM/yyyy"
+	            }
+	            member @"horaapertura"
+	            {
+	                @"caption":"Hora de apertura"
+	                @"format":"HH:mm:ss"
+	            }
+	            member @"usuarioabre"
+	            {
+	                @"caption":"Usuario crea"
+	            }
+	            member @"usuarioasignado"
+	            {
+	                @"caption":"Usuario asignado"
+	            }
+	            member @"usuariocierra"
+	            {
+	                @"caption":"Usuario cierra"
+	            }
+	            member @"fechavencimiento"
+	            {
+	                @"caption":"Fecha de vencimiento"
+	            }
+	            member @"codigo"
+	            {
+	                @"caption":"Código de cliente"
+	            }
+	            member @"nombre"
+	            {
+	                @"caption":"Cliente"
+	            }
+	            member @"color"
+	            {
+	                @"caption":"Color"
+	                member @"attributes"
+	                {
+	                	@"style":"min-width:8rem !important;"
+	                }
+	            }
+	            member @"_actions"
+	            {
+	                @"caption":"Acción"
+	                member @"attributes"
+	                {
+	                	@"style":"min-width:8rem !important;"
+	                }
+	            }
+	        }
+	        member @"rows_attributes"
+	        {
+	        	member @"detail"
+	        	{
+	        		@"class":"row_tr_#<@@(row,'sys_pk')> row_case"
+	        		@"style":"#<row.color(@@(row,'#uf_color'))>"
+	        		@"onclick":"EditCase('#<@@(row,'#sys_pk')>','#<@@(row,'cliente')>')"
+	        	}
+	        }
+	    }
+	    
+
+	    point cell_link to cell_link_func
+	    using table_general
+	    {
+	        @"before_cell*":cell_link
+	    }
+	    if @count(@@(table_general,"&datatable"))<=0
+	    {
+	    	#$
+            div(class="text-center m-5 text-secondary")
+			{
+				h6{"Ningún dato encontrado."}
+			}
+            #!
+	    }else{
+	    	do uie.dbtable(table_general)
+	    }
+	}
+
+	#!
+	table.caso_detail::
+	{
+		point cell_link to cell_func_general
+		new table_general
+	    {
+	    	@"datatable*":@("&./casonota")
+	        @"value_field":"sys_pk"
+	        @"before_cell*":cell_link
+	        member @"attributes"
+	        {
+	        	@"class":"table table-hover"
+	        }
+	        member @"columns"
+	        {
+	            member @"fecha"
+	            {
+	                @"caption":"Fecha"
+	                // @"format":"dd/mm/yyyy"
+	            }
+	            member @"notas"
+	            {
+	                @"caption":"Notas"
+	            }
+	            member @"usuario"
+	            {
+	                @"caption":"Usuario"
+	            }
+	        }
+	    }
+
+	    if @count(@@(table_general,"&datatable"))<=0
+	    {
+	    	#$
+            div(class="text-center m-5 text-secondary")
+			{
+				h6{"Ningún dato encontrado."}
+			}
+            #!
+	    }else{
+	    	do uie.dbtable(table_general)
+	    }
+	}
+
+	#!
+	cell_func_alert::&params, &row, &cell
+	{
+        new headers
+        {
+            @"style":"position: sticky !important;top:0 !important;background-color:#fff;"
+            @"class":"h6"
+        }
+        if @@(cell,"element")=="th"{cell<"attributes*">:headers}
+        if @@(cell,"cell_type")!="data" &&  @@(cell,"cell_type")!="unknow" { return }
+        if @@(cell,"column")=="activa"
+        {
+        	check=ifstr(@@(row,"#activa"),"checked","")
+        	cell<"text">:ftext('<input type="checkbox" style="pointer-events: none;opacity: .5;" #<check>="true">')
+        }
+        if @@(cell,"column")=="_actions"
+        {
+        	style=ifstr(not(@@(row,"#activa")),"opacity:.5;pointer-events:none","")
+            cell<"text">:ftext('<a id="btnEditar" href="#" style="#<style>" onclick="updateAlert(#<@@(row,"sys_pk")>,\'#<@@(row,"descripcion")>\')">
+            	<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16" style="">
+				  <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"></path>
+				</svg>Editar</a>
+             | <a style="#<style>" onclick="updateItemBd(\'alert\',#<@@(row,"sys_pk")>,false)" href="#" id="btnEliminar">
+             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-circle" viewBox="0 0 16 16">
+			  <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"></path>
+			  <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708z"></path>
+			</svg>Desactivar</a>')
+        }
+	}
+
+	#!
+	table.alertas::
+	{
+		new p
+		{
+			@"sys_pK":@("#./sys_pk")
+			@"text_alert":@("http/request/get/filter_alert")
+		}
+
+		new table_general
+	    {
+	        // @"datatable*":dbr.list(@("&database"),"SELECT u.Sys_PK,u.activa,u.Sys_TimeStamp AS fecha,u.descripcion,u.usuariocrea FROM ut_crm_alerts u 
+	        // 	WHERE u.fk_cliente=@sys_pk AND (u.descripcion like '%@{text_alert}%' or u.usuariocrea like '%@{text_alert}%') ORDER BY u.Sys_TimeStamp desc",p)
+	    	@"datatable*":@("&./tablealertas")
+	        @"value_field":"sys_pk"
+	        member @"attributes"
+	        {
+	        	@"class":"table table-hover"
+	        }
+	        member @"columns"
+	        {
+				member @"activa"
+	            {
+	                @"caption":"Activo"
+	            }
+	            member @"fecha"
+	            {
+	                @"caption":"Fecha"
+	            }
+	            member @"descripcion"
+	            {
+	                @"caption":"Descripción"
+	            }
+	            member @"usuariocrea"
+	            {
+	                @"caption":"Usuario"
+	            }
+	            member @"_actions"
+	            {
+	            	@"caption":"Acción"
+	            }
+	            
+	        }
+	    }
+	    point cell_link to cell_func_alert
+	    using table_general
+	    {
+	        @"before_cell*":cell_link
+	    }
+	    if @count(@@(table_general,"&datatable"))<=0
+	    {
+	    	#$
+            div(class="text-center m-5 text-secondary")
+			{
+				h6{"Ningún dato encontrado."}
+			}
+            #!
+	    }else{
+	    	do uie.dbtable(table_general)
+	    }
+	}
+
+	//*****************************************************************select generales **************************************
+	#!
+	select.tipocaso::
+	{
+		new def_tipo_caso
+	    {
+	        @"datatable*":dbr.list(@("&database"),"select sys_pk, uf_descripcion as nombre from ut_crmtipocaso order by sys_pk;",@null)
+	        @"id":"tipocaso"
+	        member "attributes"
+	        {
+	            @"class":"form-select form-select-sm selectTipocaso mb-2"
+	            @"name":"tipo"
+	        }
+	        @"first_text":" "
+	        @"first_value":"@"
+	        @"value_field":"sys_pk"
+	        @"text_field":"nombre"
+	        @"selected":@("./caso/fk_tipocaso")
+	    }
+	    if @("$./caso/fk_tipocaso")!=""{def_tipo_caso<"attributes/disabled">:"true"}
+	    do uie.dbSelect(def_tipo_caso)
+	}
+
+	#!
+	select.tipocaso_admin::
+	{
+		new def_tipo_caso
+	    {
+	        @"datatable*":dbr.list(@("&database"),"select sys_pk, uf_descripcion as nombre from ut_crmtipocaso order by sys_pk;",@null)
+	        @"id":"tipocaso_admin"
+	        member "attributes"
+	        {
+	            @"class":"form-select form-select-sm selectTipocaso"
+	            @"name":"tipo"
+	        }
+	        // @"first_text":" "
+	        // @"first_value":"@"
+	        @"value_field":"sys_pk"
+	        @"text_field":"nombre"
+	        @"selected":@("parameters/seccion_filter/tipo")
+	    }
+	    // if @("$./caso/fk_tipocaso")!=""{def_tipo_caso<"attributes/disabled">:"true"}
+
+	    if isnull(@@(def_tipo_caso,"&datatable")){def_tipo_caso<"datatable*">:list.create()}
+
+	    new tipocaso
+		{
+			@"sys_pk":"-1"
+			@"nombre":"Todos los tipos"
+		}
+		do list.ins(@@(def_tipo_caso,"&datatable"),0,tipocaso)
+
+		new tipocaso1
+		{
+			@"sys_pk":"-2"
+			@"nombre":"Tipos que puedo crear"
+		}
+		do list.ins(@@(def_tipo_caso,"&datatable"),1,tipocaso1)
+
+		new tipocaso2
+		{
+			@"sys_pk":"-3"
+			@"nombre":"Tipos que puedo editar"
+		}
+		do list.ins(@@(def_tipo_caso,"&datatable"),2,tipocaso2)
+
+		new tipocaso3
+		{
+			@"sys_pk":"-4"
+			@"nombre":"Tipos que puedo cerrar"
+		}
+		do list.ins(@@(def_tipo_caso,"&datatable"),3,tipocaso3)
+
+		new tipocaso4
+		{
+			@"sys_pk":"-5"
+			@"nombre":"Tipos que puedo crear,editar o cerrar"
+		}
+		do list.ins(@@(def_tipo_caso,"&datatable"),4,tipocaso4)
+	    do uie.dbSelect(def_tipo_caso)
+	}
+
+	#!
+	select.rango_fechas::
+	{
+		new def_rango
+	    {
+	        @"datatable*":from.json("[{'clave':'@cual','valor':'Cualquier fecha'},{'clave':'@opened','valor':'Abiertos'},{'clave':'@closed','valor':'Cerrados'},{'clave':'@updated','valor':'Actualizados'}]")
+	        @"id":"rango_fechas"
+	        member "attributes"
+	        {
+	            @"class":"form-select form-select-sm selectTipocaso"
+	            @"name":"tipo"
+	        }
+	        // @"first_text":" "
+	        // @"first_value":"@"
+	        @"value_field":"clave"
+	        @"text_field":"valor"
+	        @"selected":@("parameters/seccion_filter/fecha")
+	    }
+
+	    do uie.dbSelect(def_rango)
+	}
+
+	#!
+	select.por_vencimiento::
+	{
+		new por_vencimiento
+	    {
+	        @"datatable*":from.json("[{'clave':'@cual','valor':'Cualquier'},{'clave':'@vencid','valor':'Vencidos'},{'clave':'@hoy','valor':'Hoy'},{'clave':'@semana','valor':'Esta semana'},{'clave':'@mes','valor':'Este mes'}]")
+	        @"id":"por_vencimiento"
+	        member "attributes"
+	        {
+	            @"class":"form-select form-select-sm selectTipocaso"
+	            @"name":"tipo"
+	        }
+	        // @"first_text":" "
+	        // @"first_value":"@"
+	        @"value_field":"clave"
+	        @"text_field":"valor"
+	        @"selected":@("parameters/seccion_filter/por_vnmt")
+	    }
+
+	    do uie.dbSelect(por_vencimiento)
+	}
+
+	#!
+	select.prioridad::dis
+	{
+		new def_select
+	    {
+	        @"datatable*":dbr.list(@("&database"),"select sys_pk, descripcion as nombre,tduracion,dduracion from ut_crmprioridad order by sys_pk;",@null)
+	        @"id":"prioridad"
+	        member "attributes"
+	        {
+	            @"class":"form-select form-select-sm"
+	            @"name":"tipo"
+	        }
+	        @"first_text":" "
+	        @"first_value":"@"
+	        @"value_field":"sys_pk"
+	        @"text_field":"nombre"
+	        @"selected":@("./caso/fk_prioridad")
+	    }
+	    if dis{def_select<"attributes/disabled">:"true"}
+	    #$
+	    	script
+		    {
+		    	$'
+		    	var dataprioridad=#<to.json(@@(def_select,"&datatable"))>
+		    	'
+		  	}
+	    #!
+	    do uie.dbSelect(def_select)
+	}
+
+	#!
+	select.duracionPrevia::dis
+	{
+		new def_select
+	    {
+	        @"datatable*":from.json("[{'duration':'Hora(s)'},{'duration':'Dia(s)'},{'duration':'Mes(s)'}]")
+	        @"id":"selectDuration"
+	        member "attributes"
+	        {
+	            @"class":"form-select form-select-sm"
+	            @"name":"tipo"
+	        }
+	        @"first_text":" "
+	        @"first_value":"@"
+	        @"value_field":"duration"
+	        @"text_field":"duration"
+	        @"selected":@("./caso/selectduration")
+	    }
+	    if dis{def_select<"attributes/disabled">:"true"}
+	    do uie.dbSelect(def_select)
+	}
+
+	#!
+	select.userassign::dis
+	{
+		new def_select
+	    {
+	        @"datatable*":dbr.list(@("&database"),"SELECT t.UserID,t.UserName FROM tuser t",@null)
+	        @"id":"selectasignado"
+	        member "attributes"
+	        {
+	            @"class":"form-select form-select-sm"
+	            @"name":"tipo"
+	        }
+	        @"first_text":" "
+	        @"first_value":"@"
+	        @"value_field":"UserID"
+	        @"text_field":"UserName"
+	        @"selected":@("./caso/usuarioasignado")
+	    }
+	    if dis{def_select<"attributes/disabled">:"true"}
+	    do uie.dbSelect(def_select)
+	}
+
+	#!
+	select.userassign_admin::dis
+	{
+		new def_select
+	    {
+	        @"datatable*":dbr.list(@("&database"),"SELECT t.UserID,t.UserName FROM tuser t",@null)
+	        @"id":"selectasignado_admin"
+	        member "attributes"
+	        {
+	            @"class":"form-select form-select-sm "
+	            @"name":"tipo"
+	        }
+	        // @"first_text":" "
+	        // @"first_value":"@"
+	        @"value_field":"UserID"
+	        @"text_field":"UserName"
+	        @"selected":@("parameters/seccion_filter/assing")
+	    }
+	    if dis{def_select<"attributes/disabled">:"true"}
+
+	    if isnull(@@(def_select,"&datatable")){def_select<"datatable*">:list.create()}
+
+	    new attr
+		{
+	    	@"UserID":"@cual"
+	    	@"UserName":"Cualquiera"
+	    }
+	    do list.ins(@@(def_select,"&datatable"),0,attr)
+	    new attr1
+	    {
+	    	@"UserID":"@ami"
+	    	@"UserName":"A mi mismo"
+	    }
+	    do list.ins(@@(def_select,"&datatable"),1,attr1)
+	    new attr2
+	    {
+	    	@"UserID":"@sin"
+	    	@"UserName":"Sin asignar"
+	    }
+	    do list.ins(@@(def_select,"&datatable"),2,attr2)
+	    do uie.dbSelect(def_select)
+	}
+
+	//**************************************************************** vistas ******************************************
+	#!
+	view.general::
+	{
+		comentarios=""
+		for i=0;i<@count(@("&./comentarios"))
+		{
+			ref itm=@item(@("&./comentarios"),i)
+			//comentarios=comentarios+@@(itm,"$usuario")+"\n" +@@(itm,"$mensaje")+"\n\r"
+			comentarios=comentarios+ftext('
+				<div class="p-3 mt-1 border-bottom">
+					<small class="text-secondary">#<@@(itm,"$usuario")></small>
+					<br/>
+					<small>#<@@(itm,"$mensaje")></small>
+				</div>
+			')
+		}
+		#$
+		div(class="col-lg-8 p-0" style="height:100%")
+		{
+			// label(style="color:#0000FF"){"#<@('$./codigo') +' '+@('$./nombre')+' '+@('$./rfc')>"}
+			// br{}
+				
+			#!
+			domicilio="Domicilio: "
+			domicilio=domicilio + ifstr(@('$./domicilio/direccion')!="" && trim(@('$./domicilio/direccion'))!="||||||",@('$./domicilio/direccion')+", ","") 
+			domicilio=domicilio + ifstr(@('$./domicilio/codpos')!="",@('$./domicilio/codpos')+", ",@('$./domicilio/codpos'))
+			domicilio=domicilio + ifstr(@('$./domicilio/colonia')!=""," Colonia: "+@('$./domicilio/colonia')+", ","")	
+			domicilio=domicilio + ifstr(@("$./ciudad/nombre")!="",@("$./ciudad/nombre")+";","")
+			domicilio=domicilio + @("$./estado/nombre")
+			#$
+			div(class="p-4 bg-white border-bottom")
+			{
+				small(class="text-secondary"){"#<domicilio>"}
+				hr{$""}
+				div(class="table-responsive")
+				{
+					table(class="table table-hover" style="font-size: .9rem;")
+					{
+						tr{
+							td{"Saldo actual: "}
+							td(style="text-align:end"){b{"$ #<@('#./saldo'):#,#.00>"}}
+							td{"Saldo vencido: "}
+							td(style="text-align:end"){b{"$ #<@('#./saldovenc'):#,#.00>"}}
+						}
+						tr{
+							td{"Acumulado de ventas en el año: "}
+							td(style="text-align:end"){b{"$ #<@('#./vtnanio'):#,#.00>"}}
+							td{"Ventas del año pasado: "}
+							td(style="text-align:end"){b{"$ #<@('#./vtnaniopas'):#,#.00>"}}
+						}
+						tr{
+							td{"Promedio de ventas mensual año actual: "}
+							td(style="text-align:end"){b{"$ #<@('#./vtnmesaniocurrent'):#,#.00>"}}
+							td{"Promedio de ventas mensual año pasado: "}
+							td(style="text-align:end"){b{"$ #<@('#./vtnmesaniopas'):#,#.00>"}}
+						}
+					}
+				}
+			}
+			
+			// label(style="margin-right:20px"){"Saldo actual: "b{"$ #<@('#./saldo'):#,#.00>"}}
+			// label{"Saldo vencido: "b{"$ #<@('#./saldovenc'):#,#.00>"}}br{}
+			// label(style="margin-right:20px"){"Acumulado de ventas en el año: "b{"$ #<@('#./vtnanio'):#,#.00>"}}
+			// label{"Ventas del año pasado: "b{"$ #<@('#./vtnaniopas'):#,#.00>"}}br{}
+			// label(style="margin-right:20px"){"Promedio de ventas mensual año actual: "b{"$ #<@('#./vtnmesaniocurrent'):#,#.00>"}}
+			// label{"Promedio de ventas mensual año pasado: "b{"$ #<@('#./vtnmesaniopas'):#,#.00>"}}
+
+			div(class="p-4 bg-white mt-2 border-bottom")
+			{
+				small(class="fw-bold"){$"Antiguedad de saldo"}
+				hr{$""}
+				div(class="table-responsive" style="min-height:13vh;max-height:40vh" id="tableantsld"){
+					div(class="d-flex justify-content-center placeholder-glow")
+					{
+						div(class="card placeholder" style="width:100%;margin-top:10px;text-align:center;height: 15rem;")
+						{
+							div(class="justify-content-center" style="margin-top:10%;")
+							{
+								span(class="loading style-2" style="border-color:cyan transparent;"){""}br{}
+								b(id="load" style="color:white"){"Cargando..."}   
+							}
+						}
+					}
+					// #!
+					// do table.general_antigsaldo()
+					// #$
+					$""
+				}
+			}
+			
+			div(class="p-4 bg-white mt-2 mb-2")
+			{
+				small(class="fw-bold"){$"Listado de últimas 10 ventas"}
+				hr{$""}
+				div(class="table-responsive" style="min-height:13vh;max-height:18vh;overflow-y:auto;" id="tble-ultvnts"){
+					div(class="d-flex justify-content-center placeholder-glow")
+					{
+						div(class="card placeholder" style="width:100%;margin-top:10px;text-align:center;height: 15rem;")
+						{
+							div(class="justify-content-center" style="margin-top:10%;")
+							{
+								span(class="loading style-2" style="border-color:cyan transparent;"){""}br{}
+								b(id="load" style="color:white"){"Cargando..."}   
+							}
+						}
+					}
+					// #!
+					// do table.general()
+					// #$
+					$""
+				}
+			}
+		}
+		div(class="col-lg-4 pe-0")
+		{
+			div(class="p-4 bg-white border-bottom")
+			{
+				div(class="d-flex align-items-center gap-2")
+				{
+					div(id="div-cometarios flex-grow-1" style="width:100%;")
+					{
+						textarea(class="form-control form-control-sm" id="Comentario" style="resize:none" placeholder="Escribir un comentario"){""}	
+					}
+					div
+					{
+						button(class="btn btn-sm btn-primary" id="btn-addComentario" onclick="addComentario()" style="width:100%;height:100%"){"Guardar"}	
+					}
+					
+				}
+				div(class="col-lg-12 mt-2 mb-3" style="height:61vh; overflow-y:auto;")
+				{
+					div(class="col-lg-12" style="height:100%" id="txtComentarios" )
+					{
+						//textarea(class="form-control" id="txtComentarios"  readonly="true" style="resize:none;min-height:65vh;max-height:75vh;font:message-box;background:white"){"#<comentarios>"}
+						$"#<comentarios>"
+					}
+					
+					$""
+				}
+			}
+		}
+		style
+		{
+			$'
+				@media only screen and (max-width: 500px) and (min-width: 100px) {  
+  					#div-cometarios
+  					{
+  						width:100%;
+  					}
+  					#txtComentarios
+  					{
+  						min-height:60vh !important;
+  					}
+				}
+			'
+		}
+	}
+	
+	#!
+	view.atencion::
+	{
+		#$
+		div(class="bg-white p-4")
+		{
+			label{small(class="text-secondary"){$"Atención:"}}
+			div(class="d-flex alig-items-center gap-2"){
+				input(class="form-control form-control-sm" id="inp_atencion" placeholder="...")
+				button(class="btn btn-sm btn-primary d-flex" id="btnaddatencion" onclick="addAtencion();"){"Guardar"}
+			}
+		}
+		div(class="bg-white border-bottom p-1 ps-4 pe-4"){
+			button(class="btn btn-sm btn-light bg-white border-0 d-flex align-items-center gap-2" onclick="addmemo()"){
+				svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16"){
+					path("fill-rule"="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2Z")
+				}
+				$"Nuevo memo"
+			}
+		}
+		div(class="bg-white table-responsive mb-2 p-4" style="max-height:70vh;min-height:50vh;")
+		{
+			#!
+			do table.atencion()
+			#$
+		}
+	}
+
+	#!
+	view.casos::
+	{
+		#$
+		div(class="bg-white p-4")
+		{
+			label{small(class="text-secondary"){$"Buscar:"}}
+			div(class="d-flex alig-items-center gap-2"){
+				input(class="form-control form-control-sm" value="#<@('http/request/get/filter_case')>" placeholder="Número de casos o asunto..." id="search_cases")
+				button(class="btn btn-sm btn-primary d-flex align-items-center gap-2" id="btnsearchcaso" onclick="search_cases()"){
+					svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16"){
+						path(d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z")
+					}
+					$"Buscar"
+				}
+			}
+		}
+		div(class="bg-white border-bottom p-1 ps-4 pe-4"){
+			button(class="btn btn-sm btn-light bg-white border-0 d-flex align-items-center gap-2" onclick="addCasos()" id="btn-add-casos"){
+				svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16"){
+					path("fill-rule"="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2Z")
+				}
+				$"Agregar Caso"
+			}
+		}
+		div(class="bg-white table-responsive mb-2 p-4" style="max-height:70vh;min-height:50vh;")
+		{
+			#!
+			do table.casos()
+			#$
+		}
+	}
+
+	#!
+	view.alertas::
+	{		
+		#$
+		div(class="bg-white p-4 pt-5")
+		{
+			div(class="d-flex align-items-center gap-2")
+			{
+				input(class="form-control form-control-sm" placeholder="Descripción, Usuario..." value="#<@('http/request/get/filter_alert')>" id="search_alertas")
+				button(class="btn btn-sm btn-primary d-flex align-items-center gap-2" onclick="filter_alert()" href="#" id="bt-search-alertas"){
+					svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16"){
+						path(d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z")
+					}
+					$"Buscar"
+				}
+			}
+		}
+		div(class="border-bottom bg-white p-1 ps-4 pe-4")
+		{
+			button(class="btn btn-sm btn-light bg-white border-0 d-flex alig-items-center gap-2" onclick="addAlertas()" id="bt-add-alertas"){
+				svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16"){
+					path("fill-rule"="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2Z")
+				}
+				$"Nueva alerta"
+			}
+		}
+		div(class="card table-responsive mb-2 p-4" style="max-height:70vh;min-height:50vh;")
+		{
+			#!
+			do table.alertas()
+			#$
+		}
+	}
+}

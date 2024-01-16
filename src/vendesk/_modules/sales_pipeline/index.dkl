@@ -1,0 +1,83 @@
+#include "dkli.dkh"
+#!
+module "index.dkl"
+{
+    
+     #include "functions.dkh"
+     #include "dbr.dkh"
+     #include "serialize.dkh"
+
+     do @context.begin(@crud_context)
+     ref @http_context=@@(@crud_context,"&http")
+
+     @SITE_INCLUDES="config.dkl,lib.dk"
+     #include "lib.dk"
+     #include "website.dkl"
+
+     view=@@(@http_context,"request/get/view")
+     @connections=@@(@http_context,"request/get/ws")
+     @ids=@@(@http_context,"request/get/ids")
+
+     if @ids==""{@ids=@@(@http_context,"$session/user/ids")}
+     @namews=@@(@http_context,"request/get/namews")
+
+     do address_workspace(@false)
+     
+     #$
+     div
+     {
+          link(href="/_css/style.css" rel="stylesheet"){$""}
+          #!
+          switch view
+          {
+               case "login"{}
+               case "pipelines"{include path.concat(@path_views,"view_pipeline.dkl")}
+               default{include path.concat(@path_views,"view_pipeline.dkl")}
+          }
+          #!
+          include path.concat(@path_views ,"modal.dkl")
+          #$
+          
+           script
+          {
+               $'
+               var end_point_service="#<@end_point_service>";
+               var autorizations="#<@connections>:#<@ids>";
+               #<ftext(file.rtext(@model_js))>
+                    
+                #<ftext(file.rtext(@driver_js))>
+                #<ftext(file.rtext(@view_js))>
+                #<ftext(file.rtext(@designer_js))>
+               var token="#<@ids>";
+               var ws="#<@connections>"
+               var namews="#<@namews>"
+               $(document).ready(function(){
+                    
+                    
+                    switch ("#<view>")
+                    {
+                         case "login":break;
+                         case "pipelines":
+                              controller.get_pipelines("",null);
+                              break;
+                         default:
+                              controller.get_pipelines("",null);
+                              break;
+                    }
+               });
+
+               
+               '
+          }
+     }
+     
+   
+     #!
+     exception
+     {
+          @message_error=last_error()
+          include path.concat(@path_views,"error.dkl")
+     }
+     
+
+}

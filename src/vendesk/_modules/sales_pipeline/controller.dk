@@ -1,0 +1,55 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+	// #include ""
+
+	ref getData=@@(@http_context,"&request/get")
+	if parse.bool(@@(getData,"ps")){@list_view="index.dkl"}
+
+	// view_controller::operation, &params
+	// {
+	// 	params<"_operation">:operation
+
+	// 	if @expected_html
+	// 	{
+	// 		point @fail_view to error_view
+
+	// 		switch operation
+	// 		{
+	// 			case "list" { 
+					
+	// 				point @success_view to list_view 
+	// 			}
+	// 			case "read" {
+					
+	// 			 	point @success_view to form_view 
+	// 			}
+	// 			case "create" 
+	// 			{ 
+	// 				if @@(params,"_redirect")=="disabled"
+	// 				{ point @success_view to form_view }
+	// 				else { point @success_view to redirect }
+
+	// 				point @fail_view to form_view
+	// 			}
+	// 			case "update" 
+	// 			{ 
+	// 				if parse.bool(@@(params,"users")){@form_view="users.dkl"}
+		
+	// 				if @@(params,"_redirect")=="disabled"
+	// 				{ point @success_view to form_view }
+	// 				else { point @success_view to redirect }
+
+	// 				point @fail_view to form_view
+	// 			}
+	// 			case "delete" 
+	// 			{ 
+	// 				if @@(params,"_redirect")=="disabled"
+	// 				{ point @success_view to form_view }
+	// 				else { point @success_view to redirect }
+	// 			}
+	// 		}
+	// 	}
+	// }
+}

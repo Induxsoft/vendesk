@@ -1,0 +1,8 @@
+#include "dkli.dkh"
+#!
+
+module "ciudad.dk"
+{
+    @list_query="select ciudad.sys_pk,ciudad.sys_recver,ciudad.codigo,codigotel,ciudad.nombre,edoprov.nombre estado from ciudad inner join edoprov on estado=edoprov.sys_pk where estado=@edo  or isnull(@edo) order by codigo limit 100" 
+    @read_query="select #<@sys_fields>, codigo,codigotel,nombre,estado from #<@table_name> where #<@keyfield>=@_entity_id limit 1;"
+}     

@@ -1,0 +1,82 @@
+#include "dkli.dkh"
+#!
+module "list"
+{
+	#include "functions.dkh"
+	#include "serialize.dkh"
+	#include "../config.dkl"
+	#include "form.dk"
+	include @path_common
+
+	do @context.begin(@crud_context)
+
+	list.default::
+	{
+		#$
+		div 
+		{
+
+			h1{"List"}
+			pre{code{$"#<to.json(@crud_context)>"} }
+
+		}
+	}
+	
+	#!
+	list.filter_clients::
+	{
+		if @@(@http_context,"request/get/text_filter")!=""
+		{
+			ref data=@("&.")
+		}else{ref data=@null}
+		new @table_definition
+	    {
+	        @"datatable*":data
+	        member @"columns"
+	        {
+	            member @"codigo"
+	            {
+	                @"caption":"Código"
+	            }
+	            member @"nombre"
+	            {
+	                @"caption":"Nombre"
+	            }
+				member @"rfc"
+	            {
+	                @"caption":"RFC"
+	            }
+				 member @"curp"
+	            {
+	                @"caption":"Curp"
+	            }
+	            member @"email"
+	            {
+	                @"caption":"Email"
+	            }
+	            member @"_actions"
+	            {
+	                @"caption":"Acciones"
+	            }
+	        }
+	        member @"rows_attributes"
+	        {
+	           member @"detail"
+	           {
+	              @"onclick":"SelectRow(#<@@(row,'sys_pk')>)" //Ejemplo
+	              @"class":"tr_hover"
+	              @"style":"word-break: break-all;"
+	           }
+	        }
+	    }
+	    
+	}
+
+	#$ div(class="container-lg pt-1 ps-3 pe-3" style="background-color:#F5F5F5; min-height:94%;" id="container-clientes")
+	{
+		#! #include "entity_js.dkl"
+		do form.search_client()
+	}
+
+	#! do @context.end()
+}
