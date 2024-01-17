@@ -139,13 +139,13 @@ model "erp.vendesk"
         @"uf_addenda" bool
         @"regfiscal" string(3)
     }
-
+    // Fases por las que pasa una venta.
     entity "sales_pipeline" : "TableModel"
     {
         @"name" string(50)
         @"probability" bool
     }
-
+    // Etapa del pipeline de venta.
     entity "sales_pipeline_stage" : "TableModel"
     {
         @"ref_pipeline" ref:"sales_pipeline" required
@@ -157,7 +157,7 @@ model "erp.vendesk"
 
     entity "ut_crmtipocaso" : "TableModel"
     {
-        @"descripcion" string(100) unique required
+        @"uf_descripcion" string(100) unique required
         @"status" int required
     }
 
@@ -234,35 +234,6 @@ model "erp.vendesk"
         @"responsableacuerdo" string(255)
         @"irecibo" int
         @"notas" memo
-    }
-
-    entity "blockdocumentos" : "TableModel"
-    {
-        @"activo" bool required
-        @"datos" string(255)
-        @"documento" ref:"cdocumentos" required
-        @"finicial" int required
-        @"fiscal" bool required
-        @"fultimo" int required
-        @"idcontrol" string(32)
-        @"numcontrol" int
-        @"serie" string(10)
-        @"uf_cfdfolio" int
-        @"uf_cfdi_info" int
-    }
-
-    entity "foliosdocumentos" : "TableModel"
-    {
-        @"cancelado" bool required
-        @"fecha" date required
-        @"folio" int required
-        @"block" ref:"blockdocumentos" required
-
-        index "idx_foliodoc" unique
-        {
-            field "folio"
-            field "block"
-        }
     }
 
     entity "doclink" : "TableModel"

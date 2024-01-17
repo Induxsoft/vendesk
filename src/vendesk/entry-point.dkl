@@ -113,6 +113,22 @@ module "Controller configs"
 		"access":[{"workspace":"'+@ws+'"}]
 	}'
 
+	// para los servicios
+	if @@(@http_context,"$request/get/_program") == "_services"
+	{
+		switch @@(@http_context,"$request/get/_entity_id")
+		{
+			case "sales_pipeline"
+			{
+				include "./_modules/sales_pipeline/_services/index.dkl"
+
+				response = trim(@@(@http_context,"$response/text"))
+				if response == "" { response = '{"success":1,"data":[]}' }
+				return from.json(response)
+			}
+		}
+	}
+
 	@form_detail="detail.dk"
 	@form_caso="view_caso.dkl"
 	@form_admin="administracion.dkl"

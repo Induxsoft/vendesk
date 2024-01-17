@@ -5,6 +5,7 @@ module "lib.dk"
 	#include "functions.dkh"
 	#include "serialize.dkh"
 	#include "webcl.dkh"
+	#include "ws.api.dkl"
 	#!
 	api_base_service::
     {
@@ -24,27 +25,7 @@ module "lib.dk"
     #!
 	getDataWorkspace::idws
 	{
-		new data
-		{
-			@"ids":@@(@http_context,"session/user/ids")
-			@"operation":"read"
-			@"id":@@(@http_context,"request/get/ws")
-		}
-		new h{@"Content-Type":"application/json;charset=utf-8"}
-		res=http.request(@url_service_workspace,"POST",h,to.json(data))
-
-		ref result=from.json(res)
-		if not(@@(result,"success")){do rise_error(99,@@(result,"message"))}
-
-		return @@(result,"&data")
-		exception
-		{
-			new result
-			{
-				@"message":last_error()
-			}
-			return result
-		}
+		return ws.api.GetData()
 	}
 	#!
 	current_url::root

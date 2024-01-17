@@ -27,7 +27,7 @@ var controller={
     list_stages=document.getElementById("conten-padre");
   },
 	get_pipelines:function(id,data) {
-		var uri=`${url}crm/sales/pipeline/`;
+		var uri=`${url}sales_pipeline/` //`${url}crm/sales/pipeline/`;
         model.invoke_service(uri,null,function(data) {
 
           views.select("#pipelines",data);

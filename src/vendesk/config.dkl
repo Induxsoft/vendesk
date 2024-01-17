@@ -137,7 +137,7 @@ module "config.dkl"
 	//@path_root="web/crm-sales.ws.induxsoft.net/_app"//192.168.1.91
 	@url_workspace="https://ws.induxsoft.net/"
 	//@path_absolute=""
-	@end_point_service="/"
+	@end_point_service="/!/vendesk/_services/" //"/"
 	@pathjs=@dir_catalogs+"sales_pipeline/_js"
 	@path_views=path.concat(@dir_catalogs,"sales_pipeline/_views")
 
@@ -157,5 +157,16 @@ module "config.dkl"
 		@"connection":""//pipelines@myapp
 	}
 
+	//* ======================================== [ _STATIC RESOURCES ]
+	@CSS_STYLES = "/$/vendesk/css/styles.css"
+	@JS_MODEL = "/$/vendesk/js/model.js"
+
+	@CSS_SALES_PIPELINE = "/$/vendesk/css/sales_pipeline.css"
+	@JS_SP_CONTROLLER = "/$/vendesk/js/sales_pipeline/controller.js"
+	@JS_SP_DESIGNER = "/$/vendesk/js/sales_pipeline/designer.js"
+	@JS_SP_MODEL = "/$/vendesk/js/sales_pipeline/model.js"
+	@JS_SP_VIEWS = "/$/vendesk/js/sales_pipeline/views.js"
+
+	//* ======================================== [ _PACKAGE ]
 	@VDK_CLIENTE = "/!/vendesk/cliente/"
 }

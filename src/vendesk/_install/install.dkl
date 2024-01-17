@@ -30,6 +30,8 @@ program
         pais.csv,
         edoprov.csv,
         ciudad.csv,
+        ut_crmprioridad.csv,
+        ut_crmtipocaso.csv,
         sys_app_catalog.csv,
         sys_app_category.csv,
         sys_app_shortcut.csv

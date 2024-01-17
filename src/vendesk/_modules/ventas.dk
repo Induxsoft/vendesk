@@ -4,15 +4,21 @@ module "ventas"
 {
 	#include "functions.dkh"
 	#include "serialize.dkh"
-	#include "../config.dkl"
 
 	do @context.begin(@crud_context)
-	ref @http_context=@("&http")
+	ref @http_context = @("&http")
+
+	PATH_TRANSLATED = field.dstr(@http_context,'request/headers/PATH_TRANSLATED','')
+	PATH_TRANSLATED = path.concat(dir.name(PATH_TRANSLATED),"_modules\\ventas.dk")
+	
+	@SITE_INCLUDES="config.dkl,lib.dk"
+	@http_context<"request/headers/PATH_TRANSLATED"> : PATH_TRANSLATED
+	
 	#include "website.dkl"
 
-	ref data=getDataWorkspace(@@(@http_context,"request/get/ws"))
-	@isplazamundial=@false
-	if @@(data,"$database/source_type")=="plazamundial"{@isplazamundial=@true}
+	ref data = getDataWorkspace(@@(@http_context,"request/get/ws"))
+	@isplazamundial = @false
+	if @@(data,"$database/source_type") == "plazamundial" { @isplazamundial = @true }
 
 	showModule=@false
 	idtienda=""

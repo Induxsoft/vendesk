@@ -2,16 +2,19 @@
 #!
 module "index.dkl"
 {
-    
      #include "functions.dkh"
      #include "dbr.dkh"
      #include "serialize.dkh"
 
      do @context.begin(@crud_context)
-     ref @http_context=@@(@crud_context,"&http")
+     ref @http_context = @@(@crud_context,"&http")
 
-     @SITE_INCLUDES="config.dkl,lib.dk"
-     #include "lib.dk"
+     PATH_TRANSLATED = field.dstr(@http_context,'request/headers/PATH_TRANSLATED','')
+	PATH_TRANSLATED = path.concat(dir.name(PATH_TRANSLATED),"_modules\\sales_pipeline\\index.dkl")
+	
+	@SITE_INCLUDES="config.dkl,lib.dk"
+	@http_context<"request/headers/PATH_TRANSLATED"> : PATH_TRANSLATED
+     
      #include "website.dkl"
 
      view=@@(@http_context,"request/get/view")
@@ -26,34 +29,35 @@ module "index.dkl"
      #$
      div
      {
-          link(href="/_css/style.css" rel="stylesheet"){$""}
+          link(href="#<@CSS_STYLES>" rel="stylesheet")
+          link(href="#<@CSS_SALES_PIPELINE>" rel="stylesheet")
           #!
           switch view
           {
-               case "login"{}
-               case "pipelines"{include path.concat(@path_views,"view_pipeline.dkl")}
-               default{include path.concat(@path_views,"view_pipeline.dkl")}
+               case "login" {}
+               case "pipelines" { include path.concat(@path_views,"view_pipeline.dkl") }
+               default { include path.concat(@path_views,"view_pipeline.dkl") }
           }
           #!
-          include path.concat(@path_views ,"modal.dkl")
+          include path.concat(@path_views,"modal.dkl")
           #$
           
-           script
-          {
-               $'
-               var end_point_service="#<@end_point_service>";
-               var autorizations="#<@connections>:#<@ids>";
-               #<ftext(file.rtext(@model_js))>
-                    
-                #<ftext(file.rtext(@driver_js))>
-                #<ftext(file.rtext(@view_js))>
-                #<ftext(file.rtext(@designer_js))>
-               var token="#<@ids>";
-               var ws="#<@connections>"
-               var namews="#<@namews>"
+          script(type="text/javascript")
+          {$'
+               var end_point_service = "#<@end_point_service>";
+               var autorizations = "#<@connections>:#<@ids>";
+          '}
+          script(src="#<@JS_SP_MODEL>"){$""}
+          script(src="#<@JS_SP_CONTROLLER>"){$""}
+          script(src="#<@JS_SP_VIEWS>"){$""}
+          script(src="#<@JS_SP_DESIGNER>"){$""}
+          script(type="text/javascript")
+          {$'
+               var token = "#<@ids>";
+               var ws = "#<@connections>"
+               var namews = "#<@namews>"
+               
                $(document).ready(function(){
-                    
-                    
                     switch ("#<view>")
                     {
                          case "login":break;
@@ -65,10 +69,7 @@ module "index.dkl"
                               break;
                     }
                });
-
-               
-               '
-          }
+          '}
      }
      
    
@@ -78,6 +79,4 @@ module "index.dkl"
           @message_error=last_error()
           include path.concat(@path_views,"error.dkl")
      }
-     
-
 }

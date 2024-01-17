@@ -5,20 +5,22 @@ module ""
 	#include "functions.dkh"
 	#include "serialize.dkh"
 	#include "cookies.dkl"
-	 @SITE_INCLUDES="config.dkl,lib.dk"
-     #include "lib.dk"
     
 	do @context.begin(@crud_context)
-    
-     ref @http_context=@@(@crud_context,"&http")
-     @ws=@@(@http_context,"request")
-
+    ref @http_context = @@(@crud_context,"&http")
+	
+	PATH_TRANSLATED = field.dstr(@http_context,'request/headers/PATH_TRANSLATED','')
+	PATH_TRANSLATED = path.concat(dir.name(PATH_TRANSLATED),"_modules\\sales_pipeline\\list.dk")
+	
+	@SITE_INCLUDES="config.dkl,lib.dk"
+	@http_context<"request/headers/PATH_TRANSLATED"> : PATH_TRANSLATED
+	
 	#include "website.dkl"
-    do address_workspace(@true)
-
-    ref data=getDataWorkspace(@@(@http_context,"request/get/ws"))
-    @isplazamundial=@false
-	if @@(data,"$database/source_type")=="plazamundial"{@isplazamundial=@true}
+	
+	do address_workspace(@true)
+    ref data = getDataWorkspace(@@(@http_context,"request/get/ws"))
+    @isplazamundial = @false
+	if @@(data,"$database/source_type") == "plazamundial" { @isplazamundial = @true }
 
 	idtienda=""
 	nametienda=""
@@ -43,15 +45,15 @@ module ""
 
 	div(class="container-fluid p-4" style="min-height:80vh;background-color:#F5F5F5;")
 	{
-		script(src="/_js/model.js" crossorigin="anonymous"){""}
-		script
-		{
-			$'
-			model.url_workspace="#<@url_service_workspace>";
-			model.ids="#<@@(@http_context,"session/user/ids")>";
-			model.ws="#<@@(@http_context,"request/get/ws")>";
-			'
-		}
+		// script(src="/_js/model.js" crossorigin="anonymous"){""}
+		// script
+		// {
+		// 	$'
+		// 	model.url_workspace="#<@url_service_workspace>";
+		// 	model.ids="#<@@(@http_context,"session/user/ids")>";
+		// 	model.ws="#<@@(@http_context,"request/get/ws")>";
+		// 	'
+		// }
 		div(class="#<ifstr(@@(data,'message')!='','alert alert-danger','')>"){"#<@@(data,'message')>"}
 		div(class="grid-container")
 		{
