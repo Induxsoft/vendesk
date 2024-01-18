@@ -9,7 +9,7 @@ module "Controller configs"
 	#include "_lib/list.query.dk"
 
 	@base_path = "_modules"
-	@path_root = "web/192.168.0.125/packs/vendesk"
+	@path_root = "vendesk/"
 	
 	//No modifique a menos que sepa lo que está haciendo
 	if not(field.exist(@@(@http_context,"&session"),"resource")) { @http_context<"session/resource*"> : record.create() }

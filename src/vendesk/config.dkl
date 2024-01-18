@@ -74,7 +74,7 @@ module "config.dkl"
 
 	@path_absolute="/usr/dkl_apps/"
 	@name_root="192.168.0.125" //"r8-clientes.ws.induxsoft.net"
-	@path_root="web/192.168.0.125/packs/vendesk" //"web/"+@name_root ///usr/devkron/web/api.erp.test/icons
+	@path_root="vendesk/" //"web/"+@name_root
 	@path_web=""
 
 	@url_root="https://"+@name_root
