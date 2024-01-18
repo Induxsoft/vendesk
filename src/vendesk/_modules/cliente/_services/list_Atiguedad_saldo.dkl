@@ -8,6 +8,7 @@ module "mdhd"
     #include "serialize.dkh"
     #include "uielements.dkl"
     #include "uielements.dbtable.dkl"
+    #include "../../../_lib/list.query.dk"
 
 	 ref datos=@listData
 	 ref bd=@null
@@ -18,9 +19,8 @@ module "mdhd"
     
     if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
 
-	query="select pkdcxc as sys_pk,q.Fecha, q.Aplicacion, q.Referencia, q.No_Vencido, q.menor30, q.menor60, q.menor90, q.mayor90 
-                from qryCRMAntiguedadSaldos q WHERE q.PKCliente =@sys_pk ORDER BY q.PKDCXC limit 100;"
-    ref lista=dbr.list(bd,query,datos)
+	query="SELECT pkdcxc AS sys_pk, q.Fecha, q.Aplicacion, q.Referencia, q.No_Vencido, q.menor30, q.menor60, q.menor90, q.mayor90 FROM (#<@qry_crmantiguedadsaldos>) q WHERE q.pkcliente = @sys_pk ORDER BY q.pkdcxc LIMIT 100;"
+    ref lista=dbr.list(bd,ftext(query),datos)
     
     // do rise_error(99,to.json(lista))
     new table_general

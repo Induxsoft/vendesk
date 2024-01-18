@@ -220,9 +220,10 @@ module "cliente.dk"
                         return cliente
                     }
                 }
-                cliente<"saldovenc">:dbr.num(db,"select coalesce(sum(z.saldo),0) as Total from qryCRMSaldoClientes z where dias > 0 and z.PKCliente =@sys_pk",p)
-                cliente<"vtnanio">:dbr.num(db,"Select round(coalesce(sum(z.Importe),0),2) as Total from qryCRMVentas z Where z.Anio =YEAR(NOW()) AND z.ICliente =@sys_pk",p)
-                cliente<"vtnaniopas">:dbr.num(db,"Select round(coalesce(sum(z.Importe),0),2) as Total from qryCRMVentas z Where z.Anio =YEAR(NOW())-1 AND z.ICliente =@sys_pk",p)
+                
+                cliente<"saldovenc">:dbr.num(db,ftext("SELECT COALESCE(SUM(z.saldo),0) AS Total FROM (#<@qry_crmsaldoclientes>) AS z WHERE dias > 0 AND z.pkcliente = @sys_pk"),p)
+                cliente<"vtnanio">:dbr.num(db,ftext("SELECT ROUND(COALESCE(SUM(z.importe),0),2) AS Total FROM (#<@qry_crmventas>) AS z WHERE z.anio = YEAR(NOW()) AND z.icliente = @sys_pk"),p)
+                cliente<"vtnaniopas">:dbr.num(db,ftext("SELECT ROUND(COALESCE(SUM(z.importe),0),2) AS Total FROM (#<@qry_crmventas>) AS z WHERE z.anio = YEAR(NOW())-1 AND z.icliente = @sys_pk"),p)
                 cliente<"vtnmesaniocurrent">:@@(cliente,"#vtnanio") /parse.num(date_str(now(),"MM"))
                 cliente<"vtnmesaniopas">:@@(cliente,"#vtnaniopas") / 12
                 cliente<"comentarios*">:dbr.list(db,"SELECT u.Sys_PK,concat(u.Sys_TimeStamp,' -',u.uf_Usuario)AS usuario,u.uf_Mensaje AS mensaje  FROM ut_bitcliente u 

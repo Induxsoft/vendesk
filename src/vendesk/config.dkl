@@ -7,6 +7,8 @@ module "config.dkl"
 	#include "cookies.dkl"
 	#include "serialize.dkh"
 	#include "linux-fixes.dkh"
+
+	if not(isset("@http_context")) { ref @http_context = @@(@crud_context,"&http") }
 	
 	generarLink::
 	{
@@ -127,7 +129,7 @@ module "config.dkl"
 
 	if @ws==""{@ws="MaxiComercio.R5/BdR8_MXCR5"}
 
-	@use_bdconfig=@false
+	@use_bdconfig=@true
 	@accept_qnames=@false
 
 	//si @use_bdconfig es false
@@ -137,7 +139,7 @@ module "config.dkl"
 	//@path_root="web/crm-sales.ws.induxsoft.net/_app"//192.168.1.91
 	@url_workspace="https://ws.induxsoft.net/"
 	//@path_absolute=""
-	@end_point_service="/!/vendesk/_services/" //"/"
+	@end_point_service="/vendesk/_services/" //"/"
 	@pathjs=@dir_catalogs+"sales_pipeline/_js"
 	@path_views=path.concat(@dir_catalogs,"sales_pipeline/_views")
 
@@ -154,7 +156,7 @@ module "config.dkl"
 
 	new @config
 	{
-		@"connection":""//pipelines@myapp
+		@"connection":@@(@http_context,"$session/idp/qname")
 	}
 
 	//* ======================================== [ _STATIC RESOURCES ]

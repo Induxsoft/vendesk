@@ -1,0 +1,193 @@
+#include "dkli.dkh"
+#!
+module "list.query.dk"
+{
+    text @qry_crmsaldoclientes
+    {$"
+    SELECT
+        `dcxc`.`sys_pk` AS `pkdcxc`,
+        `cliente`.`sys_pk` AS `pkcliente`,
+        `cliente`.`codigo` AS `ccodigo`,
+        `cliente`.`nombre` AS `cnombre`,
+        `dcxc`.`referencia` AS `referencia`,
+        `dcxc`.`aplicacion` AS `vencimiento`,
+        (TO_DAYS(NOW()) - TO_DAYS(`dcxc`.`aplicacion`)) AS `dias`,
+        IFNULL(`agente`.`sys_pk`,0) AS `pkagente`,
+        IFNULL(`agente`.`codigo`,_latin1'0000') AS `acodigo`,
+        IFNULL(`agente`.`nombre`,_latin1'sin vendedor') AS `anombre`,
+        (((YEAR(`dcxc`.`aplicacion`) * 10000) + (MONTH(`dcxc`.`aplicacion`) * 100)) + DAYOFMONTH(`dcxc`.`aplicacion`)) AS `ndfecha`,
+        `dcxc`.`debe` AS `importe`,
+        (((`dcxc`.`debe` + `dcxc`.`intmoratorios`) - `dcxc`.`bonificaciones`) - `dcxc`.`pagos`) AS `saldo`,
+        `dcxc`.`acuerdodepago` AS `acuerdopago`,
+        `ut_crm_acuerdos`.`fpagoacordada` AS `vencimientoacuerdo`,
+        (((YEAR(`ut_crm_acuerdos`.`fpagoacordada`) * 10000) + (MONTH(`ut_crm_acuerdos`.`fpagoacordada`) * 100)) + DAYOFMONTH(`ut_crm_acuerdos`.`fpagoacordada`)) AS `ndfechaacuerdo`
+    FROM ((((`dcxc`
+        LEFT JOIN `ut_crm_acuerdos` ON((`dcxc`.`acuerdodepago` = `ut_crm_acuerdos`.`sys_pk`)))
+        JOIN `cliente` ON((`dcxc`.`icliente` = `cliente`.`sys_pk`)))
+        LEFT JOIN `venta` ON((`dcxc`.`iventa` = `venta`.`sys_pk`)))
+        LEFT JOIN `agente` ON((`venta`.`iagente` = `agente`.`sys_pk`)))
+    WHERE ((`dcxc`.`aplicable` <> 0) AND ((((`dcxc`.`debe` + `dcxc`.`intmoratorios`) - `dcxc`.`bonificaciones`) - `dcxc`.`pagos`) <> 0))
+    GROUP BY `cliente`.`sys_pk`,`cliente`.`codigo`,`cliente`.`nombre`,`dcxc`.`referencia`,`dcxc`.`aplicacion`,`dcxc`.`debe`
+    "}
+
+    text @qry_catproductos
+    {$"
+    SELECT
+        `producto`.`sys_pk` AS `sys_pk`,
+        `linea`.`sys_pk` AS `klinea`,
+        `departamento`.`sys_pk` AS `pkdepartamento`,
+        `producto`.`codigo` AS `codigo`,
+        `producto`.`descripcion` AS `descripcion`,
+        `marca`.`descripcion` AS `marca`,
+        `producto`.`unidad` AS `unidad`,
+        `producto`.`existencia` AS `existencia`,
+        `producto`.`precio1` AS `precio1`,
+        `producto`.`precio2` AS `precio2`,
+        `producto`.`precio3` AS `precio3`,
+        `producto`.`precio4` AS `precio4`,
+        `producto`.`precio5` AS `precio5`,
+        `producto`.`saldo` AS `saldo`,
+        `divisa`.`descripcion` AS `divisa`,
+        `linea`.`descripcion` AS `linea`,
+        `producto`.`itipo` AS `tipoproducto`,
+        `producto`.`costoultimo` AS `costoultimo`,
+        `producto`.`iclase` AS `iclase`,
+        REPLACE(SUBSTR(`cclaseproducto`.`const`,2),_latin1'_',_latin1' ') AS `clase`
+    FROM (`linea`
+        JOIN (`divisa`
+        JOIN (((`producto`
+        JOIN `cclaseproducto` ON((`producto`.`iclase` = `cclaseproducto`.`id`)))
+        LEFT JOIN `departamento` ON((`producto`.`idepartamento` = `departamento`.`sys_pk`)))
+        LEFT JOIN `marca` ON((`producto`.`imarca` = `marca`.`sys_pk`))) ON((`divisa`.`sys_pk` = `producto`.`idivisa`))) ON((`linea`.`sys_pk` = `producto`.`ilinea`)))
+    WHERE ((`producto`.`iclase` = 1)
+        OR (`producto`.`iclase` = 2)
+        OR (`producto`.`iclase` = 3)
+        OR (`producto`.`iclase` = 4)
+        OR (`producto`.`iclase` = 5))
+        AND (producto.uf_sys_baja IS NULL)
+    ORDER BY `producto`.`descripcion`
+    "}
+
+    text @qry_ventas
+    {$"
+    SELECT
+        `venta`.`sys_pk` AS `sys_pk`,
+        `cdocumentos`.`const` AS `documento`,
+        `venta`.`referencia` AS `referencia`,
+        `venta`.`fecha` AS `fecha`,
+        `cliente`.`nombre` AS `nombre`,
+        `venta`.`vencimiento` AS `vencimiento`,
+        `divisa`.`codigo` AS `divisa`,
+        `venta`.`tipocambio` AS `tipocambio`,
+        ((((((`venta`.`subtotal` - `venta`.`descuento1`) - `venta`.`descuento2`) + `venta`.`impuesto1`) + `venta`.`impuesto2`) + `venta`.`impuesto3`) + `venta`.`impuesto4`) AS `total`,
+        MONTH(`venta`.`fecha`) AS `mes`,
+        YEAR(`venta`.`fecha`) AS `anio`,
+        `cstatusfinancieros`.`const` AS `estado`,
+        `cstatusfinancieros`.`id` AS `id`,
+        `venta`.`statusadministrativo` AS `statusadministrativo`,
+        `venta`.`statusentrega` AS `statusentrega`,
+        `venta`.`statusfacturacion` AS `statusfacturacion`,
+        `venta`.`statusfinanciero` AS `statusfinanciero`,
+        `venta`.`documento` AS `tipodocumento`,
+        `venta`.`icliente` AS `icliente`,
+        `cliente`.`codigo` AS `codigocliente`
+    FROM (`cstatusfinancieros`
+        JOIN (`cliente`
+        JOIN ((`cdocumentos`
+        JOIN `venta` ON((`cdocumentos`.`id` = `venta`.`documento`)))
+        LEFT JOIN `divisa` ON((`divisa`.`sys_pk` = `venta`.`idivisa`))) ON((`cliente`.`sys_pk` = `venta`.`icliente`))) ON((`cstatusfinancieros`.`id` = `venta`.`statusfinanciero`)))
+    WHERE (`venta`.`documento` <> 6)
+    ORDER BY `venta`.`sys_pk`
+    "}
+
+    text @qry_devventasproductos
+    {$"
+    SELECT
+        `qryventas`.`sys_pk` AS `pkventa`,
+        `qryventas`.`nombre` AS `nombre`,
+        `qryventas`.`icliente` AS `icliente`,
+        `qryventas`.`codigocliente` AS `codigocliente`,
+        `qryventas`.`documento` AS `documento`,
+        `qryventas`.`referencia` AS `referencia`,
+        `qryventas`.`fecha` AS `fecha`,
+        `qrycatproductos`.`sys_pk` AS `pkproducto`,
+        `qrycatproductos`.`codigo` AS `codigo`,
+        `qrycatproductos`.`descripcion` AS `descripcion`,
+        `dventa`.`unidad` AS `unidad`,
+        if(ISNULL(`dventa`.`cantidad`),0,`dventa`.`cantidad`) AS `cantidad`,
+        if(ISNULL(`dventa`.`precio`),0,`dventa`.`precio`) AS `precio`,
+        if(ISNULL(`dventa`.`descuento1`),0,`dventa`.`descuento1`) AS `descuento1`,
+        if(ISNULL(`dventa`.`descuento2`),0,`dventa`.`descuento2`) AS `descuento2`,
+        if(ISNULL(`dventa`.`impuesto1`),0,`dventa`.`impuesto1`) AS `impuesto1`,
+        if(ISNULL(`dventa`.`impuesto2`),0,`dventa`.`impuesto2`) AS `impuesto2`,
+        if(ISNULL(`dventa`.`impuesto3`),0,`dventa`.`impuesto3`) AS `impuesto3`,
+        if(ISNULL(`dventa`.`impuesto4`),0,`dventa`.`impuesto4`) AS `impuesto4`,
+        `qryventas`.`divisa` AS `cdivisa`,
+        `qryventas`.`tipocambio` AS `tipocambio`,
+        `qryventas`.`anio` AS `anio`,
+        `qryventas`.`mes` AS `mes`,
+        `qrycatproductos`.`unidad` AS `ue`,
+        if(ISNULL(`dventa`.`factor`),0,`dventa`.`factor`) AS `factor`,
+        ROUND(if(ISNULL((`dventa`.`factor` * `dventa`.`cantidad`)),0,(`dventa`.`factor` * `dventa`.`cantidad`)),8) AS `cantidade`,
+        `dventa`.`sys_pk` AS `pkdventa`
+    FROM (((#<@qry_catproductos>) AS`qrycatproductos`
+        JOIN (`dventa`
+        JOIN (#<@qry_ventas>) AS `qryventas` ON((`dventa`.`fk_venta_detalle` = `qryventas`.`sys_pk`))) ON((`qrycatproductos`.`sys_pk` = `dventa`.`iproducto`)))
+        LEFT JOIN `venta` ON((`dventa`.`documento` = `venta`.`sys_pk`)))
+    WHERE ((`qryventas`.`tipodocumento` = 5)
+        AND (`qryventas`.`statusadministrativo` <> 99)
+        AND if(((`venta`.`documento` = 6) AND (`venta`.`statusfacturacion` <> 1)),0,1))
+    ORDER BY `qryventas`.`sys_pk`,`qrycatproductos`.`sys_pk`
+    "}
+    @qry_devventasproductos = ftext(@qry_devventasproductos)
+
+    text @qry_crmventas
+    {$"
+    SELECT
+        `venta`.`sys_pk` AS `pkventa`,
+        `venta`.`fecha` AS `fecha`,
+        ((`dventa`.`cantidad` * `dventa`.`factor`) - IFNULL(`z`.`cantidade`,0)) AS `cantidad`,
+        ROUND(((((((`dventa`.`impuesto1` + `dventa`.`impuesto2`) + `dventa`.`impuesto3`) + `dventa`.`impuesto4`) + ((`dventa`.`cantidad` * `dventa`.`factor`) * `dventa`.`precio`)) - `dventa`.`descuento1`) - `dventa`.`descuento2`) - IFNULL(((((((((`z`.`precio` * `z`.`cantidade`) * `z`.`tipocambio`) + `z`.`impuesto1`) + `z`.`impuesto2`) + `z`.`impuesto3`) + `z`.`impuesto4`) - `z`.`descuento1`) - `z`.`descuento2`),0),8) AS `importe`,
+        `venta`.`referencia` AS `referencia`,
+        DATE_FORMAT(`venta`.`fecha`,_utf8'%d/%m/%y') AS `sfecha`,
+        `producto`.`sys_pk` AS `sys_pk`,
+        `producto`.`codigo` AS `codigo`,
+        `producto`.`descripcion` AS `descripcion`,
+        YEAR(`venta`.`fecha`) AS `anio`,
+        MONTH(`venta`.`fecha`) AS `mes`,
+        `venta`.`icliente` AS `icliente`
+    FROM (((`dventa`
+        JOIN `venta` ON((`dventa`.`fk_venta_detalle` = `venta`.`sys_pk`)))
+        JOIN `producto` ON((`dventa`.`iproducto` = `producto`.`sys_pk`)))
+        LEFT JOIN (#<@qry_devventasproductos>) AS `z` ON(((`venta`.`sys_pk` = `z`.`pkventa`) AND (`dventa`.`sys_pk` = `z`.`pkdventa`) AND (`producto`.`sys_pk` = `z`.`pkproducto`))))
+    WHERE (((`venta`.`documento` = 3)
+        AND (`venta`.`statusfacturacion` = 1)
+        AND (`venta`.`statusadministrativo` <> 99))
+        OR ((`venta`.`documento` = 6)
+        AND (`venta`.`statusfacturacion` = 1)
+        AND (`venta`.`statusadministrativo` <> 99))
+        OR ((`venta`.`documento` = 4) AND (`venta`.`statusadministrativo` <> 99)))
+    ORDER BY `venta`.`fecha` DESC
+    "}
+    @qry_crmventas = ftext(@qry_crmventas)
+
+    text @qry_crmantiguedadsaldos
+    {$"
+    SELECT
+        `dcxc`.`sys_pk` AS `pkdcxc`,
+        `z`.`sys_pk` AS `pkcliente`,
+        DATE_FORMAT(`dcxc`.`fecha`,_utf8'%d/%m/%y') AS `fecha`,
+        DATE_FORMAT(`dcxc`.`aplicacion`,_utf8'%d/%m/%y') AS `aplicacion`,
+        `dcxc`.`referencia` AS `referencia`,
+        (CASE WHEN ((TO_DAYS(NOW()) - TO_DAYS(`dcxc`.`aplicacion`)) <= 0) THEN (((`dcxc`.`debe` + `dcxc`.`intmoratorios`) - `dcxc`.`bonificaciones`) - `dcxc`.`pagos`) ELSE 0 END) AS `no_vencido`,
+        (CASE WHEN (((TO_DAYS(NOW()) - TO_DAYS(`dcxc`.`aplicacion`)) >= 1) AND ((TO_DAYS(NOW()) - TO_DAYS(`dcxc`.`aplicacion`)) <= 30)) THEN (((`dcxc`.`debe` + `dcxc`.`intmoratorios`) - `dcxc`.`bonificaciones`) - `dcxc`.`pagos`) ELSE 0 END) AS `menor30`,
+        (CASE WHEN (((TO_DAYS(NOW()) - TO_DAYS(`dcxc`.`aplicacion`)) >= 31) AND ((TO_DAYS(NOW()) - TO_DAYS(`dcxc`.`aplicacion`)) <= 60)) THEN (((`dcxc`.`debe` + `dcxc`.`intmoratorios`) - `dcxc`.`bonificaciones`) - `dcxc`.`pagos`) ELSE 0 END) AS `menor60`,
+        (CASE WHEN (((TO_DAYS(NOW()) - TO_DAYS(`dcxc`.`aplicacion`)) >= 61) AND ((TO_DAYS(NOW()) - TO_DAYS(`dcxc`.`aplicacion`)) <= 90)) THEN (((`dcxc`.`debe` + `dcxc`.`intmoratorios`) - `dcxc`.`bonificaciones`) - `dcxc`.`pagos`) ELSE 0 END) AS `menor90`,
+        (CASE WHEN ((TO_DAYS(NOW()) - TO_DAYS(`dcxc`.`aplicacion`)) >= 91) THEN (((`dcxc`.`debe` + `dcxc`.`intmoratorios`) - `dcxc`.`bonificaciones`) - `dcxc`.`pagos`) ELSE 0 END) AS `mayor90`
+    FROM (`cliente` `z`
+        JOIN (`cdocumentos`
+        JOIN `dcxc` ON((`cdocumentos`.`id` = `dcxc`.`documento`))) ON((`z`.`sys_pk` = `dcxc`.`icliente`)))
+    WHERE ((`dcxc`.`aplicable` <> 0) AND ((((`dcxc`.`debe` + `dcxc`.`intmoratorios`) - `dcxc`.`bonificaciones`) - `dcxc`.`pagos`) <> 0))
+    ORDER BY `dcxc`.`sys_pk`
+    "}
+}

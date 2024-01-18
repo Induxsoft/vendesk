@@ -6,6 +6,7 @@ module "Controller configs"
 	#include "serialize.dkh"
 	#include "dbr.dkh"
 	#include "crudl/crudl.dk"
+	#include "_lib/list.query.dk"
 
 	@base_path = "_modules"
 	@path_root = "web/192.168.0.125/packs/vendesk"
@@ -112,22 +113,6 @@ module "Controller configs"
 	{
 		"access":[{"workspace":"'+@ws+'"}]
 	}'
-
-	// para los servicios
-	if @@(@http_context,"$request/get/_program") == "_services"
-	{
-		switch @@(@http_context,"$request/get/_entity_id")
-		{
-			case "sales_pipeline"
-			{
-				include "./_modules/sales_pipeline/_services/index.dkl"
-
-				response = trim(@@(@http_context,"$response/text"))
-				if response == "" { response = '{"success":1,"data":[]}' }
-				return from.json(response)
-			}
-		}
-	}
 
 	@form_detail="detail.dk"
 	@form_caso="view_caso.dkl"

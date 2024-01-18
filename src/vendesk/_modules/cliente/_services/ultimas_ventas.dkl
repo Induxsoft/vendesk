@@ -8,6 +8,7 @@ module "mdhd"
     #include "serialize.dkh"
     #include "uielements.dkl"
     #include "uielements.dbtable.dkl"
+    #include "../../../_lib/list.query.dk"
 
 	 ref datos=@listData
 	 ref bd=@null
@@ -18,9 +19,8 @@ module "mdhd"
     
     if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
         // do rise_error(99,"akii")
-	query="Select z.PKVenta as sys_pk,z.SFecha as fecha, z.Descripcion as producto, z.referencia, z.cantidad, z.importe from qryCRMVentas z 
-                Where z.ICliente =@sys_pk order by z.PKVenta desc LIMIT 10;"
-    ref lista=dbr.list(bd,query,datos)
+	query="SELECT z.pkventa AS sys_pk, z.sfecha AS fecha, z.descripcion AS producto, z.referencia, z.cantidad, z.importe FROM (#<@qry_crmsaldoclientes>) AS z WHERE z.icliente = @sys_pk ORDER BY z.pkventa DESC LIMIT 10;"
+    ref lista=dbr.list(bd,ftext(query),datos)
     
     new table_general
     {

@@ -27,9 +27,8 @@ var controller={
     list_stages=document.getElementById("conten-padre");
   },
 	get_pipelines:function(id,data) {
-		var uri=`${url}sales_pipeline/` //`${url}crm/sales/pipeline/`;
+		var uri=`${url}sales_pipeline/`; //`${url}crm/sales/pipeline/`;
         model.invoke_service(uri,null,function(data) {
-
           views.select("#pipelines",data);
           views.print_stages(data[0]);
           views.edit_view(data[0]);
@@ -46,7 +45,7 @@ var controller={
 	},
   get_pipeline:function()
   {
-    var uri=`${url}crm/sales/pipeline/${idpipeline.value}`;
+    var uri=`${url}sales_pipeline/?pipeline_id=${idpipeline.value}`; //`${url}crm/sales/pipeline/${idpipeline.value}`;
         model.invoke_service(uri,null,function(data) {
           views.print_stages(data[0]);
           views.edit_view(data[0]);
