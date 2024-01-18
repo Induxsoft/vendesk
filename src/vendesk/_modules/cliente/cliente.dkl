@@ -170,12 +170,12 @@ script
     }
 
     $(document).ready(function () {
-        if ('#<@('./ sys_pk')>' != '' && '#<@('parameters / i')>' == '')
+    if ('#<@('./sys_pk')>' != '' && '#<@('parameters/i')>' == '')
     {
-        getTables('#<@('./ sys_pk')>', '#tableantsld', 'antsld');
-        getTables('#<@('./ sys_pk')>', '#tble-ultvnts', 'ultvnts');
+        getTables('#<@('./sys_pk')>', '#tableantsld', 'antsld');
+        getTables('#<@('./sys_pk')>', '#tble-ultvnts', 'ultvnts');
     }
-    if ('#<@('./ domicilio2 / iciudad')>' == '')
+    if ('#<@('./domicilio2/iciudad')>' == '')
     {
         $('#domicilio_pais2').val('1');
         listarEstados(e => {
@@ -186,16 +186,16 @@ script
         }, '#domicilio_pais2', '#estado2');
     }else
     {
-        $('#domicilio_pais2').val('#<@('./ estado2 / IPais')>');
+        $('#domicilio_pais2').val('#<@('./estado2/IPais')>');
         listarEstados(e => {
-            $('#estado2').val('#<@('./ estado2 / sys_pk')>');
+            $('#estado2').val('#<@('./estado2/sys_pk')>');
             listarCiudades(e => {
-                $('#ciudad2').val('#<@('./ domicilio2 / iciudad')>');
+                $('#ciudad2').val('#<@('./domicilio2/iciudad')>');
             }, '#estado2', '#ciudad2');
         }, '#domicilio_pais2', '#estado2');
     }
 
-    if ('#<@('./ domicilio3 / iciudad')>' == '')
+    if ('#<@('./domicilio3/iciudad')>' == '')
     {
         $('#domicilio_pais3').val('1');
         listarEstados(e => {
@@ -205,16 +205,16 @@ script
             }, '#estado3', '#ciudad3');
         }, '#domicilio_pais3', '#estado3');
     }else {
-        $('#domicilio_pais3').val('#<@('./ estado3 / IPais')>');
+        $('#domicilio_pais3').val('#<@('./estado3/IPais')>');
         listarEstados(e => {
-            $('#estado3').val('#<@('./ estado3 / sys_pk')>');
+            $('#estado3').val('#<@('./estado3/sys_pk')>');
             listarCiudades(e => {
-                $('#ciudad3').val('#<@('./ domicilio3 / iciudad')>');
+                $('#ciudad3').val('#<@('./domicilio3/iciudad')>');
             }, '#estado3', '#ciudad3');
         }, '#domicilio_pais3', '#estado3');
     }
 
-    if ('#<@('./ domicilio / iciudad')>' == '')
+    if ('#<@('./domicilio/iciudad')>' == '')
     {
         console.log('no hay domicilio');
         $(selectPais).val('1');
@@ -227,11 +227,11 @@ script
     }
             else
     {
-        $(selectPais).val('#<@('./ estado / IPais')>');
+        $(selectPais).val('#<@('./estado/IPais')>');
         listarEstados(e => {
-            $(selectEstado).val('#<@('./ estado / sys_pk')>');
+            $(selectEstado).val('#<@('./estado/sys_pk')>');
             listarCiudades(e => {
-                $(selectCiudad).val('#<@('./ domicilio / iciudad')>');
+                $(selectCiudad).val('#<@('./domicilio/iciudad')>');
             }, '#estado', '#ciudad');
         }, '#domicilio_pais', '#estado');
     }
@@ -374,7 +374,7 @@ function EditCase(sys_pk, cliente = '') {
     if (cliente != '')
         icliente = cliente;
     else
-        icliente = '#<@('./ sys_pk')>';
+        icliente = '#<@('./sys_pk')>';
     window.location.href = './?_case=' + sys_pk + '&_key=' + icliente;
 }
 function selectColor(sys_pk, colorbd, color, e) {
@@ -515,7 +515,7 @@ function addItemBd(i = '') {
                 return;
             }
             cancelModal()
-            window.location.href = './?_key=#<@('./ sys_pk')>&i=' + i;
+            window.location.href = './?_key=#<@('./sys_pk')>&i='+i;
 
         },
         function (error) {
@@ -553,7 +553,7 @@ function updateItemBd(i = '', sys_pk, active = true) {
                     return;
                 }
                 cancelModal()
-                window.location.href = './?_key=#<@('./ sys_pk')>&i=' + i;
+                window.location.href = './?_key=#<@('./sys_pk')>&i='+i;
 
             },
             function (error) {
@@ -570,11 +570,11 @@ function updateItemBd(i = '', sys_pk, active = true) {
     }
     function filter_alert() {
         showLoading();
-        window.location.href = './?_key=#<@('./ sys_pk')>&i=alert&filter_alert=' + $('#search_alertas').val();
+        window.location.href = './?_key=#<@('./sys_pk')>&i=alert&filter_alert='+$('#search_alertas').val();
     }
     function search_cases() {
         showLoading();
-        window.location.href = './?_key=#<@('./ sys_pk')>&i=case&filter_case=' + $('#search_cases').val();
+        window.location.href = './?_key=#<@('./sys_pk')>&i=case&filter_case='+$('#search_cases').val();
     }
     function addComentario() {
         var comentario = $('#Comentario');
@@ -868,7 +868,7 @@ function updateItemBd(i = '', sys_pk, active = true) {
                                 alert(entity.message);
                                 return;
                             }
-                            getAdjuntos('#<@('./ caso / sys_guid')>');
+                            getAdjuntos('#<@('./caso/sys_guid')>');
                         },
                         function (error) {
                             hideLoading();
@@ -1002,8 +1002,8 @@ function updateItemBd(i = '', sys_pk, active = true) {
                 bd: '#<@('$database')>',
                 sys_pk: $('#txtNombreAdjunto').attr('data'),
                 rdp: $('.rdiImport').val(),
-                fk_parent: '#<@('./ caso / sys_guid')>',
-                ws: '#<@('parameters/ ws')>',
+                fk_parent: '#<@('./caso/sys_guid')>',
+                ws: '#<@('parameters/ws')>',
                     act: act
         }
         filesdata.append('data', JSON.stringify(data));
@@ -1018,7 +1018,7 @@ function updateItemBd(i = '', sys_pk, active = true) {
             success: function (data) {
                 hideLoading();
                 if (data.success) {
-                    getAdjuntos('#<@('./ caso / sys_guid')>');
+                    getAdjuntos('#<@('./caso/sys_guid')>');
                     $('#txtenlazarfile').val('');
                     $('#txtinportfile').val('');
                     $('#rdoimportar').val('');
@@ -1075,7 +1075,7 @@ function updateItemBd(i = '', sys_pk, active = true) {
     }
 
     function downloadfile(sys_pk) {
-        window.open('download_file.down?sys_pk=' + sys_pk + '&ws=' + '#<@('parameters / ws')>' + '&bd=#<url_encode(@('$database'))>');
+        window.open('download_file.down?sys_pk=' + sys_pk + '&ws=' + '#<@('parameters/ws')>' + '&bd=#<url_encode(@('$database'))>');
     }
     function getTables(sys_pk, iddiv, act) {
         if (sys_pk == '') { return; }
