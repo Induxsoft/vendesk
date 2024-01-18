@@ -1,0 +1,126 @@
+#include "dkli.dkh"
+#set "meta-xml-declaration" ""
+#!
+module "mdhd"
+{
+	#include "functions.dkh"
+    #include "dbr.dkh"
+    #include "serialize.dkh"
+    #include "uielements.dkl"
+    #include "uielements.dbtable.dkl"
+    #include "../../_lib/list.query.dk"
+
+	 ref datos=@listData
+	 ref bd=@null
+    if not(isnull(datos)){
+        ref bd=dbr.open(@@(datos,"$bd"))
+    }
+    else{do rise_error(500,"falta una conexión hacia la base de datos")}
+    
+    if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
+        // do rise_error(99,"akii")
+	query="SELECT z.pkventa AS sys_pk, z.sfecha AS fecha, z.descripcion AS producto, z.referencia, z.cantidad, z.importe FROM (#<@qry_crmventas>) AS z WHERE z.icliente = @sys_pk ORDER BY z.pkventa DESC LIMIT 10;"
+    ref lista=dbr.list(bd,ftext(query),datos)
+    
+    new table_general
+    {
+        @"datatable*":lista
+
+        @"value_field":"sys_pk"
+        member @"attributes"
+        {
+            @"class":"table table-hover"
+        }
+        member @"columns"
+        {
+            member @"fecha"
+            {
+                @"caption":"Fecha"
+                // @"format":"dd/mm/yyyy"
+            }
+            member @"producto"
+            {
+                @"caption":"Producto"
+            }
+            member @"referencia"
+            {
+                @"caption":"Referencia"
+                @"summary":"Totales:"
+            }
+             member @"cantidad"
+            {
+                @"caption":"Cantidad"
+                @"format":"#,#.00"
+                @"summary":"sum"
+                member @"attributes"
+                {
+                    @"style":"text-align:right"
+                }
+            }
+            member @"importe"
+            {
+                @"caption":"Importe"
+                 @"format":"$ #,#.00"
+                 @"summary":"sum"
+
+                member @"attributes"
+                {
+                    @"style":"text-align:right"
+                }
+            }
+        }
+    }
+    cell_func_general::&params, &row, &cell
+    {
+        new headers
+        {
+            @"style":"position: sticky !important;top:0 !important;background-color:#fff;"
+            @"class":"h6"
+        }
+        // do rise_error(99,to.json(params))
+        if @@(cell,"element")=="th"{cell<"attributes*">:headers}
+        if @@(cell,"element")=="th" && not(isnull(@@(params,"&columns/notas")))
+        {
+            headers<"style">:"position: sticky !important;top:0 !important;background-color:#fff;"
+            cell<"attributes*">:headers
+        }
+        if @@(cell,"cell_type")=="summary"{
+            new head
+            {
+                @"style":"background:#ADD8E6;text-align: right;"
+            }
+            cell<"attributes*">:head
+        }
+    }
+    point cell_link to cell_func_general
+    using table_general
+    {
+        @"before_cell*":cell_link
+    }
+
+    if @count(@@(table_general,"&datatable"))<=0
+    {
+        #$
+        div(class="text-center")
+        {
+            h6(class="text-secondary mt-4"){"No se encontraron ventas."}
+        }
+        #!
+    }else{
+        // do rise_error(99,"aki1")
+        #$
+        div
+        {
+            #!
+            do uie.dbtable(table_general)
+        }
+        #!
+    }
+
+    exception
+    {
+        do rise_error(99,last_error())
+    	#$
+    	p{"#<last_error()>"}
+    }
+}

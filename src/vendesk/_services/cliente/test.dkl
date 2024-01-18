@@ -1,0 +1,9 @@
+#include "dkli.dkh"
+#!
+program ""
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+
+    do rise_error(0,to.json(@@(@http_context,"&request/get")))
+}

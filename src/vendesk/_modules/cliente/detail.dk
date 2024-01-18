@@ -7,9 +7,9 @@ module "detail"
 	#include "dbr.dkh"
 	#include "uielements.dkl"
 	#include "uielements.dbtable.dkl"
-	// #include "../config.dkl"
+	#include "../../config.dkl"
 	do @context.begin(@crud_context)
-	// do rise_error(99,to.json(@crud_context))
+	
 	alert=""
 	atencion=""
 	casos=""
@@ -67,7 +67,7 @@ module "detail"
 				{
 					div(class="d-flex align-items-center")
 					{
-						a(href="#" class="btn btn-sm btn-light bg-white border-0" id="go_back_btn"){
+						a(href="#<@VDK_CLIENTE>" class="btn btn-sm btn-light bg-white border-0" id="go_back_btn"){
 							svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16"){
 								path("fill-rule"="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z")
 							}

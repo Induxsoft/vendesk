@@ -7,6 +7,8 @@ module "view.caso"
 	#include "dbr.dkh"
 	#include "uielements.dkl"
 	#include "uielements.dbtable.dkl"
+	#include "../../config.dkl"
+
 	do @context.begin(@crud_context)
 	#$
 	div(class="container-fluid pt-1 ps-4 pe-4" style="background-color:#F5F5F5;")
@@ -33,7 +35,7 @@ module "view.caso"
 			{
 				div(class="flex-grow-1 d-flex align-items-center bg-white p-4 pt-5 pb-5 border-bottom" id="div-row_#<@('./caso/sys_pk')>" style="background-color: #<get.color(@('#./caso/uf_color'))> !important; color: #<get.colorword(@('#./caso/uf_color'))> !important;")
 				{
-					a(href="#" class="btn btn-sm btn-light bg-white border-0" id="go_back_btn"){
+					a(href="#<@VDK_CLIENTE>_admin/" class="btn btn-sm btn-light bg-white border-0" id="go_back_btn"){
 						svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16"){
 							path("fill-rule"="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z")
 						}

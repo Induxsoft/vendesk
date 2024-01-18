@@ -9,5 +9,3 @@ GET: /{ws}/ > $web/r8-clientes.ws.induxsoft.net/_modules/entry-point.dkl
 GET,POST,PUT,DELETE: /{ws}/{_entities_type}/{_entity_id?}> $web/r8-clientes.ws.induxsoft.net/_modules/entry-point.dkl
 GET,POST,PUT,DELETE: /{ws}/{_entities_type}/{_entity_id}/{_case}> $web/r8-clientes.ws.induxsoft.net/_modules/entry-point.dkl
 *: /{_app_group}/{_connection}/{_entities_type}/{_entity_id?}> $web/r8-clientes.ws.induxsoft.net/_modules/entry-point.dkl
-
-

@@ -1,0 +1,116 @@
+#include "dkli.dkh"
+#!
+program
+{
+    #include "functions.dkh"
+    #include "dbr.dkh"
+    #include "serialize.dkh"
+    
+    new res{}
+    ref datos=from.json(field.dstr(@http_context,"request/POST_STRING","{}"))
+
+    ref bd=@null
+    if not(isnull(datos)){
+        ref bd=dbr.open(@@(datos,"$bd"))
+    }
+    else{do rise_error(500,"falta una conexión hacia la base de datos")}
+
+    res<"sys_pk">:@@(datos,"#sys_pk")
+    ref listnotas=list.create()
+    new data{}
+    new nota
+    {
+        @"fk_caso":@@(res,"#sys_pk")
+        @"Sys_TimeStamp*":now()
+        @"Sys_DTCreated*":now()
+        @"usuario":@@(datos,"user")
+    }
+    table_name="ut_crmcasos"
+
+    if @@(datos,"cliente")!=""{
+        ref nota=record.copy(nota,"*")
+        data<"fk_cliente">:@@(datos,"#cliente")
+        nota<"notas">:"<< Cliente asignado: "+@@(datos,"nameclient")+" >>"
+        nota<"Sys_GUID">:cut(uuid(),30)
+        do list.add(listnotas,nota)
+    }
+
+    if @@(datos,"userassign")!="" && @@(datos,"userassign")!="@"
+    {
+        ref nota=record.copy(nota,"*")
+        data<"usuarioasignado">:@@(datos,"userassign")
+        username=dbr.str(bd,"SELECT t.username from tuser t WHERE t.UserID=@userassign" ,datos)
+        nota<"notas">:"<< Usuario asignado: "+username+" >>"
+        nota<"Sys_GUID">:cut(uuid(),30)
+        do list.add(listnotas,nota)
+    } 
+    if @@(datos,"tipocaso")!="" && @@(datos,"tipocaso")!="@"
+    {
+        ref nota=record.copy(nota,"*")
+        data<"fk_tipocaso">:@@(datos,"#tipocaso")
+        tipocaso=dbr.str(bd,"SELECT u.uf_descripcion from ut_crmtipocaso u WHERE u.Sys_PK=@tipocaso",datos)
+        nota<"notas">:"<< Caso de tipo: "+tipocaso+" >>"
+        nota<"Sys_GUID">:cut(uuid(),30)
+        do list.add(listnotas,nota)
+    } 
+    if @@(datos,"prioridad")!="" && @@(datos,"prioridad")!="@"
+    {
+        ref nota=record.copy(nota,"*")
+        data<"fk_prioridad">:@@(datos,"#prioridad")
+        prioridad=dbr.str(bd,"SELECT u.descripcion from ut_crmprioridad u WHERE u.Sys_PK=@prioridad",datos)
+        nota<"notas">:"<< Prioridad: "+prioridad+" >>"
+        nota<"Sys_GUID">:cut(uuid(),30)
+        do list.add(listnotas,nota)
+    }
+    if @@(datos,"fechavencimiento")!="" 
+    {
+        ref nota=record.copy(nota,"*")
+        fecha=@@(datos,"fechavencimiento")+" "+@@(datos,"horavencimiento")
+        data<"fechavencimiento*">:str2dt(fecha)
+        using nota
+        {
+            @"notas":"<< Vencimiento: "+fecha+" >>"
+            @"Sys_GUID":cut(uuid(),30)
+        }
+        
+        do list.add(listnotas,nota)
+    }  
+    if @@(datos,"$numduracion")!="" && @@(datos,"$numduracion")!="0" && @@(datos,"tipoduracion")!="@"
+    {
+        ref nota=record.copy(nota,"*")
+        data<"duracion">:@@(datos,"numduracion")+"-"+@@(datos,"tipoduracion")
+        using nota
+        {
+            @"notas":"<< Duración del caso: "+@@(data,"duracion")+" >>"
+            @"Sys_GUID":cut(uuid(),30)
+        }
+        
+        do list.add(listnotas,nota)
+    }
+
+    if table_name==""{do rise_error(99,"Tabla no especificada.")}
+    if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
+    if @@(res,"$sys_pk")==""{do rise_error(99,"Identidad no encontrada.")}
+    do dbr.update(bd,table_name,data,"sys_pk=@sys_pk",res)
+    for i=0;i<@count(listnotas)
+    {
+        ref itm=@item(listnotas,i)
+        do dbr.insert(bd,"ut_crmnotacaso",itm)
+    }
+    using res 
+    { 
+        @"success": @true
+        @"data": @null
+    }
+
+    exception
+    {
+        using res{}
+        res<"message">:last_error()
+        res<"success">:@false
+    }
+
+    @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+    @http_context<"response/output">:"text"
+    @http_context<"response/text">: to.json(res)
+}

@@ -2,7 +2,6 @@
 #!
 module "lista de consultas"
 {
-
 	//consultas
 	@keyfield="sys_pk"
 	@fields_system="@uuid,now(),now(),0,0,0,'',''"

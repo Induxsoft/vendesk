@@ -1,0 +1,120 @@
+#include "dkli.dkh"
+#!
+program
+{
+    #include "functions.dkh"
+    #include "dbr.dkh"
+    #include "serialize.dkh"
+    
+    new res{}
+    ref datos=from.json(field.dstr(@http_context,"request/post/data","{}"))
+    ref files=@@(@http_context,"&request/files")
+    
+
+    current_url::hst
+    {
+        host=@@(@http_context,"request/headers/HTTP_HOST")
+        protocol=ifstr(parse.bool(@@(@http_context,"request/headers/HTTPS")),"https","http")
+        path=replace(field.dstr(@http_context,"request/headers/request_uri","/"),"\\","/")
+        if hst{return protocol+"://"+path.concat(host,"/"+ifstr(@@(@http_context,"request/get/ws")!="",@@(@http_context,"request/get/ws")+"/",""))}
+        path=list.str(split(path,"?"),0)
+
+        return protocol+"://"+path.concat(host,path)
+    }
+    
+    path=path.concat(@@(@http_context,"request/headers/DOCUMENT_ROOT"),"_adjuntos")
+    path=path.concat(path,@@(datos,"ws"))
+    do dir.ensure(path)
+    url=path.concat(current_url(@true),"_adjuntos/"+@@(datos,"ws"))
+    // do rise_error(99,str(@count(files)))
+    ref bd=@null
+    if not(isnull(datos)){
+        ref bd=dbr.open(@@(datos,"$bd"))
+    }
+    else{do rise_error(500,"falta una conexión hacia la base de datos")}
+    
+    new nota
+    {
+        @"Sys_TimeStamp*":now()
+        @"description":@@(datos,"$description")
+        @"words":@@(datos,"$word")
+    }
+    table_name="docs"
+    uuid=uuid()
+    switch @@(datos,"act")
+    {
+        case "add"{
+
+            nota<"sys_guid">:cut(uuid(),30)
+            nota<"Sys_DTCreated*">:now()
+            nota<"Sys_DTExported*">:now()
+            if @count(files)>0
+            {
+                    ref f=list.obj(files,0)
+                    nota<"TypeData">:replace(file.extension(field.str(f,"filename")),".","")
+                    do file.copy(field.str(f,"temp_file"),path.concat(path,uuid+"."+@@(nota,"TypeData")))
+            }else{
+                nota<"TypeData">:replace(file.extension(@@(datos,"urlfile")),".","")
+            }
+            
+            // nota<"Data">:file.rtext(field.str(f,"temp_file"))
+            nota<"urlfile">:ifstr(@@(datos,"urlfile")=="",path.concat(url,uuid+"."+@@(nota,"TypeData")),@@(datos,"urlfile"))
+            // switch @@(datos,"rdp")
+            // {
+            //     case "import"{
+            //         ref f=list.obj(files,0)
+            //         nota<"TypeData">:replace(file.extension(field.str(f,"filename")),".","")
+            //         nota<"Data">:file.rtext(field.str(f,"temp_file"))
+            //     }
+            //     case "enlazar"{
+            //         nota<"urlfile">:@@(datos,"urlfile")
+            //         nota<"TypeData">:file.extension(@@(datos,"urlfile"))
+            //     }
+            // }
+            // nota<"MiniData">:cut(uuid(),30)
+            nota<"Name">:@@(datos,"name")
+            
+            nota<"storeout">:0
+            do dbr.insert(bd,table_name,nota)
+
+            ref dtlink=record.copy(nota,"Sys_DTCreated,Sys_DTExported,Sys_TimeStamp")
+            dtlink<"sys_guid">:cut(uuid(),30)
+            dtlink<"Sis">:1
+            dtlink<"TypeParent">:"ut_crmcasos"
+            dtlink<"FK_Doc">:dbr.str(bd,"SELECT sys_guid FROM docs d WHERE d.Sys_PK=(SELECT MAX(sys_pk) FROM docs)",@null)
+            dtlink<"FK_Parent">:@@(datos,"fk_parent")
+
+            do dbr.insert(bd,"doclink",dtlink)
+            
+            break
+        }
+        case "upd"
+        {
+            do dbr.update(bd,table_name,nota,"sys_pk=@sys_pk",datos)
+            break
+        }
+    }
+    
+    
+    if table_name==""{do rise_error(99,"Tabla no especificada.")}
+    if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
+    
+    
+    
+    using res 
+    { 
+        @"success": @true
+        @"data*":@null
+    }
+
+    exception
+    {
+        using res{}
+        res<"message">:last_error()
+        res<"success">:@false
+    }
+
+    @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+    @http_context<"response/output">:"text"
+    @http_context<"response/text">: to.json(res)
+}

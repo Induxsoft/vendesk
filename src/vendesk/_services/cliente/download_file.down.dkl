@@ -1,0 +1,66 @@
+#include "dkli.dkh"
+#! //Conmutación a contexto IMPERATIVO
+
+program "ejemplo-BINARIO"
+{
+    #include "functions.dkh" 
+    #include "linux-fixes.dkh"
+    #include "serialize.dkh"
+    #include "webcl.dkh"
+    #include "dbr.dkh"
+    
+
+    ref getData = @@(@http_context,"&request/get")
+    if isnull(getData){do rise_error(99,"Ocurrio un error.")}
+    // do rise_error(99,url_dcode(@@(getData,"bd")))
+    ref db=dbr.open(url_dcode(@@(getData,"bd")))
+
+    if isnull(db){do rise_error(99,"falta la conexión a la base de datos")}
+
+    ref cnn=dbr.rec(db,"SELECT * FROM  docs d WHERE d.sys_pk=@sys_pk;",getData)
+    
+    
+    path=path.concat(@@(@http_context,"request/headers/DOCUMENT_ROOT"),"_adjuntos")
+    path=path.concat(path,@@(getData,"ws"))
+
+    //Establecer encabezado de respuesta http
+    @http_context<"response/headers/content-type">:"application/octet-stream;charset=utf-8"
+    //Indicar tipo de respuesta
+    @http_context<"response/output">:"binary"
+    
+    if not(isnull(field.obj(cnn,"Data")))
+    {
+        //Indicar que se trata de un archivo adjunto y su nombre
+        //Más información en: https://developer.mozilla.org/es/docs/Web/HTTP/Headers/Content-Disposition
+        uuid=uuid()
+        path=path.concat(path,uuid+"."+@@(cnn,"TypeData"))
+
+        do _file.wbytes(path,field.obj(cnn,"Data"))
+
+        if not(file.exists(path)){do rise_error(99,"No se encontro en archivo.")}
+
+        @http_context<"response/headers/content-disposition">: "attachment; filename="+file.name(path)+""
+        //Asignar la respuesa de salida
+        @http_context<"response/binary*">: file.rbytes(path) //Lee y devuelve el array de bytes del archivo
+        do file.delete(path)
+    
+    }
+    else if @@(cnn,"urlfile")!=""
+    {
+        path=path.concat(path,file.name(@@(cnn,"urlfile")))
+
+        if not(file.exists(path)){do http.download(@@(cnn,"urlfile"),path)}
+
+        @http_context<"response/headers/content-disposition">: "attachment; filename="+file.name(@@(cnn,"urlfile"))+""
+        //Asignar la respuesa de salida
+        @http_context<"response/binary*">: file.rbytes(path)
+    }else{do rise_error(99,"No se encontro el archivo.")}
+
+
+    exception
+    {
+        do rise_error(99,"Ocurrio un error:"+last_error())
+    }
+
+
+}

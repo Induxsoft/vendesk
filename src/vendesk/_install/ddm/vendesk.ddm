@@ -152,7 +152,7 @@ model "erp.vendesk"
         @"sequence" int required
         @"name" string(50) required
         @"probability" decimal(4,1)
-        @"stuck_in_days" int
+        @"stuck_in_days" bool
     }
 
     entity "ut_crmtipocaso" : "TableModel"

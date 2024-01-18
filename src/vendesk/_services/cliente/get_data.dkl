@@ -1,0 +1,54 @@
+#include "dkli.dkh"
+#!
+program
+{
+    #include "functions.dkh"
+    #include "dbr.dkh"
+    #include "serialize.dkh"
+    #include "uielements.dkl"
+    #include "uielements.dbtable.dkl"
+    
+    new res{}
+    ref datos=from.json(field.dstr(@http_context,"request/POST_STRING","{}"))
+
+    ref bd=@null
+    if not(isnull(datos)){
+        ref bd=dbr.open(@@(datos,"$bd"))
+    }
+    else{do rise_error(500,"falta una conexión hacia la base de datos")}
+    
+    if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
+    
+    new data{@"sys_pk":@@(datos,"sys_pk")}
+    switch @@(datos,"act")
+    {
+        case "edit_cat_prioridad"{
+            query="select ut.sys_pk,ut.sys_timestamp,ut.sys_guid,ut.descripcion,ut.tduracion as cantidad,ut.dduracion,ut.sys_dtcreated from ut_crmprioridad ut where ut.sys_pk=@sys_pk;"
+            ref resp=dbr.rec(bd,query,data)
+        }
+        case "edit_tipocaso"{
+            query="select ut.sys_pk,ut.sys_timestamp,ut.sys_guid,ut.uf_descripcion as descripcion,ut.`status`,ut.sys_dtcreated from ut_crmtipocaso ut where ut.sys_pk=@sys_pk;"
+            ref resp=dbr.rec(bd,query,data)
+        }
+    }
+    
+    
+    
+    using res 
+    { 
+        @"success": @true
+        @"data*":resp
+    }
+
+    exception
+    {
+        using res{}
+        res<"message">:last_error()
+        res<"success">:@false
+
+    }
+
+        @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+        @http_context<"response/output">:"text"
+        @http_context<"response/text">: to.json(res)
+}

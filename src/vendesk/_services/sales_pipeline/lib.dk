@@ -2,6 +2,27 @@
 #!
 module "lib.dk"
 {
+    #!
+    new_rec::
+    {
+        new record
+        {
+            @"sys_pk": 0
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": now()
+            @"sys_timestamp*": now()
+            // @"sys_info": ""
+            // @"sys_user": ""
+            // @"sys_lastuser": ""
+            // @"sys_exported": @false
+            // @"sys_dtexported*": @null
+            @"sys_recver": 0
+            // @"sys_deleted": @false
+            // @"sys_lock": 0
+        }
+        return record
+    }
+
 	#!
 	api_base_service::
     {
@@ -45,8 +66,8 @@ module "lib.dk"
     #!
     crm.post_action::&db,&params,&postData
     {
-        if @@(params,"pipeline_id")==""{ref newpipeline=crm.create_pipeline(db,params,postData)}
-        else{ref newpipeline=crm.create_stage(db,params,postData)}
+        if @@(params,"pipeline_id")=="" { ref newpipeline = crm.create_pipeline(db,params,postData) }
+        else{ ref newpipeline = crm.create_stage(db,params,postData) }
 
         return newpipeline
     }
@@ -117,24 +138,35 @@ module "lib.dk"
     #!
     crm.create_pipeline::&db,&params,&postData
     {
-        postData<"uuid">:cut(uuid(),31)
-        do dbr.execute(db,ftext(@insert_pipeline),postData)
-        @keyfield="sys_guid"
-        params<"pipeline_id">:@@(postData,"uuid")
+        ref pipeline = new_rec()
+        using pipeline
+        {
+            @"name": @@(postData,"$name")
+            @"probability": parse.bool(@@(postData,"$probability"))
+        }
+        do dbr.insert(db,"sales_pipeline",pipeline)
+
+        @keyfield = "sys_guid"
+        params<"pipeline_id"> : @@(pipeline,"sys_guid")
         return crm.get_pipelines(db,params)
     }
 
     #!
     crm.create_stage::&db,&params,&postData
     {
+        ref _stages = @@(postData,"&stages") 
 
-        ref stages=@@(postData,"&stages")
-
-        do dbr.begin(db)
-            stages<"ref_pipeline">:@@(params,"pipeline_id")
-            stages<"uuid">:cut(uuid(),31)
-            do dbr.execute(db,ftext(@insert_pipeline_stages),stages)
-        do dbr.commit(db)
+        ref stage = new_rec()
+        using stage
+        {
+            @"ref_pipeline": @@(params,"#pipeline_id")
+            @"sequence": @@(_stages,"#sequence")
+            @"name": @@(_stages,"$name")
+            @"probability": @@(_stages,"#probability")
+            @"stuck_in_days": parse.bool(@@(_stages,"$stuck_in_days"))
+        }
+        do dbr.insert(db,"sales_pipeline_stage",stage)
+        
         // @keyfield="sys_guid"
         // params<"stage_id">:@@(stages,"uuid")
         return crm.get_pipelines(db,params)

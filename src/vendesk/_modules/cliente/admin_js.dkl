@@ -112,7 +112,8 @@ script
 						bd:"#<@("$database")>",
 						act:"cat_prioridad"
 					}
-					definitive.rest("/list_catalogo.tables","POST",data,
+					// /list_catalogo.tables
+					definitive.rest("#<@SVC_CLIENTE>gettables.tables.dkl","POST",data,
                     function(entity){
 	                    if(!entity.success)
 	                    {
@@ -140,7 +141,8 @@ script
 						bd:"#<@("$database")>",
 						act:"cat_tiposcasos"
 					}
-					definitive.rest("/tiposcasos.tables","POST",data,
+					// /tiposcasos.tables
+					definitive.rest("#<@SVC_CLIENTE>gettables.tables.dkl","POST",data,
                     function(entity){
 	                    if(!entity.success)
 	                    {
@@ -169,7 +171,8 @@ script
 						act:"edit_cat_prioridad",
 						sys_pk:sys_pk
 					}
-					definitive.rest("/edit_catalog.data","POST",data,
+					// /edit_catalog.data
+					definitive.rest("#<@SVC_CLIENTE>get_data.dkl","POST",data,
                     function(entity){
 	                    if(!entity.success)
 	                    {
@@ -216,8 +219,8 @@ script
 	                   	act:act,
 	                   	sys_pk:sys_pk
 	                   }
-
-	                   definitive.rest("/edit_catalogo.entity","POST",data,
+						// /edit_catalogo.entity
+	                   definitive.rest("#<@SVC_CLIENTE>insert_update_entity.dkl","POST",data,
                     function(entity){
 	                    if(!entity.success)
 	                    {
@@ -246,7 +249,8 @@ script
 						act:"edit_tipocaso",
 						sys_pk:sys_pk
 					}
-					definitive.rest("/edit_catalog.data","POST",data,
+					// /edit_catalog.data
+					definitive.rest("#<@SVC_CLIENTE>get_data.dkl","POST",data,
                     function(entity){
 	                    if(!entity.success)
 	                    {
@@ -283,8 +287,8 @@ script
 	                   	sys_pk:sys_pk,
 	                   	act:act
 	                   }
-
-	                   definitive.rest("/edit_catalogo.entity","POST",data,
+						// /edit_catalogo.entity
+	                   definitive.rest("#<@SVC_CLIENTE>insert_update_entity.dkl","POST",data,
                     function(entity){
 	                    if(!entity.success)
 	                    {
@@ -313,8 +317,8 @@ script
 	                   	sys_pk:sys_pk,
 	                   	act:"del_cat_prioridad"
 	                   }
-
-	                   definitive.rest("/del_catalogo.entity","POST",data,
+						// /del_catalogo.entity
+	                   definitive.rest("#<@SVC_CLIENTE>insert_update_entity.dkl","POST",data,
                     function(entity){
 	                    if(!entity.success)
 	                    {
@@ -354,8 +358,8 @@ script
 	                   	sys_pk:sys_pk,
 	                   	act:"del_tipocaso"
 	                   }
-
-	                   definitive.rest("/del_tipocaso.entity","POST",data,
+						// /del_tipocaso.entity
+	                   definitive.rest("#<@SVC_CLIENTE>insert_update_entity.dkl","POST",data,
                     function(entity){
 	                    if(!entity.success)
 	                    {

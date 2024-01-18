@@ -808,12 +808,13 @@ module "view-detail"
 	        @"text_field":"nombre"
 	        @"selected":@("./caso/fk_prioridad")
 	    }
+		
 	    if dis{def_select<"attributes/disabled">:"true"}
 	    #$
 	    	script
 		    {
 		    	$'
-		    	var dataprioridad=#<to.json(@@(def_select,"&datatable"))>
+		    	var dataprioridad = #<to.json(@@(def_select,"&datatable"))> ?? [];
 		    	'
 		  	}
 	    #!

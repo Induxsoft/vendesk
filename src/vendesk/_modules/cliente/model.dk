@@ -251,7 +251,7 @@ module "cliente.dk"
         if @@(data,"SaldoPuntos")==""{data<"SaldoPuntos">:0}
         if @@(data,"codigo")=="<A>"
         {
-            data<"codigo">:dbr.str(db,"select (if(count(*)>=1,CONCAT('cl',LPAD(Cast(MAX(SUBSTR(codigo,4,4))+1 as char),'4','0')),'cl0001')) as codigo from cliente where codigo like 'cl%'" ,@null)
+            data<"codigo">:dbr.str(db,"SELECT (IF(COUNT(*) >= 1, CONCAT('CL',LPAD(CAST(MAX(SUBSTR(codigo,4,4)) + 1 AS CHAR),'4','0')), 'CL0001')) AS codigo FROM cliente WHERE codigo LIKE 'CL%'" ,@null)
         }
         
         ref cliente=record.copy(data,"codcuenta,codigo,curp,descuento,diascredito,email,fax,LimiteCredito,nombre,notas,Precio,rfc,status,telefonos,website")
@@ -339,7 +339,9 @@ module "cliente.dk"
             cliente<"Domicilio3">:@@(domi1,"sys_pk")
         }
         
-        ref res=entity.create(db,params,cliente)
+        ref res = entity.create(db,params,cliente)
+
+        @url_redir = @VDK_CLIENTE + "?text_filter=" + @@(res,"$codigo")
     }
 
     cliente.update::&db,&params,&data
@@ -350,7 +352,7 @@ module "cliente.dk"
         if @@(data,"SaldoPuntos")==""{data<"SaldoPuntos">:0}
         if @@(data,"codigo")=="<A>"
         {
-            data<"codigo">:dbr.str(db,"select (if(count(*)>=1,CONCAT('cl',LPAD(Cast(MAX(SUBSTR(codigo,4,4))+1 as char),'4','0')),'cl0001')) as codigo from cliente where codigo like 'cl%'" ,@null)
+            data<"codigo">:dbr.str(db,"SELECT (IF(COUNT(*) >= 1, CONCAT('CL',LPAD(CAST(MAX(SUBSTR(codigo,4,4))+1 AS CHAR),'4','0')), 'CL0001')) AS codigo FROM cliente WHERE codigo LIKE 'CL%'" ,@null)
         }
         
         ref cliente=record.copy(data,"codcuenta,codigo,curp,descuento,diascredito,email,fax,LimiteCredito,nombre,notas,Precio,rfc,status,telefonos,website")
@@ -439,7 +441,9 @@ module "cliente.dk"
             cliente<"Domicilio3">:@@(domi1,"sys_pk")
         }
         
-        ref res=entity.update(db,params,cliente)
+        ref res = entity.update(db,params,cliente)
+
+        @url_redir = @VDK_CLIENTE + "?text_filter=" + @@(res,"$codigo")
     }
 
     cliente.delete::&db, &params

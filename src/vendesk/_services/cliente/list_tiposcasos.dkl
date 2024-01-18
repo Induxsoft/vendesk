@@ -1,0 +1,126 @@
+#include "dkli.dkh"
+#set "meta-xml-declaration" ""
+#!
+module "mdhd"
+{
+	#include "functions.dkh"
+    #include "dbr.dkh"
+    #include "serialize.dkh"
+    #include "uielements.dkl"
+    #include "uielements.dbtable.dkl"
+
+
+	 ref datos=@listData//from.json(field.dstr(@http_context,"request/post_string","{}"))
+	 ref bd=@null
+    if not(isnull(datos)){
+        ref bd=dbr.open(@@(datos,"$bd"))
+    }
+    else{do rise_error(500,"falta una conexión hacia la base de datos")}
+    
+    if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
+
+	query="select ut.sys_pk,ut.sys_timestamp,ut.sys_guid,ut.uf_descripcion,ut.`status`,ut.sys_dtcreated from ut_crmtipocaso ut;"
+    ref lista=dbr.list(bd,query,datos)
+    
+    new table_general
+    {
+        @"datatable*":lista
+
+        @"value_field":"sys_pk"
+        member @"attributes"
+        {
+            @"class":"table table-hover"
+        }
+        member @"columns"
+        {
+            member @"uf_descripcion"
+            {
+                @"caption":"Descripcón"
+            }
+            member @"_actions"
+            {
+                @"caption":"Accion"
+                member @"attributes"
+                {
+                    @"style":""
+                }
+            }
+        }
+    }
+    cell_func_general::&params, &row, &cell
+    {
+        
+        new headers
+        {
+            @"style":"position: sticky !important;top:0 !important;background-color:#fff;"
+            @"class":"h6"
+        }
+        
+        if @@(cell,"element")=="th"{cell<"attributes*">:headers}
+        if @@(cell,"element")=="th"
+        {
+            headers<"style">:"position: sticky !important;top:0 !important;background-color:#fff;"
+            cell<"attributes*">:headers
+        }
+
+        if @@(cell,"cell_type")!="data" &&  @@(cell,"cell_type")!="unknow" { return }
+        if @@(cell,"column")=="_actions"
+        {
+            style=""
+            cell<"text">:ftext("
+                <div class='btn-group' role='group' aria-label='Button group with nested dropdown'>
+                    <div class='btn-group' role='group'>
+                        <button id='btnGroupDrop5' type='button' onclick='event.stopPropagation()'' class='btn btn-sm btn-light dropdown-toggle' data-bs-toggle='dropdown' aria-expanded='false'>
+                            Opciones
+                        </button>
+                        <ul class='dropdown-menu' aria-labelledby='btnGroupDrop5' onclick='event.stopPropagation()'>
+                            <li class='d-flex align-items-center gap-2 p-2'>
+                                <a id='btnEditar' href='#' onclick='module.edit_tipocaso(#<@@(row,'sys_pk')>)' class='text-decoration-none text-secondary d-flex align-items-center gap-2'>
+                                    <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-pencil' viewBox='0 0 16 16'>
+                                        <path d='M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z'></path>
+                                    </svg>
+                                    Editar
+                                </a>
+                            </li>
+                            <li class='d-flex align-items-center gap-2 p-2'>
+                                <a href='#' onclick='module.delete_tipocaso(#<@@(row,'sys_pk')>);' id='btnclose' class='text-decoration-none text-secondary d-flex align-items-center gap-2'>
+                                    <svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-trash' viewBox='0 0 16 16'>
+                                        <path d='M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6Z'/>
+                                        <path d='M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1ZM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118ZM2.5 3h11V2h-11v1Z'/>
+                                    </svg>
+                                    Eliminar
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            ")
+        }
+    }
+    point cell_link to cell_func_general
+    using table_general
+    {
+        @"before_cell*":cell_link
+    }
+    if @count(@@(table_general,"&datatable"))<=0
+    {
+        #$
+        div(class="text-center")
+        {
+            h4(style="margin-top:10%"){"No se encontraron datos."}
+        }
+        #!
+    }else{
+        #$
+        div
+        {
+            #!
+            do uie.dbtable(table_general)
+        }
+        #!
+    }
+    exception
+    {
+        do rise_error(500,last_error())
+    }
+}

@@ -159,6 +159,10 @@ module "config.dkl"
 		@"connection":@@(@http_context,"$session/idp/qname")
 	}
 
+	//* ======================================== [ _SERVICES ]
+	@SVC_CLIENTE = "/vendesk/_services/cliente/"
+	@SVC_PIPELINE = "/vendesk/_services/sales_pipeline/"
+
 	//* ======================================== [ _STATIC RESOURCES ]
 	@CSS_STYLES = "/$/vendesk/css/styles.css"
 	@JS_MODEL = "/$/vendesk/js/model.js"
@@ -171,4 +175,5 @@ module "config.dkl"
 
 	//* ======================================== [ _PACKAGE ]
 	@VDK_CLIENTE = "/!/vendesk/cliente/"
+	@VDK_PIPELINE = "/!/vendesk/sales_pipeline/"
 }

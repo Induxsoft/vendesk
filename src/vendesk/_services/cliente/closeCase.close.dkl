@@ -1,0 +1,49 @@
+#include "dkli.dkh"
+#!
+program
+{
+    #include "functions.dkh"
+    #include "dbr.dkh"
+    #include "serialize.dkh"
+    
+    new res{}
+    ref datos=from.json(field.dstr(@http_context,"request/POST_STRING","{}"))
+
+    ref bd=@null
+    if not(isnull(datos)){
+        ref bd=dbr.open(@@(datos,"$bd"))
+    }
+    else{do rise_error(500,"falta una conexión hacia la base de datos")}
+    
+    new caso
+    {
+        @"fechacierre*":now()
+        @"horacierre*":now()
+        @"usuariocierra":@@(datos,"user")
+        @"status":1
+    }
+    
+    table_name="ut_crmcasos"
+    
+    if table_name==""{do rise_error(99,"Tabla no especificada.")}
+    if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
+    
+    do dbr.update(bd,table_name,caso,"sys_pk=@sys_pk",datos)
+    
+    using res 
+    { 
+        @"success": @true
+        @"data*":@null
+    }
+
+    exception
+    {
+        using res{}
+        res<"message">:last_error()
+        res<"success">:@false
+    }
+
+    @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+    @http_context<"response/output">:"text"
+    @http_context<"response/text">: to.json(res)
+}
