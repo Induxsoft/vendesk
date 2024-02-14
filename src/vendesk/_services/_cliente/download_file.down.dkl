@@ -28,14 +28,14 @@ program "ejemplo-BINARIO"
     //Indicar tipo de respuesta
     @http_context<"response/output">:"binary"
     
-    if not(isnull(field.obj(cnn,"Data")))
+    if not(isnull(@@(cnn,"&Data")))
     {
         //Indicar que se trata de un archivo adjunto y su nombre
         //Más información en: https://developer.mozilla.org/es/docs/Web/HTTP/Headers/Content-Disposition
         uuid=uuid()
         path=path.concat(path,uuid+"."+@@(cnn,"TypeData"))
 
-        do _file.wbytes(path,field.obj(cnn,"Data"))
+        do _file.wbytes(path,@@(cnn,"&Data"))
 
         if not(file.exists(path)){do rise_error(99,"No se encontro en archivo.")}
 

@@ -1075,7 +1075,7 @@ function updateItemBd(i = '', sys_pk, active = true) {
     }
 
     function downloadfile(sys_pk) {
-        window.open('download_file.down?sys_pk=' + sys_pk + '&ws=' + '#<@('parameters/ws')>' + '&bd=#<url_encode(@('$database'))>');
+        window.open('#<@SVC_CLIENTE>download_file.down.dkl?sys_pk=' + sys_pk + '&ws=' + '#<@('parameters/ws')>' + '&bd=#<url_encode(@('$database'))>');
     }
     function getTables(sys_pk, iddiv, act) {
         if (sys_pk == '') { return; }
