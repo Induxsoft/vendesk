@@ -105,7 +105,7 @@ module "list.dk"
         {
 
             //a(class="btn btn-light shadow-sm p-2 mb-2 bg-white" href="./_new/" id="btnAgregar"){i(class="fa fa-plus" style="color:#dc3545"){""}$"Agregar"}
-            div(style="overflow-y:auto;max-height:70vh;")
+            div(style="overflow-y:auto;max-height:70vh;min-height:60vh;")
             {
                      ##
                     if @@(@http_context,"request/get/text_filter")!=""
@@ -125,7 +125,7 @@ module "list.dk"
                         #$
                             div(class="text-center m-5 text-secondary")
                             {
-                                h6{"Utilice el cuadro de busqueda."}
+                                h6{"Utilice el cuadro de búsqueda."}
                             }
                     }
                     ##
