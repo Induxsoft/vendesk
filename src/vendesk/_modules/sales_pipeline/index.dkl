@@ -13,7 +13,7 @@ module "index.dkl"
 	PATH_TRANSLATED = path.concat(dir.name(PATH_TRANSLATED),"_modules\\sales_pipeline\\index.dkl")
 	
 	@SITE_INCLUDES="config.dkl,lib.dk"
-	@http_context<"request/headers/PATH_TRANSLATED"> : PATH_TRANSLATED
+	@http_context<"request/headers/PATH_TRANSLATED"> : replace(PATH_TRANSLATED,"\\","/")
      
      #include "website.dkl"
 
