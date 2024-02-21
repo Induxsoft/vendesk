@@ -93,6 +93,7 @@ module "cliente.dk"
                  
          if parse.bool(@@(params,"_admin"))
         {
+            // if not(dbr.security.isauth(db,@AUT_ACCESS_ADMIN_CASOS)) { do rise_error(500,"No autorizado") }
 
             where="ifnull(u.`status`,0)=0 "
 

@@ -5,6 +5,7 @@ module "Controller configs"
 	#include "functions.dkh"
 	#include "serialize.dkh"
 	#include "dbr.dkh"
+	#include "dbr.security.dkl"
 	#include "crudl/crudl.dk"
 	#include "_lib/list.query.dk"
 
