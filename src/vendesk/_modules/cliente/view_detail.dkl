@@ -1130,7 +1130,15 @@ module "view-detail"
 
 	#!
 	view.alertas::
-	{		
+	{
+		if not(@("#./access_to_alerts"))
+		{
+			#$
+			h6(class="text-secondary"){$"No autorizado"}
+			#!
+			return
+		}
+
 		#$
 		div(class="bg-white p-4 pt-5")
 		{

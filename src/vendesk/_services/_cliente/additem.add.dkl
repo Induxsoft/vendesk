@@ -4,18 +4,24 @@ program
 {
     #include "functions.dkh"
     #include "dbr.dkh"
+    #include "dbr.security.dkl"
     #include "serialize.dkh"
+    #include "../../config.dkl"
     
     new res{}
     ref datos=from.json(field.dstr(@http_context,"request/POST_STRING","{}"))
 
-    ref bd=@null
-    if not(isnull(datos)){
-        ref bd=dbr.open(@@(datos,"$bd"))
+    // do rise_error(0,to.json(@@(@http_context,"&session")))
+    isInduxsoftV12 = (@@(@http_context,"$session/idp/name") == "db_idp_v12")
+
+    ref bd = @null
+
+    if isInduxsoftV12 { ref bd:@@(@http_context,"&session/idp/database") }
+    else
+    {
+        if not(isnull(datos)) { ref bd = dbr.open(@@(datos,"$bd")) }
+        else { do rise_error(500,"falta una conexión hacia la base de datos") }
     }
-    else{do rise_error(500,"falta una conexión hacia la base de datos")}
-    color = @@(datos, "id_color")
-    solicitud = @@(datos, "id_solicitud")
     
     new data
     {
@@ -23,12 +29,17 @@ program
         @"Sys_GUID":cut(uuid(),30)
         @"Sys_DTCreated*":now()
     }
+
+    color = @@(datos, "id_color")
+    solicitud = @@(datos, "id_solicitud")
     table_name=""
 
     switch trim(@@(datos,"item"))
     {
         case "alert"
         {
+            if isInduxsoftV12 && not(dbr.security.isauth(bd,@AUT_CREATE_ALERTAS)) { do rise_error(500,"No autorizado") }
+
             table_name="ut_crm_alerts"
             using data
             {
@@ -37,6 +48,8 @@ program
                 @"fk_cliente":@@(datos,"cliente")
                 @"usuariocrea":@@(datos,"user")
             }
+            
+            break
         }
         case "case"
         {
@@ -53,6 +66,8 @@ program
                 @"fk_tipocaso":@@(datos,"tipocaso")
                 @"fk_cliente":@@(datos,"cliente")
             }
+
+            break
         }
         case "aten"
         {
@@ -63,6 +78,8 @@ program
                 @"usuario":@@(datos,"user")
                 @"notas":ifstr(@@(datos,"atencion")=="",@@(datos,"texto"),@@(datos,"atencion"))
             }
+
+            break
         }
     }
     if table_name==""{do rise_error(99,"Tabla no especificada.")}
@@ -86,14 +103,20 @@ program
         @"data": @null
     }
 
+    if not(isInduxsoftV12) && dbr.is_open(bd) { do dbr.close(bd) }
+
     exception
     {
-        using res{}
-        res<"message">:last_error()
-        res<"success">:@false
+        if not(isInduxsoftV12) && dbr.is_open(bd) { do dbr.close(bd) }
+
+        using res
+        {
+            @"success": @false
+            @"message": last_error()
+        }
     }
 
     @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
     @http_context<"response/output">:"text"
-    @http_context<"response/text">: to.json(res)
+    @http_context<"response/text">:to.json(res)
 }

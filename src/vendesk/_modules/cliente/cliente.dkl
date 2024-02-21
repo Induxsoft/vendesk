@@ -216,7 +216,6 @@ script
 
     if ('#<@('./domicilio/iciudad')>' == '')
     {
-        console.log('no hay domicilio');
         $(selectPais).val('1');
         listarEstados(e => {
             $(selectEstado).val('7');
@@ -689,7 +688,7 @@ function updateItemBd(i = '', sys_pk, active = true) {
                 return;
             }
             if (tipodu != '@' && Number(numdura) <= 0) {
-                console.log(tipodu)
+                // console.log(tipodu)
                 alert('El tiempo del caso debe ser mayor que 0.')
                 $('#inpduracion').focus();
                 return;

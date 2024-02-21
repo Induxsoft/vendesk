@@ -79,8 +79,18 @@ module "cliente.dk"
         }
         return where
     }
+
+    cliente.list::&db,&params
+    {
+        if not(dbr.security.isauth(db,@AUT_ATENCION_CLIENTE)) { do rise_error(500,"No autorizado") }
+        
+        return entity.list(db,params)
+    }
+
     cliente.read::&db,&params
     {
+        if not(dbr.security.isauth(db,@AUT_RELACION_CLIENTE)) { do rise_error(500,"No autorizado") }
+
         // ********************código de administración***********
          
         query="SELECT u.Sys_PK,u.`status` AS completado,ut.uf_descripcion as tipo,ut.`status` ,ifnull(up.descripcion,'') AS prioridad,
@@ -93,14 +103,13 @@ module "cliente.dk"
                  
          if parse.bool(@@(params,"_admin"))
         {
-            // if not(dbr.security.isauth(db,@AUT_ACCESS_ADMIN_CASOS)) { do rise_error(500,"No autorizado") }
+            if not(dbr.security.isauth(db,@AUT_ACCESS_ADMIN_CASOS)) { do rise_error(500,"No autorizado") }
 
             where="ifnull(u.`status`,0)=0 "
 
             new cliente{}
             if @@(params,"params")!=""
             {
-                // do rise_error(00,to.json(@http_context))
                 base64=from.base64(_replace(@@(params,"params")))
 
                 ref get_data=from.json(base64)
@@ -194,8 +203,18 @@ module "cliente.dk"
         {
             case "alert"
             {
-                cliente<"tablealertas*">:dbr.list(db,"SELECT u.Sys_PK,u.activa,u.Sys_TimeStamp AS fecha,u.descripcion,u.usuariocrea FROM ut_crm_alerts u 
-              WHERE u.fk_cliente=@sys_pk AND (u.descripcion like '%@{text_alert}%' or u.usuariocrea like '%@{text_alert}%') ORDER BY u.Sys_TimeStamp desc",p)
+                ref list_alerts = list.create()
+                access_to_alerts = @false
+                
+                if dbr.security.isauth(db,@AUT_ACCESS_ALERTAS) {
+                    sql_alerts = "SELECT u.Sys_PK,u.activa,u.Sys_TimeStamp AS fecha,u.descripcion,u.usuariocrea FROM ut_crm_alerts u WHERE u.fk_cliente=@sys_pk AND (u.descripcion like '%@{text_alert}%' or u.usuariocrea like '%@{text_alert}%') ORDER BY u.Sys_TimeStamp DESC"
+                    
+                    ref list_alerts = dbr.list(db,sql_alerts,p)
+                    access_to_alerts = @true
+                }
+
+                cliente<"access_to_alerts"> : access_to_alerts
+                cliente<"tablealertas*"> : list_alerts
                 break
             }
             case "aten"
@@ -212,14 +231,26 @@ module "cliente.dk"
             {
                 if not(field.exist(params,"i"))
                 {
-                    cliente<"count_alerts">:dbr.num(db,"SELECT COUNT(*) FROM ut_crm_alerts u WHERE u.activa and u.fk_cliente=@sys_pk;",p)
-                    if @@(cliente,"#count_alerts")>0
+                    ref list_alerts = list.create()
+                    access_to_alerts = @false
+                    count_alerts = 0
+
+                    if dbr.security.isauth(db,@AUT_ACCESS_ALERTAS)
                     {
-                        params<"i">:"alert"
-                        cliente<"tablealertas*">:dbr.list(db,"SELECT u.Sys_PK,u.activa,u.Sys_TimeStamp AS fecha,u.descripcion,u.usuariocrea FROM ut_crm_alerts u 
-                        WHERE u.fk_cliente=@sys_pk AND (u.descripcion like '%@{text_alert}%' or u.usuariocrea like '%@{text_alert}%') ORDER BY u.Sys_TimeStamp desc",p)
-                        return cliente
+                        sql_alerts = "SELECT u.Sys_PK,u.activa,u.Sys_TimeStamp AS fecha,u.descripcion,u.usuariocrea FROM ut_crm_alerts u WHERE u.fk_cliente=@sys_pk AND (u.descripcion like '%@{text_alert}%' or u.usuariocrea like '%@{text_alert}%') ORDER BY u.Sys_TimeStamp DESC"
+                        
+                        ref list_alerts = dbr.list(db,sql_alerts,p)
+                        access_to_alerts = @true
+                        count_alerts = dbr.num(db,"SELECT COUNT(*) FROM ut_crm_alerts u WHERE u.activa AND u.fk_cliente=@sys_pk;",p)
+
+                        params<"i"> : "alert"
                     }
+
+                    cliente<"access_to_alerts"> : access_to_alerts
+                    cliente<"tablealertas*"> : list_alerts
+                    cliente<"count_alerts"> : count_alerts
+
+                    return cliente
                 }
                 
                 cliente<"saldovenc">:dbr.num(db,ftext("SELECT COALESCE(SUM(z.saldo),0) AS Total FROM (#<@qry_crmsaldoclientes>) AS z WHERE dias > 0 AND z.pkcliente = @sys_pk"),p)
@@ -235,6 +266,7 @@ module "cliente.dk"
         
         return cliente
     }
+
     entity.blank::&db, &params
     {
         new read
@@ -457,6 +489,7 @@ module "cliente.dk"
         return @null
     }
 
+    point @list to cliente.list
     point @read to cliente.read
     point @blank to entity.blank
     point @create to cliente.create

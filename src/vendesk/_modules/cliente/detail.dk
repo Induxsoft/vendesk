@@ -197,12 +197,11 @@ module "detail"
 	  	{
 	  		$'
 	  		$("#nav-tab a").on("click", function (e) {
-		      e.preventDefault();
-		      $(this).tab("show");
+		      	e.preventDefault();
+		      	$(this).tab("show");
 		    });
 
-		    if(#<@("#./count_alerts")>>0)
-			{
+		    if(#<@("#./count_alerts")> > 0) {
 				alert("El cliente cuenta con alertas activas.");
 			}
 	  		'
