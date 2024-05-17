@@ -668,9 +668,13 @@ module "view-detail"
 	#!
 	select.tipocaso::
 	{
+		sql="select sys_pk, uf_descripcion as nombre from ut_crmtipocaso where ifnull(sys_deleted,0)=0 order by sys_pk;"
+		
+		if @("$./caso/fk_tipocaso")!=""{sql="select sys_pk, uf_descripcion as nombre from ut_crmtipocaso order by sys_pk;"}
+
 		new def_tipo_caso
 	    {
-	        @"datatable*":dbr.list(@("&database"),"select sys_pk, uf_descripcion as nombre from ut_crmtipocaso order by sys_pk;",@null)
+	        @"datatable*":dbr.list(@("&database"),sql,@null)
 	        @"id":"tipocaso"
 	        member "attributes"
 	        {
