@@ -30,6 +30,33 @@ module "list.query.dk"
     GROUP BY `cliente`.`sys_pk`,`cliente`.`codigo`,`cliente`.`nombre`,`dcxc`.`referencia`,`dcxc`.`aplicacion`,`dcxc`.`debe`
     "}
 
+    text @saldo_vencido
+    {$"
+        SELECT
+            `dcxc`.`sys_pk` AS `pkdcxc`,
+            `cliente`.`sys_pk` AS `pkcliente`,
+            `cliente`.`codigo` AS `ccodigo`,
+            `cliente`.`nombre` AS `cnombre`,
+            `dcxc`.`referencia` AS `referencia`,
+            `dcxc`.`aplicacion` AS `vencimiento`,
+            (TO_DAYS(NOW()) - TO_DAYS(`dcxc`.`aplicacion`)) AS `dias`,
+            (((YEAR(`dcxc`.`aplicacion`) * 10000) + (MONTH(`dcxc`.`aplicacion`) * 100)) + DAYOFMONTH(`dcxc`.`aplicacion`)) AS `ndfecha`,
+            `dcxc`.`debe` AS `importe`,
+            (((`dcxc`.`debe` + `dcxc`.`intmoratorios`) - `dcxc`.`bonificaciones`) - `dcxc`.`pagos`) AS `saldo`,
+            `dcxc`.`acuerdodepago` AS `acuerdopago`,
+            `ut_crm_acuerdos`.`fpagoacordada` AS `vencimientoacuerdo`,
+            (((YEAR(`ut_crm_acuerdos`.`fpagoacordada`) * 10000) + (MONTH(`ut_crm_acuerdos`.`fpagoacordada`) * 100)) + DAYOFMONTH(`ut_crm_acuerdos`.`fpagoacordada`)) AS `ndfechaacuerdo`
+        FROM ((((`dcxc`
+            LEFT JOIN `ut_crm_acuerdos` ON((`dcxc`.`acuerdodepago` = `ut_crm_acuerdos`.`sys_pk`)))
+            JOIN `cliente` ON((`dcxc`.`icliente` = `cliente`.`sys_pk`)))
+            LEFT JOIN `venta` ON((`dcxc`.`iventa` = `venta`.`sys_pk`)))
+             )
+        WHERE ((`dcxc`.`aplicable` <> 0) AND ((((`dcxc`.`debe` + `dcxc`.`intmoratorios`) - `dcxc`.`bonificaciones`) - `dcxc`.`pagos`) <> 0))
+        GROUP BY `cliente`.`sys_pk`,`cliente`.`codigo`,`cliente`.`nombre`,`dcxc`.`referencia`,`dcxc`.`aplicacion`,`dcxc`.`debe`
+    "
+
+    }
+
     text @qry_catproductos
     {$"
     SELECT

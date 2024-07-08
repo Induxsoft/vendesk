@@ -9,7 +9,8 @@ module "mdhd"
     #include "uielements.dkl"
     #include "uielements.dbtable.dkl"
     #include "../../_lib/list.query.dk"
-
+    
+    @hide_table=@false
 	 ref datos=@listData
 	 ref bd=@null
     if not(isnull(datos)){
@@ -18,9 +19,16 @@ module "mdhd"
     else{do rise_error(500,"falta una conexión hacia la base de datos")}
     
     if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
-        // do rise_error(99,"akii")
+        
 	query="SELECT z.pkventa AS sys_pk, z.sfecha AS fecha, z.descripcion AS producto, z.referencia, z.cantidad, z.importe FROM (#<@qry_crmventas>) AS z WHERE z.icliente = @sys_pk ORDER BY z.pkventa DESC LIMIT 10;"
     ref lista=dbr.list(bd,ftext(query),datos)
+    if @count(lista)<1{@hide_table=@true}
+    exception
+    {
+        ref lista=list.create()
+        @hide_table=@true
+    }
+    datos<"hide_table">:@hide_table
     
     new table_general
     {

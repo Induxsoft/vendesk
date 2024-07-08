@@ -13,8 +13,14 @@ program
     
     switch @@(datos,"act")
     {
-        case "antsld"{resp=runscript("list_Atiguedad_saldo.dkl","listData",datos)}
-        case "ultvnts"{resp=runscript("ultimas_ventas.dkl","listData",datos)}
+        case "antsld"
+        {
+            resp=runscript("list_Atiguedad_saldo.dkl","listData",datos)
+        }
+        case "ultvnts"
+        {
+            resp=runscript("ultimas_ventas.dkl","listData",datos)
+        }
         case "cat_prioridad"{resp=runscript("list_catalogos.dkl","listData",datos)}
         case "cat_tiposcasos"{resp=runscript("list_tiposcasos.dkl","listData",datos)}
     }

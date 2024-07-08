@@ -14,6 +14,7 @@ module "detail"
 	atencion=""
 	casos=""
 	general=""
+
 	switch @("$http/request/get/i")
 	{
 		case "alert"

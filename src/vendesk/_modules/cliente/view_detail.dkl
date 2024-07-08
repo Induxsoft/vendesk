@@ -980,7 +980,7 @@ module "view-detail"
 			// label(style="margin-right:20px"){"Promedio de ventas mensual año actual: "b{"$ #<@('#./vtnmesaniocurrent'):#,#.00>"}}
 			// label{"Promedio de ventas mensual año pasado: "b{"$ #<@('#./vtnmesaniopas'):#,#.00>"}}
 
-			div(class="p-4 bg-white mt-2 border-bottom")
+			div(class="p-4 bg-white mt-2 border-bottom" id="div_tableantsld")
 			{
 				small(class="fw-bold"){$"Antiguedad de saldo"}
 				hr{$""}
@@ -1003,7 +1003,7 @@ module "view-detail"
 				}
 			}
 			
-			div(class="p-4 bg-white mt-2 mb-2")
+			div(class="p-4 bg-white mt-2 mb-2" id="div_tble_ultvnts")
 			{
 				small(class="fw-bold"){$"Listado de últimas 10 ventas"}
 				hr{$""}

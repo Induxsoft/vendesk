@@ -21,6 +21,7 @@ module "mdhd"
         // do rise_error(99,"akii")
 	query="SELECT z.pkventa AS sys_pk, z.sfecha AS fecha, z.descripcion AS producto, z.referencia, z.cantidad, z.importe FROM (#<@qry_crmsaldoclientes>) AS z WHERE z.icliente = @sys_pk ORDER BY z.pkventa DESC LIMIT 10;"
     ref lista=dbr.list(bd,ftext(query),datos)
+    exception{ref lista=list.create()}
     
     new table_general
     {

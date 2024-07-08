@@ -35,7 +35,8 @@ program
 
     }
 
-        @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
-        @http_context<"response/output">:"text"
-        @http_context<"response/text">: to.json(res)
+    res<"hide_table">:parse.bool(@@(datos,"hide_table"))
+    @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+    @http_context<"response/output">:"text"
+    @http_context<"response/text">: to.json(res)
 }

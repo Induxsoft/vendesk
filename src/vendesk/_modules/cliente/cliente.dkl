@@ -1087,13 +1087,14 @@ function updateItemBd(i = '', sys_pk, active = true) {
             contentType: 'text/html',
             url: '#<@SVC_CLIENTE>gettables.tables.dkl',
             success: function (data) {
-                console.log(data);
                 if (!data.success) {
                     alert('Ocurrio un error recargue la página para intentar de nuevo\\n' + data.message);
                     return;
                 }
+                var div_tble_ultvnts=document.getElementById('div_tble_ultvnts');
+
                 $(iddiv).html(data.data);
-                // console.log(data.data)
+                if(Number(data.hide_table??0)>0)div_tble_ultvnts.remove();
             },
             error: function (error) {
                 console.log(error.status, error.responseText);

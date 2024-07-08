@@ -55,7 +55,7 @@ module "mdhd"
                  @"summary":"sum"
                 member @"attributes"
                 {
-                    @"style":"text-align:right"
+                    @"style":"text-align:end"
                 }
             }
             member @"menor30"
@@ -66,7 +66,7 @@ module "mdhd"
 
                 member @"attributes"
                 {
-                    @"style":"text-align:right"
+                    @"style":"text-align:end"
                 }
             }
             member @"menor60"
@@ -77,7 +77,7 @@ module "mdhd"
 
                 member @"attributes"
                 {
-                    @"style":"text-align:right"
+                    @"style":"text-align:end"
                 }
             }
             member @"menor90"
@@ -88,7 +88,7 @@ module "mdhd"
 
                 member @"attributes"
                 {
-                    @"style":"text-align:right"
+                    @"style":"text-align:end"
                 }
             }
             member @"mayor90"
@@ -99,7 +99,7 @@ module "mdhd"
 
                 member @"attributes"
                 {
-                    @"style":"text-align:right"
+                    @"style":"text-align:end"
                 }
             }
         }
@@ -121,7 +121,7 @@ module "mdhd"
         if @@(cell,"cell_type")=="summary"{
             new head
             {
-                @"style":"background:#ADD8E6;tex-align: right;"
+                @"style":"background:#ADD8E6;text-align: end;"
             }
             cell<"attributes*">:head
         }
