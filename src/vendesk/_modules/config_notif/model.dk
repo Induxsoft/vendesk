@@ -1,0 +1,12 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    list::&db,&params
+    {
+       ref entity= from.json(@EVENTOS_NOTIF)
+       return entity
+    }
+    
+    point @list to list
+}

@@ -1,0 +1,56 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+
+    do @context.begin(@crud_context)
+	ref @http_context=@("&http")
+	
+	new table_definition
+    {
+    	@"datatable*":@("&.")
+        @"leyend":"Mostrando los primeros # registros"
+    	member @"columns"
+        {
+        	member @"text"
+        	{
+        		@"caption":"Descripción"
+        	}
+        	member @"_actions"
+        	{
+        		@"caption":"Acción"
+                @"template":ftext('
+                    <div style="display:flex;gap:8px;justify-content:center;width:100%;" class="no-print">
+                        <button onclick="" style="cursor:pointer; border: 1px solid black; outline: none; padding: 0px 8px; background-color: #F5F5F5; color: #000;">Notificar a</button>
+                    </div>')
+                @"no-print":@true
+        	}
+        }
+    }
+    new nav_config
+    {
+        @"title": "Configuraciones de notificaciones"
+        @"buttons*": @null
+        @"urlexit": "/"
+        @"jscurrentcontext": ""
+    }
+    #$
+    div(class="container-fluid v12-list-view" id="view")
+    {
+        section(id="top_area")
+        {
+            #! 
+            do uie.printV12FormBar(nav_config)
+            #$
+        }
+        section(id="work_area")
+        {
+            #! 
+            do uie.dbeditable(table_definition, "tbl_config_notif")
+            #$
+        }
+    }
+}

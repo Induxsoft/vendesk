@@ -85,6 +85,7 @@ module "Controller configs"
 
 	do crudl.routes.pattern("/_program/")
 	do crudl.routes.entity(_entities_type,_entities_type)
+	do crudl.routes.entity(_entities_type,"config_notif")
 
 	@dbmvc_path="crudl/"
 	

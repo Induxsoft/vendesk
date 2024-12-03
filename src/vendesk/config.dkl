@@ -176,6 +176,16 @@ module "config.dkl"
 	@VDK_CLIENTE = "/!/vendesk/cliente/"
 	@VDK_PIPELINE = "/!/vendesk/sales_pipeline/"
 
+	@EVENTOS_NOTIF='[
+		{"id":"VC13","text":"Activar alertas"},
+		{"id":"VC21","text":"Crear caso"},
+		{"id":"VC22","text":"Editar caso"},
+		{"id":"VC23","text":"Anexar notas a un caso"},
+		{"id":"VC24","text":"Adjuntar archivos a un caso"},
+		{"id":"VC26","text":"Cerrar caso"},
+		{"id":"VC27","text":"Re-abrir caso"}
+	]'
+
 	//* ======================================== [ AUTHORIZATIONS ]
 	@AUT_RELACION_CLIENTE="FX3-CRM-00-000"
 	@AUT_ATENCION_CLIENTE="FX3-CRM-10-000"
