@@ -4,6 +4,7 @@ module ""
 {
     #include "functions.dkh"
     #include "serialize.dkh"
+    #include "vendesk/config.dkl"
     #include "uielements.v12.dkl"
 
     do @context.begin(@crud_context)
@@ -24,7 +25,7 @@ module ""
         		@"caption":"Acción"
                 @"template":ftext('
                     <div style="display:flex;gap:8px;justify-content:center;width:100%;" class="no-print">
-                        <button onclick="" style="cursor:pointer; border: 1px solid black; outline: none; padding: 0px 8px; background-color: #F5F5F5; color: #000;">Notificar a</button>
+                        <a href="#<@CONFIG_NOTIF_LIST>${ (DataRow.sys_pk??0)> 0 ? DataRow.sys_pk:"_new"}/?_event=${DataRow.id}" style="cursor:pointer; border: 1px solid black; outline: none; padding: 0px 8px; background-color: #F5F5F5; color: #000;">Notificar a</a>
                     </div>')
                 @"no-print":@true
         	}

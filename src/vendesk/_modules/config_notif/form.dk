@@ -1,0 +1,159 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "vendesk/config.dkl"
+    #include "uielements.dkl"
+    #include "uielements.v12.dkl"
+
+    do @context.begin(@crud_context)
+
+    new destinos
+    {
+        @"datatable*":@("&./destinos")
+        @"id":"destino"
+        member "attributes"
+        {
+            @"class":"induxsoft-form-select"
+            @"name":"destino"
+            @"required":"true"
+        }
+        @"text_field":"text"
+        @"value_field":"id"
+        @"selected":@('./destino')
+    }
+    ref data_destino=ifnull(@("&./data_destino"),record.create())
+
+    buttons::
+    {
+        #$
+        button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" onclick="InduxsoftCrudlModel.Submit('form_crm_notif')"){"Aceptar"}
+        #!
+    }
+    point buttons to buttons
+    new nav_config
+    {
+        @"title": "Evento ["+@('$./text')+"]"
+        @"buttons*": buttons
+        @"urlexit": @CONFIG_NOTIF_LIST
+        @"jscurrentcontext": ""
+    }
+    #$
+    div(class="container v12-form-view")
+    {
+        section(id="top_area")
+        {
+            #! 
+            do uie.printV12FormBar(nav_config)
+            #$
+        }
+        section(id="work_area")
+        {
+            form(action="." method="post" id="form_crm_notif")
+            {
+                input(type="hidden" id="evento" name="evento" value="#<@('$./id')>" required="true")
+                input(type="hidden" id="sys_recver" name="sys_recver" value="#<@('$./sys_recver')>" required="true")
+
+                div(class="row")
+                {
+                    div(class="col-md-6")
+                    {
+                        label{"Notificar a:"}
+                        #!
+                        do uie.dbSelect(destinos)
+                        #$
+                    }
+                    div(class="col-md-6" id="mod_id_destino")
+                    {
+                        label(id="lbl_id_destino"){""}
+                        $'
+                        <input-key 
+                            id="id_destino"
+                            name="id_destino"
+                            data-key="sys_guid"
+                            data-search="codigo"
+                            data-text="name"
+                            data-source=""
+                            box-title-text="Seleccione un elemento"
+                            box-placeholder-text="Buscar datos..."
+                            box-nodata-text="No se encontraron datos"
+                            data-value=\'#<to.json(data_destino)>\'
+                            columns="codigo,name"
+                            colcaptions="Código,Nombre"
+                            control-styles="" required="true">
+                        </input-key>
+                        '
+                    }
+                    div(class="col-md-12")
+                    {
+                        label{"Plantilla para el título:"}
+                        textarea(name="plantilla_titulo" class="induxsoft-form-control"){"#<@('$./plantilla_titulo')>"}
+                    }
+                    div(class="col-md-12")
+                    {
+                        label{"Texto de plantilla:"}
+                        input(name="plantilla" value="#<@('$./plantilla')>" class="induxsoft-form-control"){""}
+                    }
+                }
+                hr{""}
+
+                small(class="fw-bold" id="small_macro"){"Macros para las plantillas de notificación:"}
+                table(class="table" id="table_macros")
+                {
+                    tr
+                    {
+                        td
+                        {
+                            small(class="fw-bold"){"Generales"}
+                            ul(style="white-space: break-spaces;")
+                            {
+                                li{"- usuario_creo. Id del usuario que creó el caso o alerta"}
+                                li{"- cliente. Nombre del cliente"}
+                                li{"- cliente_codigo. Código del cliente"}
+                            }
+                        }
+                        td
+                        {
+                            small(class="fw-bold"){"Casos"}
+                            ul(style="white-space: break-spaces;")
+                            {
+                                li{"- id_caso . sys_pk del caso"}
+                                li{"- tipo_caso. Descripción del tipo de caso"}
+                                li{"- tipo_caso_codigo. Código del tipo de caso"}
+                                li{"- asunto. Asunto del caso"}
+                                li{"- usuario_cerro. Id del usuario que cerró el caso"}
+                            }
+                        }
+                        td
+                        {
+                            small(class="fw-bold"){"Alertas"}
+                            ul
+                            {
+                                li{"- mensaje"}
+                            }
+                        }
+                    }
+                }
+                
+            }
+        }
+        style
+        {
+            $'
+            #table_macros,#small_macro
+            {
+                color: #888 !important;
+            }
+            '
+        }
+        script(src="#<@JS_CRM_NOTIF>"){""}
+        script
+        {
+            $'
+                crm_notif.source="./?view=@_view&search=@search";
+            '
+        }
+    }
+}

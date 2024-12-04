@@ -1,0 +1,75 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    #include "dbr.notif.dkl"
+
+    send.notif::&db,&data
+    {
+        if not(isanyword(tolower(@@(data,"$event")),tolower(@EVENTS_ACTIVE_NOTIF))){return}
+        
+        uri=@@(data,"$url")
+
+        new params{@"id":@@(data,"$event")}
+
+        ref data_evento=dbr.rec(db,"select * from crm_notif where evento=@id and ifnull(id_destino,'')<>'' ",params)
+        if isnull(data_evento){return}
+
+        destino=dbr.str(db,"select userid from tuser where sys_guid=@id_destino",data_evento)
+        if trim(destino)==""
+        {
+            destino=dbr.str(db,"select groupid from usergroup where sys_guid=@id_destino",data_evento)
+            new rec_to{@"group":destino}
+        }
+        else {new rec_to{@"user":destino}}
+
+        if trim(destino)==""{return}
+
+        ref to=list.create()
+        do list.add(to,rec_to)
+
+        new notif
+        {
+            @"title":notif.macro(@@(data_evento,"$plantilla"),data)
+            @"sender":@@(@http_context,'$session/user/uid')
+            @"body":notif.macro(@@(data_evento,"$plantilla_titulo"),data)
+            @"img":@@(data,"$img")
+            @"href":url
+            @"target":"_self"
+            @"start":""
+            @"end":""
+            @"to*":to
+        }
+        do dbr.notif.send(db,notif)
+    }
+    replaceMacro::text,lmacro
+    {
+        ref lmcrs=split(lmacro,',')
+        for i = 0; i < @count(lmcrs)
+        {
+            macro=list.str(lmcrs,i)
+            text=replace(text,macro,@@(data,"$"+macro))
+        }
+        return text
+    }
+    notif.macro::text,&data
+    {
+        lmacro="usuario_creo,cliente,cliente_codigo"
+        text=replaceMacro(text,lmacro)
+
+        switch @@(data,"$act")
+        {
+            case "case"
+            {
+                lmacro="id_caso,tipo_caso,tipo_caso_codigo,asunto,usuario_cerro"
+                break
+            }
+            case "alert"
+            {
+                lmacro="mensaje"
+                break
+            }
+        }
+        return replaceMacro(text,lmacro)
+    }
+}

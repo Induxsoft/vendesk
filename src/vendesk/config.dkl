@@ -172,9 +172,12 @@ module "config.dkl"
 	@JS_SP_MODEL = "/$/vendesk/js/sales_pipeline/model.js"
 	@JS_SP_VIEWS = "/$/vendesk/js/sales_pipeline/views.js"
 
+	@JS_CRM_NOTIF="/$/vendesk/js/crm_notif.js"
 	//* ======================================== [ _PACKAGE ]
 	@VDK_CLIENTE = "/!/vendesk/cliente/"
 	@VDK_PIPELINE = "/!/vendesk/sales_pipeline/"
+
+	@CONFIG_NOTIF_LIST="/!/vendesk/notif/"
 
 	@EVENTOS_NOTIF='[
 		{"id":"VC13","text":"Activar alertas"},
@@ -185,6 +188,15 @@ module "config.dkl"
 		{"id":"VC26","text":"Cerrar caso"},
 		{"id":"VC27","text":"Re-abrir caso"}
 	]'
+
+	@NOTIF_DESTINOS='[
+		{"id":"_","text":"A nadie"},
+		{"id":"user","text":"Usuario"},
+		{"id":"group","text":"Grupo"}
+	]'
+
+	//Eventos que por el momento generarán notificaciones:
+	@EVENTS_ACTIVE_NOTIF="VC13,VC21,VC22,VC23,VC24,VC26,VC27"
 
 	//* ======================================== [ AUTHORIZATIONS ]
 	@AUT_RELACION_CLIENTE="FX3-CRM-00-000"

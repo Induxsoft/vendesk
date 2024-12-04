@@ -5,14 +5,18 @@ module "Controller configs"
 	#include "functions.dkh"
 	#include "serialize.dkh"
 	#include "dbr.dkh"
+	#include "dbr.vars.dkl"
+	#include "dbr.apps.dkl"
 	#include "dbr.security.dkl"
+	#include "dbr.events.dkl"
 	#include "crudl/crudl.dk"
 	#include "_lib/list.query.dk"
 
 	@base_path = "_modules"
-	@path_root = "vendesk/"
+	@path_root = "vendesk"
 
-	if @@(@http_context,"$session/user/ids") == "" {
+	if @@(@http_context,"$session/user/ids") == "" 
+	{
 		if file.exists("webshell/lost.dk") { include "webshell/lost.dk" }
 		else { @http_context<"response/headers/location"> : "/" }
 		return
@@ -85,7 +89,7 @@ module "Controller configs"
 
 	do crudl.routes.pattern("/_program/")
 	do crudl.routes.entity(_entities_type,_entities_type)
-	do crudl.routes.entity(_entities_type,"config_notif")
+	do crudl.routes.entity("notif","config_notif")
 
 	@dbmvc_path="crudl/"
 	
@@ -134,5 +138,4 @@ module "Controller configs"
 	t=path.concat(t,@list_view)
 
 	#include "crudl/controller.dkl"
-	// do rise_error(00,operation)
 }

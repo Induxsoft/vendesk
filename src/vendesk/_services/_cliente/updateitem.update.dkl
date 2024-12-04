@@ -7,21 +7,14 @@ program
     #include "dbr.security.dkl"
     #include "serialize.dkh"
     #include "../../config.dkl"
+    #include "dbr.apps.dkl"  
+    #include "dbr.events.dkl"
     
     new res{}
     ref datos=from.json(field.dstr(@http_context,"request/POST_STRING","{}"))
 
-    // do rise_error(0,to.json(@@(@http_context,"&session")))
-    isInduxsoftV12 = (@@(@http_context,"$session/idp/name") == "db_idp_v12")
 
-    ref bd = @null
-
-    if isInduxsoftV12 { ref bd:@@(@http_context,"&session/idp/database") }
-    else
-    {
-        if not(isnull(datos)) { ref bd = dbr.open(@@(datos,"$bd")) }
-        else { do rise_error(500,"falta una conexión hacia la base de datos") }
-    }
+    ref bd:@@(@http_context,"&session/idp/database")
     
     new data{}
     color = @@(datos, "id_color")
@@ -32,8 +25,6 @@ program
     {
         case "alert"
         {
-            if isInduxsoftV12 && not(dbr.security.isauth(bd,@AUT_UPDATE_ALERTAS)) { do rise_error(500,"No autorizado") }
-
             table_name="ut_crm_alerts"
 
             if field.exist(datos,"active"){ using data{ @"activa": @@(datos,"#active") } }
@@ -47,28 +38,37 @@ program
     if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
     if @@(res,"$sys_pk")==""{do rise_error(99,"Identidad no encontrada.")}
 
-    if field.exist(data,"activa") && not(@@(data,"#activa")) && isInduxsoftV12 && not(dbr.security.isauth(bd,@AUT_DISABLE_ALERTAS_OTROS)) { do rise_error(500,"No autorizado") }
+    privileges="VC13"//     Activar alertas
+    if field.exist(data,"activa") && not(@@(data,"#activa")){privileges="VC14" } //Desactivar alertas
+    
+        do dbr.apps.action.pre(privileges) //Desactivar alertas
+    do dbr.begin(bd)
     
     do dbr.update(bd,table_name,data,"sys_pk=@sys_pk",res)
+    
+        do dbr.apps.action.pos(data)
+    do dbr.commit(bd)
+        do dbr.apps.action.ext(data)
+    
     using res 
     { 
         @"success": @true
         @"data": @null
     }
-
-    if not(isInduxsoftV12) && dbr.is_open(bd) { do dbr.close(bd) }
-
+    
     exception
     {
-        if not(isInduxsoftV12) && dbr.is_open(bd) { do dbr.close(bd) }
-
         using res
         {
             @"success": @false
             @"message": last_error()
         }
-    }
 
+        if dbr.in_transaction(bd){ do dbr.rollback(bd) }
+        do dbr.apps.action.log()
+        
+    }
+    
     @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
     @http_context<"response/output">:"text"
     @http_context<"response/text">:to.json(res)

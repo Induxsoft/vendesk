@@ -1,0 +1,26 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    point @create to save
+    point @update to save
+    point @blank to blank
+    point @read to read
+    point @list to list
+
+    switch @@(params,"$view")
+    {
+        case "users"
+        {
+            point @blank to searchUsers
+            point @read to searchUsers
+            break
+        }
+        case "groups"
+        {
+            point @blank to searchGroups
+            point @read to searchGroups
+            break
+        }
+    }
+}

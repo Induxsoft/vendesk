@@ -5,6 +5,7 @@ module "list"
 	#include "functions.dkh"
 	#include "serialize.dkh"
 	#include "../config.dkl"
+	#include "uielements.v12.dkl"
 	#include "form.dk"
 	include @path_common
 
@@ -72,11 +73,29 @@ module "list"
 	    
 	}
 
-	#$ div(class="container-lg pt-1 ps-3 pe-3" style="background-color:#F5F5F5; min-height:94%;" id="container-clientes")
-	{
-		#! #include "entity_js.dkl"
-		do form.search_client()
-	}
+	new nav_config
+    {
+        @"title": "Atención a clientes"
+        @"buttons*": @null
+        @"urlexit": "/"
+        @"jscurrentcontext": ""
+    }
 
+	#$
+    div(class="container-fluid v12-list-view" id="view")
+    {
+		section(id="top_area")
+        {
+            #! 
+            do uie.printV12FormBar(nav_config)
+            #$
+        }
+        section(id="work_area")
+        {
+            #! 
+			#include "entity_js.dkl"
+			do form.search_client()
+        }
+	}
 	#! do @context.end()
 }

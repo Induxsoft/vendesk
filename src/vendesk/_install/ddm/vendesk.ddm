@@ -255,7 +255,14 @@ model "erp.vendesk"
         @"urlfile" string(4096)
         @"storeout" bool
     }
-
+    entity "crm_notif":"TableModel"
+    {
+        @"evento" string(50)
+        @"destino" string(50)
+        @"id_destino" string(50)
+        @"plantilla_titulo" string(1024)
+        @"plantilla" string(1024)
+    }
     //* ======================================== [ ... ]
     // Información de la aplicación
     entity "sys_app_catalog"

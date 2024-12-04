@@ -5,31 +5,35 @@ program
     #include "functions.dkh"
     #include "dbr.dkh"
     #include "serialize.dkh"
-    
+    #include "dbr.apps.dkl"
+    #include "dbr.security.dkl"    
+    #include "dbr.events.dkl"
+
     new res{}
     ref datos=from.json(field.dstr(@http_context,"request/POST_STRING","{}"))
 
-    ref bd=@null
-    if not(isnull(datos)){
-        ref bd=dbr.open(@@(datos,"$bd"))
-    }
-    else{do rise_error(500,"falta una conexión hacia la base de datos")}
+    ref bd=@@(@http_context,"&session/idp/database")
     
-    new data
-    {
-        @"Sys_TimeStamp*":now()
-        @"Sys_GUID":cut(uuid(),30)
-        @"Sys_DTCreated*":now()
-        @"uf_ICliente":@@(datos,"#cliente")
-        @"uf_Usuario":@@(datos,"user")
-        @"uf_Mensaje":@@(datos,"comentario")
-    }
-    table_name="ut_bitcliente"
-    
-    if table_name==""{do rise_error(99,"Tabla no especificada.")}
+        do dbr.apps.action.pre("VC11") // Agregar nota al cliente
     if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
+
+    do dbr.begin(bd)
+        new data
+        {
+            @"Sys_TimeStamp*":now()
+            @"Sys_GUID":cut(uuid(),30)
+            @"Sys_DTCreated*":now()
+            @"uf_ICliente":@@(datos,"#cliente")
+            @"uf_Usuario":@@(datos,"user")
+            @"uf_Mensaje":@@(datos,"comentario")
+        }
+        
+        do dbr.insert(bd,"ut_bitcliente",data)
     
-    do dbr.insert(bd,table_name,data)
+        do dbr.apps.action.pos(data)
+    do dbr.commit(bd)
+        do dbr.apps.action.ext(data)
+    
     
     using res 
     { 
@@ -43,6 +47,9 @@ program
         using res{}
         res<"message">:last_error()
         res<"success">:@false
+
+        if dbr.in_transaction(bd){ do dbr.rollback(bd) }
+        do dbr.apps.action.log()
     }
 
     @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"

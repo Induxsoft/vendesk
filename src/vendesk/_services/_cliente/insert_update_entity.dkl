@@ -4,33 +4,50 @@ program
 {
     #include "functions.dkh"
     #include "dbr.dkh"
-    #include "dbr.security.dkl"
     #include "serialize.dkh"
-    #include "../../config.dkl"
+    #include "dbr.apps.dkl"  
+    #include "dbr.events.dkl"
+    #include "dbr.security.dkl"
     
     new res{}
     ref datos=from.json(field.dstr(@http_context,"request/POST_STRING","{}"))
 
-    // do rise_error(0,to.json(@@(@http_context,"&session")))
-    isInduxsoftV12 = (@@(@http_context,"$session/idp/name") == "db_idp_v12")
-
-    ref bd = @null
-
-    if isInduxsoftV12 { ref bd:@@(@http_context,"&session/idp/database") }
-    else
-    {
-        if not(isnull(datos)) { ref bd = dbr.open(@@(datos,"$bd")) }
-        else { do rise_error(500,"falta una conexión hacia la base de datos") }
+    ref bd=@null
+    if not(isnull(datos)){
+        ref bd=dbr.open(@@(datos,"$bd"))
     }
+    else{do rise_error(500,"falta una conexión hacia la base de datos")}
     
-    new data{ @"sys_pk": @@(datos,"sys_pk") }
+    if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
     
+    new data{@"sys_pk":@@(datos,"sys_pk")}
     switch @@(datos,"act")
     {
+        case "edit_cat_prioridad"
+        {
+            do dbr.apps.action.grant("VC50")
+
+            query="update ut_crmprioridad set descripcion=@descripcion,tduracion=@cantidad,dduracion=@dduracion where sys_pk=@sys_pk"
+            do dbr.execute(bd,query,datos)
+            ref resp=@null
+        }
+        case "edit_tipocaso"
+        {
+            do dbr.apps.action.grant("VC40")
+
+            query="update ut_crmtipocaso set uf_descripcion=@descripcion where sys_pk=@sys_pk"
+            do dbr.execute(bd,query,datos)
+            ref resp=@null
+        }
+        case "del_cat_prioridad"
+        {
+            do dbr.apps.action.grant("VC50")
+            do dbr.delete(bd,"ut_crmprioridad","sys_pk=@sys_pk",datos)
+            ref resp=@null
+        }
         case "insert_catalog"
         {
-            if isInduxsoftV12 && not(dbr.security.isauth(bd,@AUT_CREATE_PRIORIDADES)) { do rise_error(500,"No autorizado") }
-
+            do dbr.apps.action.grant("VC50")
             new d
             {
                 @"Sys_TimeStamp*":now()
@@ -43,32 +60,10 @@ program
 
             do dbr.insert(bd,"ut_crmprioridad",d)
             ref resp=@null
-
-            break
-        }
-        case "edit_cat_prioridad"
-        {
-            if isInduxsoftV12 && not(dbr.security.isauth(bd,@AUT_UPDATE_PRIORIDADES)) { do rise_error(500,"No autorizado") }
-
-            query="update ut_crmprioridad set descripcion=@descripcion,tduracion=@cantidad,dduracion=@dduracion where sys_pk=@sys_pk"
-            do dbr.execute(bd,query,datos)
-            ref resp=@null
-
-            break
-        }
-        case "del_cat_prioridad"
-        {
-            if isInduxsoftV12 && not(dbr.security.isauth(bd,@AUT_DELETE_PRIORIDADES)) { do rise_error(500,"No autorizado") }
-
-            do dbr.delete(bd,"ut_crmprioridad","sys_pk=@sys_pk",datos)
-            ref resp=@null
-
-            break
         }
         case "insert_tipocaso"
         {
-            if isInduxsoftV12 && not(dbr.security.isauth(bd,@AUT_CREATE_TIPO_CASO)) { do rise_error(500,"No autorizado") }
-            
+            do dbr.apps.action.grant("VC40")
             new d
             {
                 @"Sys_TimeStamp*":now()
@@ -80,29 +75,17 @@ program
 
             do dbr.insert(bd,"ut_crmtipocaso",d)
             ref resp=@null
-
-            break
-        }
-        case "edit_tipocaso"
-        {
-            if isInduxsoftV12 && not(dbr.security.isauth(bd,@AUT_UPDATE_TIPO_CASO)) { do rise_error(500,"No autorizado") }
-
-            query="update ut_crmtipocaso set uf_descripcion=@descripcion where sys_pk=@sys_pk"
-            do dbr.execute(bd,query,datos)
-            ref resp=@null
-
-            break
         }
         case "del_tipocaso"
         {
-            if isInduxsoftV12 && not(dbr.security.isauth(bd,@AUT_DELETE_TIPO_CASO)) { do rise_error(500,"No autorizado") }
+            do dbr.apps.action.grant("VC40")
 
             do dbr.delete(bd,"ut_crmtipocaso","sys_pk=@sys_pk",datos)
             ref resp=@null
-
-            break
         }
     }
+    
+    
     
     using res 
     { 
@@ -110,20 +93,15 @@ program
         @"data*":resp
     }
 
-    if not(isInduxsoftV12) && dbr.is_open(bd) { do dbr.close(bd) }
-
     exception
     {
-        if not(isInduxsoftV12) && dbr.is_open(bd) { do dbr.close(bd) }
+        using res{}
+        res<"message">:last_error()
+        res<"success">:@false
 
-        using res
-        {
-            @"success": @false
-            @"message": last_error()
-        }
     }
 
-    @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
-    @http_context<"response/output">:"text"
-    @http_context<"response/text">:to.json(res)
+        @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+        @http_context<"response/output">:"text"
+        @http_context<"response/text">: to.json(res)
 }

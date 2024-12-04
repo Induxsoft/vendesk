@@ -2,11 +2,111 @@
 #!
 module ""
 {
+    @table_name="crm_notif"
+
     list::&db,&params
     {
+        do dbr.apps.action.pre("VC60")
+       
        ref entity= from.json(@EVENTOS_NOTIF)
+       for i = 0; i < @count(entity)
+       {
+           ref item=@item(entity,i)
+           item<"sys_pk">:dbr.num(db,"select sys_pk from crm_notif where evento=@id",item)
+       }
        return entity
     }
+    GetEvento::id
+    {
+        ref eventos=from.json(@EVENTOS_NOTIF)
+        
+        for i = 0; i < @count(eventos)
+        {
+            ref evento=@item(eventos,i)
+            if trim(id)==@@(evento,"$id"){return evento}
+        }
+        return @null
+    }
+    read::&db,&params
+    {
+        do dbr.apps.action.pre("VC60")
+
+        ref entity= entity.read(db,params)
+        ref evento=GetEvento(@@(entity,"$evento"))
+        using entity
+        {
+            @"id":@@(entity,"$evento")
+            @"text":@@(evento,"$text")
+            @"destinos*":from.json(@NOTIF_DESTINOS)
+            @"data_destino*":getDestino(db,@@(entity,"$id_destino"))
+        }
+        return entity
+    }
+    blank::&db,&params
+    {
+        do dbr.apps.action.pre("VC60")
+
+        ref entity= ifnull(GetEvento(@@(params,"$_event")),record.create())
+        using entity
+        {
+            @"destinos*":from.json(@NOTIF_DESTINOS)
+        }
+        return entity
+    }
+    save::&db,&params,&data
+    {
+        ref entity=@null
+        do dbr.apps.action.pre("VC61")
+
+        if @@(params,"$_entity_id")!="_new"{ref entity= entity.update(db,params,data)} 
+        else{ref entity=entity.create(db,params,data)}
     
-    point @list to list
+        return entity
+    }
+
+    @_sql_users="select 
+        sys_pk,sys_guid,userid codigo,username name 
+        from tuser 
+        where 
+        ifnull(sys_deleted,0)=0 
+        and ifnull(external,0)=0"
+
+    @_sql_groups="SELECT sys_pk,sys_guid,g.description 'name',g.groupid codigo FROM usergroup g
+        where 
+        ifnull(sys_deleted,0)=0"
+
+    getDestino::&db,id
+    {
+        if trim(id)==""{return @null}
+
+        new p{@"id":id}
+
+        sql=@_sql_users + " and sys_guid=@id"
+
+        ref destino=dbr.rec(db,sql,p)
+
+        if isnull(destino)
+        {
+            sql=@_sql_groups +" and sys_guid=@id"
+            ref destino=dbr.rec(db,sql,p)
+        }
+        return destino
+    }
+    searchUsers::&db,&params
+    {
+        sql=@_sql_users + "
+        and concat_ws('',userid,username) like concat('%',@search,'%')
+        LIMIT 250
+        "
+        return dbr.list(db,sql,params)
+    }
+    searchGroups::&db,&params
+    {
+        sql=@_sql_groups +"
+        and concat_ws('',description,groupid) like concat('%',@search,'%')
+        LIMIT 250
+        "
+        return dbr.list(db,sql,params)
+    }
+    
 }

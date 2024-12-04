@@ -82,14 +82,21 @@ module "cliente.dk"
 
     cliente.list::&db,&params
     {
-        if not(dbr.security.isauth(db,@AUT_ATENCION_CLIENTE)) { do rise_error(500,"No autorizado") }
+        do dbr.apps.action.grant("VC10")
         
         return entity.list(db,params)
+
+        exception
+        {
+            if dbr.in_transaction(db){ do dbr.rollback(db) }
+            do dbr.apps.action.log()
+            do rise_error(last_error_code(),last_error())
+        }
     }
 
     cliente.read::&db,&params
     {
-        if not(dbr.security.isauth(db,@AUT_RELACION_CLIENTE)) { do rise_error(500,"No autorizado") }
+        do dbr.apps.action.grant("VC10")
 
         // ********************código de administración***********
          
@@ -100,10 +107,12 @@ module "cliente.dk"
                  FROM ut_crmcasos u INNER JOIN ut_crmtipocaso ut ON u.fk_tipocaso=ut.Sys_PK
                  left JOIN ut_crmprioridad up ON u.fk_prioridad=up.Sys_PK
                  inner JOIN cliente c ON u.fk_cliente=c.sys_pk where "
-                 
+        
          if parse.bool(@@(params,"_admin"))
         {
-            if not(dbr.security.isauth(db,@AUT_ACCESS_ADMIN_CASOS)) { do rise_error(500,"No autorizado") }
+            do dbr.apps.action.grant("VC30")// Administración de casos
+            do dbr.apps.action.grant("VC40")//Administración de tipos de casos
+            do dbr.apps.action.grant("VC50")//Administración de prioridades de casos
 
             where="ifnull(u.`status`,0)=0 "
 
@@ -133,9 +142,7 @@ module "cliente.dk"
         // *********************************
         ref cliente=entity.read(db,params)
 
-        // do rise_error(00,to.json(cliente))
         @http_context<"request/cliente*">:cliente
-        // do rise_error(00,to.json(cliente))
         if not(parse.bool(@@(params,"_detail")))
         {
             new data_agente { @"agente":@@(cliente,"#agente") }
@@ -185,6 +192,8 @@ module "cliente.dk"
         // *********************************código para mostrar los casos de cada cliente*************
         if @@(params,"$_case")!=""
         {
+            do dbr.apps.action.grant("VC22") // Editar caso
+
             cliente<"caso*">:dbr.rec(db,"SELECT u.sys_pk,u.sys_guid,u.Sys_TimeStamp AS fecha,u.`status` AS completado,u.asunto,u.descripcion,u.usuarioabre,
             u.usuarioasignado,u.horaapertura,u.fk_tipocaso,date(IFNULL(u.fechavencimiento,NOW())) AS fechavencimiento,
             TIME(ifnull(u.fechavencimiento,NOW())) AS horavencimiento,u.fk_prioridad,u.uf_color,
@@ -206,12 +215,12 @@ module "cliente.dk"
                 ref list_alerts = list.create()
                 access_to_alerts = @false
                 
-                if dbr.security.isauth(db,@AUT_ACCESS_ALERTAS) {
-                    sql_alerts = "SELECT u.Sys_PK,u.activa,u.Sys_TimeStamp AS fecha,u.descripcion,u.usuariocrea FROM ut_crm_alerts u WHERE u.fk_cliente=@sys_pk AND (u.descripcion like '%@{text_alert}%' or u.usuariocrea like '%@{text_alert}%') ORDER BY u.Sys_TimeStamp DESC"
-                    
-                    ref list_alerts = dbr.list(db,sql_alerts,p)
-                    access_to_alerts = @true
-                }
+                //privileges para el módulo de alertas
+                sql_alerts = "SELECT u.Sys_PK,u.activa,u.Sys_TimeStamp AS fecha,u.descripcion,u.usuariocrea FROM ut_crm_alerts u WHERE u.fk_cliente=@sys_pk AND (u.descripcion like '%@{text_alert}%' or u.usuariocrea like '%@{text_alert}%') ORDER BY u.Sys_TimeStamp DESC"
+                
+                ref list_alerts = dbr.list(db,sql_alerts,p)
+                access_to_alerts = @true
+                //*********+++++
 
                 cliente<"access_to_alerts"> : access_to_alerts
                 cliente<"tablealertas*"> : list_alerts
@@ -235,16 +244,16 @@ module "cliente.dk"
                     access_to_alerts = @false
                     count_alerts = 0
 
-                    if dbr.security.isauth(db,@AUT_ACCESS_ALERTAS)
-                    {
-                        sql_alerts = "SELECT u.Sys_PK,u.activa,u.Sys_TimeStamp AS fecha,u.descripcion,u.usuariocrea FROM ut_crm_alerts u WHERE u.fk_cliente=@sys_pk AND (u.descripcion like '%@{text_alert}%' or u.usuariocrea like '%@{text_alert}%') ORDER BY u.Sys_TimeStamp DESC"
-                        
-                        ref list_alerts = dbr.list(db,sql_alerts,p)
-                        access_to_alerts = @true
-                        count_alerts = dbr.num(db,"SELECT COUNT(*) FROM ut_crm_alerts u WHERE u.activa AND u.fk_cliente=@sys_pk;",p)
+                    //privileges para el módulo de alertas
+                    sql_alerts = "SELECT u.Sys_PK,u.activa,u.Sys_TimeStamp AS fecha,u.descripcion,u.usuariocrea FROM ut_crm_alerts u WHERE u.fk_cliente=@sys_pk AND (u.descripcion like '%@{text_alert}%' or u.usuariocrea like '%@{text_alert}%') ORDER BY u.Sys_TimeStamp DESC"
+                    
+                    ref list_alerts = dbr.list(db,sql_alerts,p)
+                    access_to_alerts = @true
+                    count_alerts = dbr.num(db,"SELECT COUNT(*) FROM ut_crm_alerts u WHERE u.activa AND u.fk_cliente=@sys_pk;",p)
+                    //*****************************
 
-                        if count_alerts>0{params<"i"> : "alert"}
-                    }
+                    if count_alerts>0{params<"i"> : "alert"}
+                    
 
                     cliente<"access_to_alerts"> : access_to_alerts
                     cliente<"tablealertas*"> : list_alerts
