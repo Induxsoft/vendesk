@@ -18,16 +18,13 @@ program
     
     if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
     
-    privileges="VC26"
+    privileges="VC27"
         do dbr.apps.action.pre(privileges)
     do dbr.begin(bd)
     
         new caso
         {
-            @"fechacierre*":now()
-            @"horacierre*":now()
-            @"usuariocierra":@@(datos,"user")
-            @"status": 1
+            @"status*": @null
         }
 
         do dbr.update(bd,"ut_crmcasos",caso,"sys_pk=@sys_pk",datos)
@@ -40,11 +37,11 @@ program
             @"sys_guid":uuid()
             @"fk_caso":@@(datos,"#sys_pk")
             @"usuario":@@(@http_context,"$session/user/uid")
-            @"notas":"<< "+@@(@http_context,"$session/user/name")+" cerró el caso >>"
+            @"notas":"<< "+@@(@http_context,"$session/user/name")+" reabrió el caso >>"
         }
     
         do dbr.insert(bd,"ut_crmnotacaso",nota_caso)
-        
+
         do dbr.apps.action.pos(datos)
     do dbr.commit(bd)
         do dbr.apps.action.ext(datos)
@@ -63,6 +60,7 @@ program
         
         do send.notif(bd,data)
     }
+    
     using res 
     { 
         @"success": @true

@@ -5,15 +5,16 @@ program
     #include "functions.dkh"
     #include "dbr.dkh"
     #include "serialize.dkh"
+    #include "dbr.apps.dkl"  
+    #include "dbr.events.dkl"
+    #include "dbr.security.dkl"
+    #include "../../config.dkl"
+    #include "vendesk/_lib/lib.dk"
     
     new res{}
     ref datos=from.json(field.dstr(@http_context,"request/POST_STRING","{}"))
 
-    ref bd=@null
-    if not(isnull(datos)){
-        ref bd=dbr.open(@@(datos,"$bd"))
-    }
-    else{do rise_error(500,"falta una conexión hacia la base de datos")}
+    ref bd:@@(@http_context,"&session/idp/database")
     
     new nota
     {
@@ -24,13 +25,36 @@ program
         @"notas":@@(datos,"nota")
         @"Sys_GUID":cut(uuid(),30)
     }
+    privileges="VC23"
+        do dbr.apps.action.pre(privileges)
+    do dbr.begin(bd)
     
     table_name="ut_crmnotacaso"
     
     if table_name==""{do rise_error(99,"Tabla no especificada.")}
     if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
     
+
     do dbr.insert(bd,table_name,nota)
+    
+        do dbr.apps.action.pos(nota)
+    do dbr.commit(bd)
+        do dbr.apps.action.ext(nota)
+    
+    //enviar notificaciones
+    module "enviar notificación"
+    {
+        using data
+        {
+            @"client":dbr.num(bd,"select fk_cliente from ut_crmcasos where sys_pk=@fk_caso",nota)
+            @"event":privileges
+            @"mensaje":@@(nota,"$notas")
+            @"case":@@(nota,"#fk_caso")
+            @"_mod":"case"
+        }
+        
+        do send.notif(bd,data)
+    }
     
     using res 
     { 
@@ -43,6 +67,9 @@ program
         using res{}
         res<"message">:last_error()
         res<"success">:@false
+
+        if dbr.in_transaction(bd){ do dbr.rollback(bd) }
+        do dbr.apps.action.log()
     }
 
     @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"

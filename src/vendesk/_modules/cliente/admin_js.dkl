@@ -417,7 +417,7 @@ script
 					var text=document.querySelector("#text_filter_admin");
 					if(text.value=="")
 					{
-						alert("Caampo de busqueda vacío");
+						alert("Campo de busqueda vacío");
 						return;
 					}
 					window.location.href="./?text_filter="+text.value;

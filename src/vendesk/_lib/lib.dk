@@ -4,20 +4,70 @@ module ""
 {
     #include "dbr.notif.dkl"
 
+    AddKeyValue::&org,&dest
+    {
+        if isnull(org){return}
+
+        ref lorg=list.create_from_fields(org)
+        for i = 0; i < @count(lorg)
+        {
+            key=list.str(lorg,i)
+            dest<key>:@@(org,"$"+key)
+        }
+    }
+    loadDataNotif::&db,&data
+    {
+        if @@(data,"#client") > 0
+        {
+            ref cliente = dbr.rec(db,"select codigo cliente_codigo,nombre cliente,rfc from cliente where sys_pk=@client",data)
+            do AddKeyValue(cliente,data)
+        }
+
+        if @@(data,"#case") > 0
+        {
+            ref caso=dbr.rec(db,"SELECT c.sys_pk id_caso,
+                        c.asunto,
+                        usuariocierra usuario_cerro,
+                        t.uf_descripcion tipo_caso,
+                        t.sys_pk tipo_caso_codigo
+                        FROM ut_crmcasos c
+                        LEFT JOIN ut_crmtipocaso t ON c.fk_tipocaso=t.sys_pk
+                        WHERE c.sys_pk=@case",data)
+            do AddKeyValue(caso,data)
+        }
+        switch @@(data,"$_mod")
+        {
+            case "alert"
+            {
+                data<"url">:replace(@URL_CLIENT_ALERT,"@cliente",@@(data,"$client"))
+                break
+            }
+            case "case"
+            {
+                url=replace(@URL_CLIENT_CASE,"@cliente",@@(data,"$client"))
+                url=replace(url,"@case",@@(data,"$case"))
+                data<"url">:url
+                break
+            }
+            case "aten"
+            {
+                break
+            }
+        }
+    }
     send.notif::&db,&data
     {
         if not(isanyword(tolower(@@(data,"$event")),tolower(@EVENTS_ACTIVE_NOTIF))){return}
         
-        uri=@@(data,"$url")
-
         new params{@"id":@@(data,"$event")}
-
+        //obtener datos del evento
         ref data_evento=dbr.rec(db,"select * from crm_notif where evento=@id and ifnull(id_destino,'')<>'' ",params)
         if isnull(data_evento){return}
-
+        //obtener el usuario si el id destino se trata de un usuario
         destino=dbr.str(db,"select userid from tuser where sys_guid=@id_destino",data_evento)
         if trim(destino)==""
         {
+            //obtener el grupo si el id destino se trata de un grupo
             destino=dbr.str(db,"select groupid from usergroup where sys_guid=@id_destino",data_evento)
             new rec_to{@"group":destino}
         }
@@ -25,14 +75,21 @@ module ""
 
         if trim(destino)==""{return}
 
+        do loadDataNotif(db,data)
+
+        url=@@(data,"$url")
+        if trim(url)==""{url=@VDK_CLIENTE}
+
+        url=replace(@URL_ROOT_GO,"@url",url_encode(url))
+
         ref to=list.create()
         do list.add(to,rec_to)
 
         new notif
         {
-            @"title":notif.macro(@@(data_evento,"$plantilla"),data)
+            @"title":cut(notif.macro(@@(data_evento,"$plantilla"),data),50)
             @"sender":@@(@http_context,'$session/user/uid')
-            @"body":notif.macro(@@(data_evento,"$plantilla_titulo"),data)
+            @"body":cut(notif.macro(@@(data_evento,"$plantilla_titulo"),data),1024)
             @"img":@@(data,"$img")
             @"href":url
             @"target":"_self"
@@ -42,34 +99,22 @@ module ""
         }
         do dbr.notif.send(db,notif)
     }
-    replaceMacro::text,lmacro
+    replaceMacro::text,lmacro,&data
     {
         ref lmcrs=split(lmacro,',')
         for i = 0; i < @count(lmcrs)
         {
             macro=list.str(lmcrs,i)
-            text=replace(text,macro,@@(data,"$"+macro))
+            text=replace(text,"@"+macro,@@(data,"$"+macro))
         }
         return text
     }
     notif.macro::text,&data
     {
         lmacro="usuario_creo,cliente,cliente_codigo"
-        text=replaceMacro(text,lmacro)
+        text=replaceMacro(text,lmacro,data)
 
-        switch @@(data,"$act")
-        {
-            case "case"
-            {
-                lmacro="id_caso,tipo_caso,tipo_caso_codigo,asunto,usuario_cerro"
-                break
-            }
-            case "alert"
-            {
-                lmacro="mensaje"
-                break
-            }
-        }
-        return replaceMacro(text,lmacro)
+        lmacro="id_caso,tipo_caso,tipo_caso_codigo,asunto,usuario_cerro,mensaje"
+        return replaceMacro(text,lmacro,data)
     }
 }

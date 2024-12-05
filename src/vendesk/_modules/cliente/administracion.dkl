@@ -8,12 +8,24 @@ module "administracion"
 	#include "uielements.dkl"
 	#include "uielements.dbtable.dkl"
 	#include "../../config.dkl"
+	#include "uielements.v12.dkl"
 
 	do @context.begin(@crud_context)
 	filter=ifstr(@('parameters/text_filter')!="","?text_filter="+@('parameters/text_filter'),"")
 
-	#$
-	div(class="container-fluid pt-1 ps-4 pe-4" style="background-color:#F5F5F5;position:fixed;min-height:90%;")
+	new nav_config
+    {
+        @"title": "Administración de casos"
+        @"buttons*": @null
+        @"urlexit": @VDK_CLIENTE + filter
+        @"jscurrentcontext": ""
+		member @"hidden"
+		{
+			@"print":@true
+		}
+    }
+	#$	
+	div(class="container-fluid v12-list-view" id="view" style="background-color:#F5F5F5;")
 	{
 		#!
 		#include "view_detail.dkl"
@@ -21,122 +33,119 @@ module "administracion"
 		#include "admin_js.dkl"
 		#include "../modals.dkl"
 		#$
-		$""
-		div(class="border-bottom bg-white")
+		section(id="top_area")
 		{
-			div(class="p-4")
+			#! 
+            do uie.printV12FormBar(nav_config)
+            #$
+			div(class="border-bottom bg-white")
 			{
-				div(class="mt-3 mb-4 d-flex align-items-center")
+				div(class="")
 				{
-					a(href="#<@VDK_CLIENTE>#<filter>" class="btn btn-sm btn-light bg-white border-0" id="go_back_btn"){
-						svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16"){
-							path("fill-rule"="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z")
-						}
-					}
-					h5(class="m-0 flex-grow-1"){$"Administración de casos"}
-				}
-				div(class="d-flex gap-2")
-				{
-					input(class="form-control form-control-sm" placeholder="Asunto, Descripción, Código cliente, Nombre cliente, Número cliente, Usuario crea, Usuario asignado..." id="text_filter_admin" value="#<@('parameters/text_filter')>")
-					button(class="btn btn-sm btn-primary d-flex align-items-center gap-2" onclick="module.text_filter()" id="btn-search-admin"){
-						$"Buscar"
-						svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16"){
-							path(d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z")
-						}
-					}
-				}
-				div(class="tab-content" id="nav-tabContent" )
-				{
-					div(class="tab-pane fade show active" id="nav-profile" role="tabpanel" "aria-labelledby"="nav-profile-tab" onclick="document.querySelector('#table-cases').classList.toggle('table-cases-filter-height')")
+					div(class="d-flex gap-2")
 					{
-						li(class="nav-item" style="list-style:none;cursor:pointer")
-						{
-							a(class="nav-link" "data-toggle"="collapse" "data-target"=".multi-collapse-filter")
-							{
-								div(class="d-flex text-secondary gap-2 gray-hover" id="div-seccion-filter")
-								{
-									svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-funnel-fill" viewBox="0 0 16 16"){
-										path(d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2z")
-									}
-									small{$"Filtro"}
-								}
-								
+						input(class="form-control form-control-sm" placeholder="Asunto, Descripción, Código cliente, Nombre cliente, Número cliente, Usuario crea, Usuario asignado..." id="text_filter_admin" value="#<@('parameters/text_filter')>")
+						button(class="btn btn-sm btn-primary d-flex align-items-center gap-2" onclick="module.text_filter()" id="btn-search-admin"){
+							$"Buscar"
+							svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16"){
+								path(d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z")
 							}
-							div(class="collapse multi-collapse-filter show p-3" style="background-color:#F5F5F5; display:none;")
+						}
+					}
+					div(class="tab-content" id="nav-tabContent" )
+					{
+						div(class="tab-pane fade show active" id="nav-profile" role="tabpanel" "aria-labelledby"="nav-profile-tab" onclick="document.querySelector('#table-cases').classList.toggle('table-cases-filter-height')")
+						{
+							li(class="nav-item" style="list-style:none;cursor:pointer")
 							{
-								div(class="d-flex")
+								a(class="nav-link" "data-bs-toggle"="collapse" "data-bs-target"=".multi-collapse-filter")
 								{
-									label(class="flex-grow-1"){""}
-									button(class="btn btn-sm btn-light border-secondary" id="btn-edit" onclick="module.filter_enabled(this)"){"Editar"}
-									button(class="btn btn-sm btn-primary hidden" id="btn-apply" onclick="module.filter_apply()"){"Aplicar"}
-									button(class="btn btn-sm btn-light border-secondary hidden" style="margin-left:2px" id="btn-cancel" onclick="module.filter_cancel()"){"Cancelar"}
-								}
-								div(class="module-filter")
-								{
-									h6(class="text-secondary m-0"){$"Rango de fechas:"}
-									div(class="row")
+									div(class="d-flex text-secondary gap-2 gray-hover" id="div-seccion-filter" onclick="Filtroresize(event)")
 									{
-										div(class="col col-lg-4 col-sm-12")
+										div(class="w-100 d-flex")
 										{
-											label{small(class="text-secondary"){$"Ver:"}}
-											#! do select.rango_fechas()
-											#$
-										} 
-										div(class="col col-lg-4 col-sm-12")
-										{
-											label{small(class="text-secondary"){$"De:"}}
-											#! de=ifstr(@('parameters/seccion_filter/de')=="",date_str(now(),'yyyy-MM-dd'),@('parameters/seccion_filter/de'))
-											#$ input(type="date" id="fecha_de" value="#<de>" class="form-control form-control-sm")
-										}
-										div(class="col col-lg-4 col-sm-12")
-										{
-											label{small(class="text-secondary"){$"A:"}}
-											#! a=ifstr(@('parameters/seccion_filter/a')=="",date_str(now(),'yyyy-MM-dd'),@('parameters/seccion_filter/a'))
-											#$ input(type="date" id="fecha_a" value="#<a>" class="form-control form-control-sm")		
+											svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-funnel-fill" viewBox="0 0 16 16")
+											{
+												path(d="M1.5 1.5A.5.5 0 0 1 2 1h12a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.128.334L10 8.692V13.5a.5.5 0 0 1-.342.474l-3 1A.5.5 0 0 1 6 14.5V8.692L1.628 3.834A.5.5 0 0 1 1.5 3.5v-2z")
+											}	
+											small{$"Filtro"}
+											hr(class="w-100"){""}
 										}
 									}
-
-									h6(class="text-secondary m-0 mt-3"){"Filtrar por:"}
-									div(class="row")
+								}
+								div(class="collapse multi-collapse-filter show p-3" style="background-color:#F5F5F5; display:none;" id="collapse-filter")
+								{
+									div(class="d-flex")
 									{
-										div(class="col col-lg-4 col-sm-12")
+										label(class="flex-grow-1"){""}
+										button(class="btn btn-sm btn-light border-secondary" id="btn-edit" onclick="module.filter_enabled(this)"){"Editar"}
+										button(class="btn btn-sm btn-primary hidden" id="btn-apply" onclick="module.filter_apply()"){"Aplicar"}
+										button(class="btn btn-sm btn-light border-secondary hidden" style="margin-left:2px" id="btn-cancel" onclick="module.filter_cancel()"){"Cancelar"}
+									}
+									div(class="module-filter")
+									{
+										h6(class="text-secondary m-0"){$"Rango de fechas:"}
+										div(class="row")
 										{
-											label{small(class="text-secondary"){$"Tipo:"}}
-											#! do select.tipocaso_admin()
-											#$
-										} 
-										div(class="col col-lg-4 col-sm-12")
-										{
-											label{small(class="text-secondary"){$"Asignado a:"}}
-											#! do select.userassign_admin(@false)
-											#$ 
+											div(class="col col-lg-4 col-sm-12")
+											{
+												label{small(class="text-secondary"){$"Ver:"}}
+												#! do select.rango_fechas()
+												#$
+											} 
+											div(class="col col-lg-4 col-sm-12")
+											{
+												label{small(class="text-secondary"){$"De:"}}
+												#! de=ifstr(@('parameters/seccion_filter/de')=="",date_str(now(),'yyyy-MM-dd'),@('parameters/seccion_filter/de'))
+												#$ input(type="date" id="fecha_de" value="#<de>" class="form-control form-control-sm")
+											}
+											div(class="col col-lg-4 col-sm-12")
+											{
+												label{small(class="text-secondary"){$"A:"}}
+												#! a=ifstr(@('parameters/seccion_filter/a')=="",date_str(now(),'yyyy-MM-dd'),@('parameters/seccion_filter/a'))
+												#$ input(type="date" id="fecha_a" value="#<a>" class="form-control form-control-sm")		
+											}
 										}
-										div(class="col col-lg-4 col-sm-12")
+
+										h6(class="text-secondary m-0 mt-3"){"Filtrar por:"}
+										div(class="row")
 										{
-											label{small(class="text-secondary"){$"Por vencimiento:"}}
-											#! do select.por_vencimiento()
-											#$		
+											div(class="col col-lg-4 col-sm-12")
+											{
+												label{small(class="text-secondary"){$"Tipo:"}}
+												#! do select.tipocaso_admin()
+												#$
+											} 
+											div(class="col col-lg-4 col-sm-12")
+											{
+												label{small(class="text-secondary"){$"Asignado a:"}}
+												#! do select.userassign_admin(@false)
+												#$ 
+											}
+											div(class="col col-lg-4 col-sm-12")
+											{
+												label{small(class="text-secondary"){$"Por vencimiento:"}}
+												#! do select.por_vencimiento()
+												#$		
+											}
+										}
+										
+										#!
+										check=@('parameters/seccion_filter/showclosed')
+										#$
+										label(class="d-flex align-items-center gap-2 mt-2"){
+											input(type="checkbox" "#<ifstr(parse.bool(check),'checked','')>"="true" id="check_show_cancelados")
+											small(class="text-secondary"){$"Mostrar casos cerrados"}
 										}
 									}
 									
-									#!
-									check=@('parameters/seccion_filter/showclosed')
-									#$
-									label(class="d-flex align-items-center gap-2 mt-2"){
-										input(type="checkbox" "#<ifstr(parse.bool(check),'checked','')>"="true" id="check_show_cancelados")
-										small(class="text-secondary"){$"Mostrar casos cerrados"}
-									}
 								}
-								
 							}
 						}
 					}
 				}
 			}
-		}
-		div
-		{
-			div(class="d-flex align-items-center gap-2 ps-4 pe-4 pt-2 pb-2 border-bottom bg-white")
+			div(class="d-flex align-items-center gap-2 ps-4 pe-4 pt-2 border-bottom bg-white")
 			{
 				button(class="btn btn-sm btn-light bg-white d-flex align-items-center gap-2 border-0" onclick="module.search_cliente()"){
 					svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-plus" viewBox="0 0 16 16"){
@@ -160,15 +169,13 @@ module "administracion"
 					$"Tipos de casos"
 				}
 			}
-			div(class="card-body p-4 mt-1 bg-white")
+		}
+		section(id="work_area" )
+		{
+			input(type="hidden" id="cliente" class="cliente_admin" trigger="addCasos();")
+			div(style="max-height:45vh !important; overflow:auto;" id="table-cases" class="bg-white")
 			{
-				$""
-				input(type="hidden" id="cliente" class="cliente_admin" trigger="addCasos();")
-				div(style="overflow:auto;height:30rem;" id="table-cases" class="")
-				{
-					#! do table.casos()
-				}
-				
+				#! do table.casos()
 			}
 		}
 	}

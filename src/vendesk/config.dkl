@@ -177,6 +177,8 @@ module "config.dkl"
 	@VDK_CLIENTE = "/!/vendesk/cliente/"
 	@VDK_PIPELINE = "/!/vendesk/sales_pipeline/"
 
+	@URL_ROOT_GO="/?go=@url"
+
 	@CONFIG_NOTIF_LIST="/!/vendesk/notif/"
 
 	@EVENTOS_NOTIF='[
@@ -195,6 +197,10 @@ module "config.dkl"
 		{"id":"group","text":"Grupo"}
 	]'
 
+	//url modulo de notificación
+	@URL_CLIENT_ALERT="/!/vendesk/cliente/_detail/?_key=@cliente&i=alert"
+	@URL_CLIENT_CASE_LIST="/!/vendesk/cliente/_detail/?_key=@cliente&i=case"
+	@URL_CLIENT_CASE="/!/vendesk/cliente/_detail/?_case=@case&_key=@cliente"
 	//Eventos que por el momento generarán notificaciones:
 	@EVENTS_ACTIVE_NOTIF="VC13,VC21,VC22,VC23,VC24,VC26,VC27"
 

@@ -35,20 +35,24 @@ module "Controller configs"
 	<!-- VenDesk -->
 	<link href="/$/vendesk/css/styles.css" rel="stylesheet"></link>
 	<style>
-        :root{
+        :root
+		{
             --filter-panel-height: 15.648rem;
             --table-cases-height: 30rem;
         }
-        .table-cases-filter-height{
-            height: calc(var(--table-cases-height) - var(--filter-panel-height)) !important;
-        }
-        body {
+        // .table-cases-filter-height
+		// {
+        //     height: calc(var(--table-cases-height) - var(--filter-panel-height)) !important;
+        // }
+        body 
+		{
             margin-top: 0;
         }
-        #main_navbar {
+        #main_navbar 
+		{
             opacity: 1;
         }
-        th{font-size:.9rem !important;color:#777 !important;font-weight:400 !important;}
+        
         tr{font-size:.9rem;}
         .nav-tabs .nav-link.active{
             border:none !important;
@@ -68,11 +72,15 @@ module "Controller configs"
 			background-color: currentcolor;
 			opacity: .5;
 		}
-		@keyframes placeholder-glow {
-		  50% {
+		@keyframes placeholder-glow 
+		{
+		  50% 
+		  {
 			opacity: .2;
 		  }
 		}
+
+		
     </style>
 	<!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>

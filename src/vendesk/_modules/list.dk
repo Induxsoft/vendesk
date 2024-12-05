@@ -26,10 +26,8 @@ module "list"
 	#!
 	list.filter_clients::
 	{
-		if @@(@http_context,"request/get/text_filter")!=""
-		{
-			ref data=@("&.")
-		}else{ref data=@null}
+		ref data=ifnull(@("&."),list.create())
+		
 		new @table_definition
 	    {
 	        @"datatable*":data

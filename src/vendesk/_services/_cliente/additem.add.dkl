@@ -18,9 +18,9 @@ program
     
     new data
     {
-        @"Sys_TimeStamp*":now()
-        @"Sys_GUID":cut(uuid(),30)
-        @"Sys_DTCreated*":now()
+        @"sys_timestamp*":now()
+        @"sys_guid":uuid()
+        @"sys_dtcreated*":now()
     }
 
     color = @@(datos, "id_color")
@@ -101,7 +101,20 @@ program
         do dbr.apps.action.ext(data)
 
     //enviar notificaciones
-    // do send.notif(db,data)
+    module "enviar notificación"
+    {
+        using data
+        {
+            @"client":@@(data,"#fk_cliente")
+            @"event":privileges
+            @"mensaje":@@(data,"$descripcion")
+            @"case":dbr.num(bd,"select sys_pk from ut_crmcasos where sys_guid=@sys_guid",data)
+            @"_mod":trim(@@(datos,"item"))
+        }
+        
+        do send.notif(bd,data)
+    }
+    
     using res 
     { 
         @"success": @true

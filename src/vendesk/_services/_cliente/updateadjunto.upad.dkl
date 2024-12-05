@@ -5,7 +5,12 @@ program
     #include "functions.dkh"
     #include "dbr.dkh"
     #include "serialize.dkh"
-    
+    #include "dbr.apps.dkl"  
+    #include "dbr.events.dkl"
+    #include "dbr.security.dkl"
+    #include "../../config.dkl"
+    #include "vendesk/_lib/lib.dk"
+
     new res{}
     ref datos=from.json(field.dstr(@http_context,"request/post/data","{}"))
     ref files=@@(@http_context,"&request/files")
@@ -21,18 +26,14 @@ program
 
         return protocol+"://"+path.concat(host,path)
     }
-    
+    ref bd:@@(@http_context,"&session/idp/database")
+    if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
+
     path=path.concat(@@(@http_context,"request/headers/DOCUMENT_ROOT"),"_adjuntos")
     path=path.concat(path,@@(datos,"ws"))
     do dir.ensure(path)
     url=path.concat(current_url(@true),"_adjuntos/"+@@(datos,"ws"))
-    // do rise_error(99,str(@count(files)))
-    ref bd=@null
-    if not(isnull(datos)){
-        ref bd=dbr.open(@@(datos,"$bd"))
-    }
-    else{do rise_error(500,"falta una conexión hacia la base de datos")}
-    
+
     new nota
     {
         @"Sys_TimeStamp*":now()
@@ -41,66 +42,77 @@ program
     }
     table_name="docs"
     uuid=uuid()
-    switch @@(datos,"act")
-    {
-        case "add"{
-
-            nota<"sys_guid">:cut(uuid(),30)
-            nota<"Sys_DTCreated*">:now()
-            nota<"Sys_DTExported*">:now()
-            if @count(files)>0
-            {
-                    ref f=list.obj(files,0)
-                    nota<"TypeData">:replace(file.extension(field.str(f,"filename")),".","")
-                    do file.copy(field.str(f,"temp_file"),path.concat(path,uuid+"."+@@(nota,"TypeData")))
-            }else{
-                nota<"TypeData">:replace(file.extension(@@(datos,"urlfile")),".","")
-            }
-            
-            // nota<"Data">:file.rtext(field.str(f,"temp_file"))
-            nota<"urlfile">:ifstr(@@(datos,"urlfile")=="",path.concat(url,uuid+"."+@@(nota,"TypeData")),@@(datos,"urlfile"))
-            // switch @@(datos,"rdp")
-            // {
-            //     case "import"{
-            //         ref f=list.obj(files,0)
-            //         nota<"TypeData">:replace(file.extension(field.str(f,"filename")),".","")
-            //         nota<"Data">:file.rtext(field.str(f,"temp_file"))
-            //     }
-            //     case "enlazar"{
-            //         nota<"urlfile">:@@(datos,"urlfile")
-            //         nota<"TypeData">:file.extension(@@(datos,"urlfile"))
-            //     }
-            // }
-            // nota<"MiniData">:cut(uuid(),30)
-            nota<"Name">:@@(datos,"name")
-            
-            nota<"storeout">:0
-            do dbr.insert(bd,table_name,nota)
-
-            ref dtlink=record.copy(nota,"Sys_DTCreated,Sys_DTExported,Sys_TimeStamp")
-            dtlink<"sys_guid">:cut(uuid(),30)
-            dtlink<"Sis">:1
-            dtlink<"TypeParent">:"ut_crmcasos"
-            dtlink<"FK_Doc">:dbr.str(bd,"SELECT sys_guid FROM docs d WHERE d.Sys_PK=(SELECT MAX(sys_pk) FROM docs)",@null)
-            dtlink<"FK_Parent">:@@(datos,"fk_parent")
-
-            do dbr.insert(bd,"doclink",dtlink)
-            
-            break
-        }
-        case "upd"
+    
+    pk_caso= 0 
+    privileges="VC24"
+        do dbr.apps.action.pre(privileges)
+    do dbr.begin(bd)
+    
+        switch @@(datos,"act")
         {
-            do dbr.update(bd,table_name,nota,"sys_pk=@sys_pk",datos)
-            break
+            case "add"
+            {
+
+                nota<"sys_guid">:cut(uuid(),30)
+                nota<"Sys_DTCreated*">:now()
+                nota<"Sys_DTExported*">:now()
+                if @count(files)>0
+                {
+                        ref f=list.obj(files,0)
+                        nota<"TypeData">:replace(file.extension(field.str(f,"filename")),".","")
+                        do file.copy(field.str(f,"temp_file"),path.concat(path,uuid+"."+@@(nota,"TypeData")))
+                }
+                else
+                {
+                    nota<"TypeData">:replace(file.extension(@@(datos,"urlfile")),".","")
+                }
+                
+                nota<"urlfile">:ifstr(@@(datos,"urlfile")=="",path.concat(url,uuid+"."+@@(nota,"TypeData")),@@(datos,"urlfile"))
+            
+                nota<"Name">:@@(datos,"name")
+                
+                nota<"storeout">:0
+                do dbr.insert(bd,table_name,nota)
+
+                ref dtlink=record.copy(nota,"Sys_DTCreated,Sys_DTExported,Sys_TimeStamp")
+                dtlink<"sys_guid">:cut(uuid(),30)
+                dtlink<"Sis">:1
+                dtlink<"TypeParent">:"ut_crmcasos"
+                dtlink<"FK_Doc">:dbr.str(bd,"SELECT sys_guid FROM docs d WHERE d.Sys_PK=(SELECT MAX(sys_pk) FROM docs)",@null)
+                dtlink<"FK_Parent">:@@(datos,"fk_parent")
+
+                do dbr.insert(bd,"doclink",dtlink)
+                pk_caso= dbr.num(bd,"select sys_pk from ut_crmcasos c WHERE c.sys_guid=@fk_parent ",dtlink)
+                break
+            }
+            case "upd"
+            {
+                do dbr.update(bd,table_name,nota,"sys_pk=@sys_pk",datos)
+                pk_caso= dbr.num(bd,"select sys_pk from ut_crmcasos c WHERE c.sys_guid=@fk_parent",datos)
+                break
+            }
         }
+    
+        do dbr.apps.action.pos(nota)
+    do dbr.commit(bd)
+        do dbr.apps.action.ext(nota)
+
+    //enviar notificaciones
+    module "enviar notificación"
+    {
+        nota<"fk_caso">:pk_caso
+        using data
+        {
+            @"client":dbr.num(bd,"select fk_cliente from ut_crmcasos where sys_pk=@fk_caso",nota)
+            @"event":privileges
+            @"mensaje":""
+            @"case":pk_caso
+            @"_mod":"case"
+        }
+        
+        do send.notif(bd,data)
     }
-    
-    
-    if table_name==""{do rise_error(99,"Tabla no especificada.")}
-    if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
-    
-    
-    
+
     using res 
     { 
         @"success": @true
@@ -112,6 +124,9 @@ program
         using res{}
         res<"message">:last_error()
         res<"success">:@false
+
+        if dbr.in_transaction(bd){ do dbr.rollback(bd) }
+        do dbr.apps.action.log()
     }
 
     @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"

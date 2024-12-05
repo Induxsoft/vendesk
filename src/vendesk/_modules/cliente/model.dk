@@ -7,7 +7,15 @@ module "cliente.dk"
     FROM cliente c
     LEFT JOIN domicilio d1 ON c.Domicilio1=d1.Sys_PK
     LEFT JOIN domicilio d2 ON c.Domicilio2=d2.Sys_PK
-    LEFT JOIN domicilio d3 ON c.Domicilio3=d3.Sys_PK where c.codigo like '%@{text_filter}%' or nombre like '%@{text_filter}%' or rfc like '%@{text_filter}%' or curp like '%@{text_filter}%' or email like '%@{text_filter}%' order by nombre asc limit 100"
+    LEFT JOIN domicilio d3 ON c.Domicilio3=d3.Sys_PK 
+    where c.codigo like '%@{text_filter}%' 
+    or nombre like '%@{text_filter}%' 
+    or rfc like '%@{text_filter}%' 
+    or curp like '%@{text_filter}%' 
+    or email like '%@{text_filter}%' 
+    order by 
+    nombre asc 
+    limit 250"
 
     @read_query = "select sys_pk, sys_guid, sys_recver, sys_timestamp, sys_dtcreated, sys_deleted, 
     codigo, descuento,precio,limitecredito,saldo,monedero,saldopuntos,nombre, tipo, rfc, curp, domicilio1,domicilio2,domicilio3,diascredito,notas,codcuenta,telefonos, fax, email, website, contacto1,contacto2,contacto3, agente, idivisa,zona,status
@@ -84,6 +92,8 @@ module "cliente.dk"
     {
         do dbr.apps.action.grant("VC10")
         
+        if not(field.exist(params,"text_filter")){params<"text_filter">:"%"}
+
         return entity.list(db,params)
 
         exception
@@ -355,7 +365,8 @@ module "cliente.dk"
             cliente<"Domicilio1">:@@(domi1,"sys_pk")
         }
          
-        if @@(data,"iciudad2")!=""{
+        if @@(data,"iciudad2")!=""
+        {
             data<"direccion">:"||"+@@(data,"calle2")+"|"+@@(data,"next2")+"|"+@@(data,"nint2")+"||"
             if length(@@(data,"direccion"))>1024{data<"direccion">:@@(data,"calle")}
             new domicilio2
@@ -369,7 +380,9 @@ module "cliente.dk"
             ref domi1=dbr.save(db,"domicilio",domicilio2)
             cliente<"Domicilio2">:@@(domi1,"sys_pk")
         }
-        if @@(data,"iciudad3")!=""{
+
+        if @@(data,"iciudad3")!=""
+        {
             data<"direccion">:"||"+@@(data,"clle3")+"|"+@@(data,"next3")+"|"+@@(data,"nint3")+"||"
             if length(@@(data,"direccion"))>1024{data<"direccion">:@@(data,"calle")}
             new domicilio3
@@ -387,6 +400,8 @@ module "cliente.dk"
         ref res = entity.create(db,params,cliente)
 
         @url_redir = @VDK_CLIENTE + "?text_filter=" + @@(res,"$codigo")
+
+        return res
     }
 
     cliente.update::&db,&params,&data
@@ -443,7 +458,8 @@ module "cliente.dk"
             cliente<"status">:@@(data,"#status")
         }
 
-        if @@(data,"iciudad")!=""{
+        if @@(data,"iciudad")!=""
+        {
             data<"direccion">:"||"+@@(data,"calle")+"|"+@@(data,"next")+"|"+@@(data,"nint")+"||"
             if length(@@(data,"direccion"))>1024{data<"direccion">:@@(data,"calle")}
             new domicilio1
@@ -457,7 +473,9 @@ module "cliente.dk"
             ref domi1=dbr.save(db,"domicilio",domicilio1)
             cliente<"Domicilio1">:@@(domi1,"sys_pk")
         }
-        if @@(data,"iciudad2")!=""{
+
+        if @@(data,"iciudad2")!=""
+        {
             data<"direccion">:"||"+@@(data,"calle2")+"|"+@@(data,"next2")+"|"+@@(data,"nint2")+"||"
             if length(@@(data,"direccion"))>1024{data<"direccion">:@@(data,"calle")}
             new domicilio2
@@ -471,7 +489,9 @@ module "cliente.dk"
             ref domi1=dbr.save(db,"domicilio",domicilio2)
             cliente<"Domicilio2">:@@(domi1,"sys_pk")
         }
-        if @@(data,"iciudad3")!=""{
+
+        if @@(data,"iciudad3")!=""
+        {
             data<"direccion">:"||"+@@(data,"clle3")+"|"+@@(data,"next3")+"|"+@@(data,"nint3")+"||"
             if length(@@(data,"direccion"))>1024{data<"direccion">:@@(data,"calle")}
             new domicilio3
@@ -489,6 +509,8 @@ module "cliente.dk"
         ref res = entity.update(db,params,cliente)
 
         @url_redir = @VDK_CLIENTE + "?text_filter=" + @@(res,"$codigo")
+
+        return res
     }
 
     cliente.delete::&db, &params

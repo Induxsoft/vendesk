@@ -1,6 +1,27 @@
 script
 {
     $"
+    document.addEventListener('DOMContentLoaded', () => 
+    {
+        Filtroresize(null);
+    });
+    function Filtroresize(e)
+    {
+        var mod_table=document.getElementById('table-cases');
+        
+        setTimeout(()=>
+        {
+            v12_on_resize();
+            if(mod_table && e)
+            {
+                var mod_filter=document.getElementById('collapse-filter');
+
+                if(mod_filter && !mod_filter.classList.contains('show'))mod_table.style.maxHeight='65vh';
+                else{mod_table.style.maxHeight='45vh';}
+            }
+        },400);
+    }
+
     var checOtCredit = $('#flexCheckDefault');
     var check = $('#checkLimitCredit');
     var check1 = $('#checkLimitCredit1');
@@ -625,8 +646,9 @@ function updateItemBd(i = '', sys_pk, active = true) {
         function showLoading() {
             $('#modalload').modal('show');
         }
-        function hideLoading() {
-            $('#modalload').modal('hide');
+        function hideLoading() 
+        {
+            setTimeout(()=>{$('#modalload').modal('hide');},300);
         }
 
         function disabledElement(id, bool, e, obj) {
@@ -824,7 +846,8 @@ function updateItemBd(i = '', sys_pk, active = true) {
                 }
             }
         }
-        function showmodalAdjuntos(sys_guid = '') {
+        function showmodalAdjuntos(sys_guid = '') 
+        {
             if (sys_guid != '')
                 getAdjuntos(sys_guid);
 
@@ -834,7 +857,8 @@ function updateItemBd(i = '', sys_pk, active = true) {
         function hidemodalAdjuntos() {
             $('#modaladjuntos').modal('hide');
         }
-        function editDatafile(sys_pk, e) {
+        function editDatafile(sys_pk, e) 
+        {
             e.stopPropagation();
             for (var i = 0; i < listaAdjuntos.length; i++) {
                 if (listaAdjuntos[i].sys_pk === sys_pk) {
@@ -886,7 +910,8 @@ function updateItemBd(i = '', sys_pk, active = true) {
 
         }
         var listaAdjuntos = null;
-        function getAdjuntos(sys_guid) {
+        function getAdjuntos(sys_guid) 
+        {
             $('#body-adjuntos').empty();
             var data = { fk_parent: sys_guid, bd: '#<@('$database')>'}
             showLoading();
@@ -896,10 +921,11 @@ function updateItemBd(i = '', sys_pk, active = true) {
                 dataType: 'json',
                 accepts: 'application/json',
                 url: '#<@SVC_CLIENTE>getAdjuntos.files.dkl',
-                success: function (data) {
+                success: function (data) 
+                {
                     hideLoading();
-                    if (data.success) {
-
+                    if (data.success) 
+                    {
                         var html = '';
                         listaAdjuntos = data.data;
                         for (var i = 0; i < data.data.length; i++) {
@@ -940,13 +966,16 @@ function updateItemBd(i = '', sys_pk, active = true) {
                         `;
                         }
                         $('#body-adjuntos').append(html);
-                    } else {
+                    } 
+                    else 
+                    {
                         hideLoading();
                         alert(data.message);
                     }
-
+                    hideLoading();
                 },
-                error: function (error) {
+                error: function (error) 
+                {
                     hideLoading();
                     console.log(error);
                 }
@@ -1038,7 +1067,8 @@ function updateItemBd(i = '', sys_pk, active = true) {
         });
     }
 
-    function CloseCase(sys_pk, e) {
+    function CloseCase(sys_pk, e) 
+    {
         e.stopPropagation();
         var res = confirm('¿Esta seguro que desea cerrar el caso?')
         if (!res)
@@ -1050,7 +1080,7 @@ function updateItemBd(i = '', sys_pk, active = true) {
             user: \"#<@('http/session/user/name')>\"
         }
         showLoading();
-        // /case.close
+        
         definitive.rest('#<@SVC_CLIENTE>closeCase.close.dkl', 'POST', data,
             function (entity) {
                 if (!entity.success) {
@@ -1072,8 +1102,44 @@ function updateItemBd(i = '', sys_pk, active = true) {
                 alert(p.responseJSON.message);
             });
     }
+    function ReabrirCaso(sys_pk, e) 
+    {
+        e.stopPropagation();
 
-    function downloadfile(sys_pk) {
+        var data = 
+        {
+            sys_pk: sys_pk,
+            bd: '#<@('$database')>',
+            user: \"#<@('http/session/user/name')>\"
+        }
+        showLoading();
+        
+        definitive.rest('#<@SVC_CLIENTE>reabrir.case.dkl', 'POST', data,
+            function (entity) 
+            {
+                if (!entity.success) 
+                {
+                    hideLoading();
+                    alert(entity.message);
+                    return;
+                }
+                window.location.reload();
+            },
+            function (error) 
+            {
+                hideLoading();
+                alert(error);
+            },
+            function (error) 
+            {
+                hideLoading();
+                var er = JSON.stringify(error);
+                var p = JSON.parse(er);
+                alert(p.responseJSON.message);
+            });
+    }
+    function downloadfile(sys_pk) 
+    {
         window.open('#<@SVC_CLIENTE>download_file.down.dkl?sys_pk=' + sys_pk + '&ws=' + '#<@('parameters/ws')>' + '&bd=#<url_encode(@('$database'))>');
     }
     function getTables(sys_pk, iddiv, act) {
@@ -1094,7 +1160,7 @@ function updateItemBd(i = '', sys_pk, active = true) {
                 var div_tble_ultvnts=document.getElementById('div_tble_ultvnts');
 
                 $(iddiv).html(data.data);
-                if(Number(data.hide_table??0)>0)div_tble_ultvnts.remove();
+                if(Number(data.hide_table??0)>0 && div_tble_ultvnts)div_tble_ultvnts.remove();
             },
             error: function (error) {
                 console.log(error.status, error.responseText);

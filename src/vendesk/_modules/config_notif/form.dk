@@ -88,13 +88,13 @@ module ""
                     }
                     div(class="col-md-12")
                     {
-                        label{"Plantilla para el título:"}
-                        textarea(name="plantilla_titulo" class="induxsoft-form-control"){"#<@('$./plantilla_titulo')>"}
+                        label{"Texto de plantilla:"}
+                        textarea(name="plantilla_titulo" class="induxsoft-form-control" maxlength="1024" style="height: 136px;"){"#<@('$./plantilla_titulo')>"}
                     }
                     div(class="col-md-12")
                     {
-                        label{"Texto de plantilla:"}
-                        input(name="plantilla" value="#<@('$./plantilla')>" class="induxsoft-form-control"){""}
+                        label{"Plantilla para el título:"}
+                        input(name="plantilla" value="#<@('$./plantilla')>" class="induxsoft-form-control" maxlength="50"){""}
                     }
                 }
                 hr{""}
@@ -109,9 +109,9 @@ module ""
                             small(class="fw-bold"){"Generales"}
                             ul(style="white-space: break-spaces;")
                             {
-                                li{"- usuario_creo. Id del usuario que creó el caso o alerta"}
-                                li{"- cliente. Nombre del cliente"}
-                                li{"- cliente_codigo. Código del cliente"}
+                                li{"usuario_creo. Id del usuario que creó el caso o alerta"}
+                                li{"cliente. Nombre del cliente"}
+                                li{"cliente_codigo. Código del cliente"}
                             }
                         }
                         td
@@ -119,11 +119,11 @@ module ""
                             small(class="fw-bold"){"Casos"}
                             ul(style="white-space: break-spaces;")
                             {
-                                li{"- id_caso . sys_pk del caso"}
-                                li{"- tipo_caso. Descripción del tipo de caso"}
-                                li{"- tipo_caso_codigo. Código del tipo de caso"}
-                                li{"- asunto. Asunto del caso"}
-                                li{"- usuario_cerro. Id del usuario que cerró el caso"}
+                                li{"id_caso . sys_pk del caso"}
+                                li{"tipo_caso. Descripción del tipo de caso"}
+                                li{"tipo_caso_codigo. Código del tipo de caso"}
+                                li{"asunto. Asunto del caso"}
+                                li{"usuario_cerro. Id del usuario que cerró el caso"}
                             }
                         }
                         td
@@ -131,7 +131,7 @@ module ""
                             small(class="fw-bold"){"Alertas"}
                             ul
                             {
-                                li{"- mensaje"}
+                                li{"mensaje"}
                             }
                         }
                     }

@@ -257,7 +257,7 @@ model "erp.vendesk"
     }
     entity "crm_notif":"TableModel"
     {
-        @"evento" string(50)
+        @"evento" string(50) unique
         @"destino" string(50)
         @"id_destino" string(50)
         @"plantilla_titulo" string(1024)

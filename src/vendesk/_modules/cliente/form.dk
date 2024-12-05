@@ -8,6 +8,7 @@ module "form.dk"
     #include "dbr.dkh"
     #include "uielements.dkl"
     #include "../../config.dkl"
+    #include "uielements.v12.dkl"
 
     do @context.begin(@crud_context)
 
@@ -38,20 +39,7 @@ module "form.dk"
         @"text_field":"nombre"
         @"selected":@("./estado/IPais")
     }
-    // new def_contacto
-    // {
-    //     @"datatable*":dbr.list(@("&database"),"select sys_pk,concat(Nombre,' ',Apellidos) nombre from contacto order by nombre;",@null)
-    //     @"id":"contacto1"
-    //     member "attributes"
-    //     {
-    //         @"class":"form-select contacto1"
-    //         @"name":"contacto1"
-    //     }
-    //     @"first_text":" "
-    //     @"first_value":"@"
-    //     @"value_field":"sys_pk"
-    //     @"text_field":"nombre"
-    // }
+
     new def_agente
     {
         @"datatable*":dbr.list(@("&database"),"select sys_pk,concat('[',codigo,'] ',Nombre) nombre from agente order by nombre;",@null)
@@ -108,37 +96,31 @@ module "form.dk"
         @"first_value":"@"
         @"selected":@("./zona")
     }
-    if @count(@@(def_zona,"&datatable"))<=0{
-        using def_zona
-        {
-            @"first_text":" "
-            @"first_value":"@"
-        }
-    }
-    if @count(@@(def_divisa,"&datatable"))<=0{
-        using def_divisa
-        {
-            @"first_text":" "
-            @"first_value":"@"
-        }
-    }
-    if @count(@@(def_pais,"&datatable"))<=0{
-        using def_pais
-        {
-            @"first_text":" "
-            @"first_value":"@"
-        }
-    }
-    if @count(@@(def_tipo_cliente,"&datatable"))<=0{
-        using def_tipo_cliente
-        {
-            @"first_text":" "
-            @"first_value":"@"
-        }
-    }
+
     filter=ifstr(@("parameters/text_filter")!="","?text_filter="+@("parameters/text_filter"),"")
+    url_exit=ifstr(@("parameters/url")!="",url_dcode(@("parameters/url")),@VDK_CLIENTE)
+    buttons::
+    {
+        #$
+        button(type="button" onclick="InduxsoftCrudlModel.Submit('form-cliente')" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print"){"Guardar"}
+        #!
+    }
+
+    point buttons to buttons
+
+    new nav_config
+    {
+        @"title":"Nuevo cliente"
+        @"buttons*": buttons
+        @"urlexit":url_exit + ifstr(contains(url_exit,"?"),"&","?") + filter
+        @"jscurrentcontext": ""
+        member @"hidden"
+        {
+            @"print":@true
+        }
+    }
     #$
-    div(class="d-flex justify-content-center" id="")
+    div(class="container v12-form-view" id="view")
     {
         #!
         if @("$./nombre")!=""
@@ -152,7 +134,13 @@ module "form.dk"
             }
         }
         #$
-        div(class="mt-4 container container-sm" id="div-cliente")
+        section(id="top_area")
+        {
+            #! 
+            do uie.printV12FormBar(nav_config)
+            #$
+        }
+        div(class="work_area" id="div-cliente")
         {
             div(class="shadow py-2")
             {
@@ -163,15 +151,6 @@ module "form.dk"
                         div(class="#<ifstr(@('error/message')!='','alert alert-danger','')>"){$"#<@('error/message')>"}
                         div(class="card-header bg-white")
                         {
-                            div(class="mt-3 mb-4 d-flex align-items-center")
-                            {
-                                a(href="#<@VDK_CLIENTE>#<filter>" class="btn btn-sm btn-light bg-white border-0" id="go_back_btn"){
-                                    svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-chevron-left" viewBox="0 0 16 16"){
-                                        path("fill-rule"="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z")
-                                    }
-                                }
-                                h5(class="m-0 flex-grow-1"){$"Nuevo cliente"}
-                            }
                             ul(class="nav nav-tabs card-header-tabs" "data-bs-tabs"='tabs')
                             {
                                 li(class="nav-item")
@@ -193,7 +172,7 @@ module "form.dk"
                             }
                         }
 
-                        form(action="./#<filter>" method="POST" class="card-body tab-content p-3" onsubmit="return validateForm()")
+                        form(action="./#<filter>" method="POST" id="form-cliente" class="card-body tab-content p-3" onsubmit="return validateForm()")
                         {	
                            
                             div(class="tab-pane active" id="general")
@@ -519,27 +498,12 @@ module "form.dk"
                                             input(type="number" readonly="true" name="saldo" class="form-control" value="#<@('#./saldo'):#.00>")
                                         }
                                     }
-                                    // hr{$""}
-                                    // div(class="row m-2")
-                                    // {
-                                    //     div(class="col-12")
-                                    //     {
-                                    //         label{small(class="text-secondary"){$"Saldo en monedero:"}}
-                                    //         input(type="number" readonly="true" name="monedero" class="form-control" value="#<@('#./monedero'):#.00>")
-                                    //     }
-                                    //     div(class="col-12")
-                                    //     {
-                                    //         label{small(class="text-secondary"){$"Puntos disponibles:"}}
-                                    //         input(type="number"  readonly="true" name="puntos" class="form-control" value="#<@('#./saldopuntos'):#.00>")
-                                    //     }
-                                    // }
+                                   
                                     div(class="row m-2")
                                     {
                                         div(class="col-12")
                                         {
                                             $""
-                                            // input(class="form-check-input" type="checkbox" value="" id="flexCheckDefault")
-                                            // label(class="form-check-label" for="flexCheckDefault"){"Incluir addenda en comprobante fiscal digital:"}
                                         }
                                     }
                                 }
@@ -556,9 +520,6 @@ module "form.dk"
                                         div(class="col-12")
                                         {
                                             label{small(class="text-secondary"){$"Contacto:"}}
-                                            // ##
-                                            // do uie.dbSelect(def_contacto)
-                                            // ##
                                             div(class="p-2 m-0 d-flex align-items-end gap-2")
                                             {
                                                 input(type="text" readonly="true" name="contacto1" data="#<@('./contacto1/sys_pk')>" id="contacto1" class="form-control" value="#<@('./contacto1/nombre')>")
@@ -577,10 +538,6 @@ module "form.dk"
                                         div(class="col-12")
                                         {
                                             label{small(class="text-secondary"){$"Contacto 2:"}}
-                                            // ##
-                                            // def_contacto<"id">:"contacto2"
-                                            // do uie.dbSelect(def_contacto)
-                                            // ##
                                             div(class="p-2 m-0 d-flex align-items-end gap-2")
                                             {
                                                 input(type="text" readonly="true" name="contacto2" data="#<@('./contacto2/sys_pk')>" id="contacto2" class="form-control" value="#<@('./contacto2/nombre')>")
@@ -598,10 +555,6 @@ module "form.dk"
                                         div(class="col-12")
                                         {
                                             label{small(class="text-secondary"){$"Contacto 3:"}}
-                                            // ##
-                                            // def_contacto<"id">:"contacto3"
-                                            // do uie.dbSelect(def_contacto)
-                                            // ##
                                             div(class="p-2 m-0 d-flex align-items-end gap-2")
                                             {
                                                 input(type="text" readonly="true" name="contacto2" data="#<@('./contacto3/sys_pk')>" id="contacto3" class="form-control" value="#<@('./contacto3/nombre')>")
@@ -723,15 +676,11 @@ module "form.dk"
                                                 def_pais<"selected">:@("./estado2/IPais")
                                                 do uie.dbSelect(def_pais)
                                                 ##
-
-                                                // input(type="text" name="general_codigo" class="form-control" value="#<@('./tratamiento')>")
                                             }
                                             div(class="col-6")
                                             {
                                                 label{small(class="text-secondary"){$"Estado:"}}
                                                 select(id="estado3" name="iestado3" class="form-select"){""}
-
-                                                // input(type="text" name="general_codigo" class="form-control" value="#<@('./tratamiento')>")
                                             }
                                         }
                                         div(class="row m-2")
@@ -740,8 +689,6 @@ module "form.dk"
                                             {
                                                 label{small(class="text-secondary"){$"Ciudad:"}}
                                                 select(id="ciudad3" name="iciudad3" class="form-select"){""}
-
-                                                // input(type="text" name="general_codigo" class="form-control" value="#<@('./tratamiento')>")
                                             }
                                         }
                                         h6(class="m-3"){"Dirección:"}
@@ -820,15 +767,7 @@ module "form.dk"
                             input(type="hidden" id="cont1" name="cont1" value="")
                             input(type="hidden" id="cont2" name="cont2" value="")
                             input(type="hidden" id="cont3" name="cont3" value="")
-                            div(class="text-end pt-4")
-                            {
-                                button(type="submit" class="btn btn-primary m-1"){"Guardar"}
-                                #!
-                                uri="../"+filter
-                                if @('parameters/url')!=""{uri=url_dcode(@('parameters/url'))}
-                                #$
-                                a(class="btn btn-light border-secondary m-1" href="#<uri>" ){"Cancelar"}
-                            }
+                            
                         }
                     }
                 }    

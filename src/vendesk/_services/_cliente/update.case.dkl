@@ -5,15 +5,16 @@ program
     #include "functions.dkh"
     #include "dbr.dkh"
     #include "serialize.dkh"
+    #include "../../config.dkl"
+    #include "vendesk/_lib/lib.dk"
+    #include "dbr.apps.dkl"  
+    #include "dbr.events.dkl"
+    #include "dbr.security.dkl"
     
     new res{}
     ref datos=from.json(field.dstr(@http_context,"request/POST_STRING","{}"))
 
-    ref bd=@null
-    if not(isnull(datos)){
-        ref bd=dbr.open(@@(datos,"$bd"))
-    }
-    else{do rise_error(500,"falta una conexión hacia la base de datos")}
+    ref bd:@@(@http_context,"&session/idp/database")
 
     res<"sys_pk">:@@(datos,"#sys_pk")
     ref listnotas=list.create()
@@ -27,7 +28,8 @@ program
     }
     table_name="ut_crmcasos"
 
-    if @@(datos,"cliente")!=""{
+    if @@(datos,"cliente")!=""
+    {
         ref nota=record.copy(nota,"*")
         data<"fk_cliente">:@@(datos,"#cliente")
         nota<"notas">:"<< Cliente asignado: "+@@(datos,"nameclient")+" >>"
@@ -44,6 +46,7 @@ program
         nota<"Sys_GUID">:cut(uuid(),30)
         do list.add(listnotas,nota)
     } 
+
     if @@(datos,"tipocaso")!="" && @@(datos,"tipocaso")!="@"
     {
         ref nota=record.copy(nota,"*")
@@ -53,6 +56,7 @@ program
         nota<"Sys_GUID">:cut(uuid(),30)
         do list.add(listnotas,nota)
     } 
+
     if @@(datos,"prioridad")!="" && @@(datos,"prioridad")!="@"
     {
         ref nota=record.copy(nota,"*")
@@ -62,6 +66,7 @@ program
         nota<"Sys_GUID">:cut(uuid(),30)
         do list.add(listnotas,nota)
     }
+
     if @@(datos,"fechavencimiento")!="" 
     {
         ref nota=record.copy(nota,"*")
@@ -75,6 +80,7 @@ program
         
         do list.add(listnotas,nota)
     }  
+
     if @@(datos,"$numduracion")!="" && @@(datos,"$numduracion")!="0" && @@(datos,"tipoduracion")!="@"
     {
         ref nota=record.copy(nota,"*")
@@ -88,15 +94,44 @@ program
         do list.add(listnotas,nota)
     }
 
-    if table_name==""{do rise_error(99,"Tabla no especificada.")}
-    if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
-    if @@(res,"$sys_pk")==""{do rise_error(99,"Identidad no encontrada.")}
-    do dbr.update(bd,table_name,data,"sys_pk=@sys_pk",res)
-    for i=0;i<@count(listnotas)
+    privileges="VC22"
+        do dbr.apps.action.pre(privileges)
+    do dbr.begin(bd)
+    
+        if table_name==""{do rise_error(99,"Tabla no especificada.")}
+        if @count(list.create_from_fields(data))< 1{do rise_error(500,"No hay datos por actualizar")}
+
+        if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
+
+        if @@(res,"$sys_pk")==""{do rise_error(99,"Identidad no encontrada.")}
+
+        do dbr.update(bd,table_name,data,"sys_pk=@sys_pk",res)
+        
+        for i=0;i<@count(listnotas)
+        {
+            ref itm=@item(listnotas,i)
+            do dbr.insert(bd,"ut_crmnotacaso",itm)
+        }
+    
+        do dbr.apps.action.pos(data)
+    do dbr.commit(bd)
+        do dbr.apps.action.ext(data)
+    
+    //enviar notificaciones
+    module "enviar notificación"
     {
-        ref itm=@item(listnotas,i)
-        do dbr.insert(bd,"ut_crmnotacaso",itm)
+        using data
+        {
+            @"client":dbr.num(bd,"select fk_cliente from ut_crmcasos where sys_pk=@fk_caso",nota)
+            @"event":privileges
+            @"mensaje":""
+            @"case":@@(res,"#sys_pk")
+            @"_mod":"case"
+        }
+        
+        do send.notif(bd,data)
     }
+
     using res 
     { 
         @"success": @true
@@ -108,6 +143,9 @@ program
         using res{}
         res<"message">:last_error()
         res<"success">:@false
+
+        if dbr.in_transaction(bd){ do dbr.rollback(bd) }
+        do dbr.apps.action.log()
     }
 
     @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
