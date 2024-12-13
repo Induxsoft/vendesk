@@ -813,7 +813,7 @@ module "view-detail"
 	{
 		new def_select
 	    {
-	        @"datatable*":dbr.list(@("&database"),"SELECT t.UserID,t.UserName FROM tuser t",@null)
+	        @"datatable*":dbr.list(@("&database"),"SELECT t.UserID,t.UserName FROM tuser t where ifnull(t.sys_deleted,0)=0",@null)
 	        @"id":"selectasignado"
 	        member "attributes"
 	        {

@@ -123,7 +123,7 @@ module "view.caso"
 							}
 							div(class="mb-2"){
 								label{small(class="text-secondary"){"Descripción:"}}
-								textarea(value="" type="text" id="descripcion" style="resize:none" rows="4" readonly="true" class="form-control form-control-sm"){"#<@('$./caso/descripcion')>"}
+								textarea(value="" type="text" id="descripcion" rows="4" readonly="true" class="form-control form-control-sm"){"#<@('$./caso/descripcion')>"}
 							}
 							div(class="mb-2"){
 								label{small(class="text-secondary"){"Cliente:"}}
