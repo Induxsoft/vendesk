@@ -125,7 +125,8 @@ module "view.caso"
 								label{small(class="text-secondary"){"Descripción:"}}
 								textarea(value="" type="text" id="descripcion" rows="4" readonly="true" class="form-control form-control-sm"){"#<@('$./caso/descripcion')>"}
 							}
-							div(class="mb-2"){
+							div(class="mb-2")
+							{
 								label{small(class="text-secondary"){"Cliente:"}}
 								div(class="m-0 d-flex gap-2 align-items-center")
 								{

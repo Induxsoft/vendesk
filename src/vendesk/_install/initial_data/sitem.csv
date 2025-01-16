@@ -1,10 +1,11 @@
 itemid,description,itemparent
 "vendesk","Atención a clientes",\0
-"VC10","Consultar cliente","vendesk"
+"VC10","Atención a clientes","vendesk"
 "VC11","Agregar nota al cliente","vendesk"
 "VC12","Registrar atención","vendesk"
 "VC13","Activar alertas","vendesk"
 "VC14","Desactivar alertas","vendesk"
+"VC15","Administrar cliente","vendesk"
 "VC21","Crear caso","vendesk"
 "VC22","Editar caso","vendesk"
 "VC23","Anexar notas a un caso","vendesk"

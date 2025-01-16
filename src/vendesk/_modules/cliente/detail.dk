@@ -88,7 +88,7 @@ module "detail"
 		}
     }
 	#$
-	div(class="container-fluid pt-1 ps-3 pe-3 v12-list-view" id="view" style="background-color:#F5F5F5;")
+	div(class="container-fluid pt-1 ps-3 pe-3 v12-list-view" id="view") //style="background-color:#F5F5F5;"
 	{
 		script
 		{

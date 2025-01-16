@@ -11,7 +11,12 @@ module "administracion"
 	#include "uielements.v12.dkl"
 
 	do @context.begin(@crud_context)
+	
 	filter=ifstr(@('parameters/text_filter')!="","?text_filter="+@('parameters/text_filter'),"")
+	
+	hasVC21 = parse.bool(@("#./hasVC21"))
+	hasVC40 = parse.bool(@("#./hasVC40"))
+	hasVC50 = parse.bool(@("#./hasVC50"))
 
 	new nav_config
     {
@@ -25,7 +30,7 @@ module "administracion"
 		}
     }
 	#$	
-	div(class="container-fluid v12-list-view" id="view" style="background-color:#F5F5F5;")
+	div(class="container-fluid v12-list-view" id="view") //style="background-color:#F5F5F5;"
 	{
 		#!
 		#include "view_detail.dkl"
@@ -146,34 +151,44 @@ module "administracion"
 				}
 			}
 			div(class="d-flex align-items-center gap-2 ps-4 pe-4 pt-2 border-bottom bg-white")
-			{
-				button(class="btn btn-sm btn-light bg-white d-flex align-items-center gap-2 border-0" onclick="module.search_cliente()"){
-					svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-plus" viewBox="0 0 16 16"){
-						path(d="M8 6.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V11a.5.5 0 0 1-1 0V9.5H6a.5.5 0 0 1 0-1h1.5V7a.5.5 0 0 1 .5-.5z")
-						path(d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z")
+			{$""
+				#!
+				if hasVC21 {
+					#$ button(class="btn btn-sm btn-light bg-white d-flex align-items-center gap-2 border-0" onclick="module.search_cliente()"){
+						svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-plus" viewBox="0 0 16 16"){
+							path(d="M8 6.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V11a.5.5 0 0 1-1 0V9.5H6a.5.5 0 0 1 0-1h1.5V7a.5.5 0 0 1 .5-.5z")
+							path(d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z")
+						}
+						$"Crear"
 					}
-					$"Crear"
 				}
-				button(class="btn btn-sm btn-light bg-white d-flex align-items-center gap-2 border-0" onclick="module.open_modal('modal_catalog_prioridad',this);" trigger="module.trigger_load_catalogos();"){
-					svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-journal" viewBox="0 0 16 16"){
-						path(d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2z")
-						path(d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1z")
+				#!
+				if hasVC40 {
+					#$ button(class="btn btn-sm btn-light bg-white d-flex align-items-center gap-2 border-0" onclick="module.open_modal('modal_tipos_casos',this);" trigger="module.trigger_load_tiposcasos()"){
+						svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-journal" viewBox="0 0 16 16"){
+							path(d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2z")
+							path(d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1z")
+						}
+						$"Tipos de casos"
 					}
-					$"Catálogos de prioridades"
 				}
-				button(class="btn btn-sm btn-light bg-white d-flex align-items-center gap-2 border-0" onclick="module.open_modal('modal_tipos_casos',this);" trigger="module.trigger_load_tiposcasos()"){
-					svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-journal" viewBox="0 0 16 16"){
-						path(d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2z")
-						path(d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1z")
+				#!
+				if hasVC50 {
+					#$ button(class="btn btn-sm btn-light bg-white d-flex align-items-center gap-2 border-0" onclick="module.open_modal('modal_catalog_prioridad',this);" trigger="module.trigger_load_catalogos();"){
+						svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-journal" viewBox="0 0 16 16"){
+							path(d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2z")
+							path(d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1H1z")
+						}
+						$"Catálogos de prioridades"
 					}
-					$"Tipos de casos"
 				}
+				#$
 			}
 		}
 		section(id="work_area" )
 		{
 			input(type="hidden" id="cliente" class="cliente_admin" trigger="addCasos();")
-			div(style="max-height:45vh !important; overflow:auto;" id="table-cases" class="bg-white")
+			div(style="max-height:45vh; height:100%; overflow:auto;" id="table-cases" class="bg-white")
 			{
 				#! do table.casos()
 			}

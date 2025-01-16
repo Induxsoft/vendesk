@@ -106,10 +106,6 @@ module "cliente.dk"
 
     cliente.read::&db,&params
     {
-        do dbr.apps.action.grant("VC10")
-
-        // ********************código de administración***********
-         
         query="SELECT u.Sys_PK,u.`status` AS completado,ut.uf_descripcion as tipo,ut.`status` ,ifnull(up.descripcion,'') AS prioridad,
                  u.asunto,u.fechaapertura AS fecha,u.horaapertura,COALESCE(u.usuarioabre,'')usuarioabre,COALESCE(u.usuarioasignado,'')usuarioasignado,
                       COALESCE(u.usuariocierra,'')usuariocierra,uf_color,u.fk_cliente AS cliente,
@@ -117,12 +113,12 @@ module "cliente.dk"
                  FROM ut_crmcasos u INNER JOIN ut_crmtipocaso ut ON u.fk_tipocaso=ut.Sys_PK
                  left JOIN ut_crmprioridad up ON u.fk_prioridad=up.Sys_PK
                  inner JOIN cliente c ON u.fk_cliente=c.sys_pk where "
+
+        // ********************código de administración***********
         
-         if parse.bool(@@(params,"_admin"))
+        if parse.bool(@@(params,"_admin"))
         {
-            do dbr.apps.action.grant("VC30")// Administración de casos
-            do dbr.apps.action.grant("VC40")//Administración de tipos de casos
-            do dbr.apps.action.grant("VC50")//Administración de prioridades de casos
+            do dbr.apps.action.grant("VC30") // Administración de casos
 
             where="ifnull(u.`status`,0)=0 "
 
@@ -144,15 +140,23 @@ module "cliente.dk"
                 where=where + " and u.asunto like '%@{text_filter}%' or u.descripcion like '%@{text_filter}%' or u.sys_pk like '%@{text_filter}%' or u.usuarioasignado like '%@{text_filter}%' or u.usuarioabre like '%@{text_filter}%' or c.codigo like '%@{text_filter}%' or c.nombre like '%@{text_filter}%' or c.sys_pk like '%@{text_filter}%'"
             }
 
-            query=query+" "+where+" ORDER by u.Sys_TimeStamp desc limit 200;"
-            // do rise_error(00,query)
-             cliente<"tablecasos*">:dbr.list(db,query,cliente)
+            query = query+" "+where+" ORDER by u.Sys_TimeStamp desc limit 200;"
+            
+            using cliente
+            {
+                @"tablecasos*": dbr.list(db,query,cliente)
+                @"hasVC21": dbr.security.isauth(db,"VC21") // Crear caso
+                @"hasVC40": dbr.security.isauth(db,"VC40") // Administración de tipos de casos
+                @"hasVC50": dbr.security.isauth(db,"VC50") // Administración de prioridades de casos
+            }
+
             return cliente
         }
         // *********************************
         ref cliente=entity.read(db,params)
 
         @http_context<"request/cliente*">:cliente
+
         if not(parse.bool(@@(params,"_detail")))
         {
             new data_agente { @"agente":@@(cliente,"#agente") }
@@ -189,8 +193,8 @@ module "cliente.dk"
             cliente<"contacto1*">:dbr.rec(db,"select sys_pk,ifnull(c.Tratamiento,'')tratamiento,concat(Nombre,' ',Apellidos) nombre from contacto c where c.sys_pk=@contacto1;",contacto)
             cliente<"contacto2*">:dbr.rec(db,"select sys_pk,ifnull(c.Tratamiento,'')tratamiento,concat(Nombre,' ',Apellidos) nombre from contacto c where c.sys_pk=@contacto2;",contacto)
             cliente<"contacto3*">:dbr.rec(db,"select sys_pk,ifnull(c.Tratamiento,'')tratamiento,concat(Nombre,' ',Apellidos) nombre from contacto c where c.sys_pk=@contacto3;",contacto)
+            
             return cliente
-
         }
         
         new p
@@ -215,7 +219,7 @@ module "cliente.dk"
             return cliente
         }
 
-
+        do dbr.apps.action.grant("VC15") // Administrar cliente
         if not(field.exist(params,"i")) && not(field.exist(params,"_key")){return cliente}
 
         switch @@(params,"i")
