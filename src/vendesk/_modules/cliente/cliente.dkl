@@ -353,9 +353,18 @@ script
         if (event.which === 13)
             $('#bt-search-alertas').click();
     });
-    $('#nota').keyup(function (event) {
-        if (event.which === 13)
-            $('#addnotacaso').click();
+    // $('#nota').keyup(function (event) {
+    //     if (event.which === 13)
+    //         $('#addnotacaso').click();
+    // });
+    $('#nota').on('input', function(event) {
+        $(this).css('height', 'auto');
+        $(this).css('height', this.scrollHeight + 'px');
+        
+        let chars = $(this).val().length;
+        $('#char-count').text(chars+'/1024');
+        
+        $('#div-caso-notes').css('max-height', 'calc(88vh - (55px + '+$(this).css('height')+' + 12px))');
     });
     $('#inpduracion').change(function () {
         numdura = $(this).val();
@@ -753,6 +762,7 @@ function updateItemBd(i = '', sys_pk, active = true) {
                     alert(p.responseJSON.message);
                 });
         }
+
         function addnota(sys_pk) {
             var nota = $('#nota').val();
             if ($.trim(nota) == '') {
@@ -761,15 +771,15 @@ function updateItemBd(i = '', sys_pk, active = true) {
                 return;
             }
 
-
             var data = {
                 sys_pk: sys_pk,
                 user: \"#<@('http/session/user/name')>\",
-            nota: nota,
+                nota: nota,
                 bd: '#<@('$database')>'
-        }
+            }
+            
             showLoading();
-            // /addnota.nota
+            // addnota.nota
             definitive.rest('#<@SVC_CLIENTE>addnota.nota.dkl', 'POST', data,
                 function (entity) {
                     if (!entity.success) {
@@ -789,8 +799,10 @@ function updateItemBd(i = '', sys_pk, active = true) {
                     var er = JSON.stringify(error);
                     var p = JSON.parse(er);
                     alert(p.responseJSON.message);
-                });
+                }
+            );
         }
+
         var listaCliente = null;
         function filtroCliente() {
             var txtfiltro = $('#txtfiltro').val();

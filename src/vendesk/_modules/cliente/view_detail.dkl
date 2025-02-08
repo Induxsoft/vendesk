@@ -504,19 +504,13 @@ module "view-detail"
 	        }
 	        member @"columns"
 	        {
-	            member @"fecha"
-	            {
-	                @"caption":"Fecha"
-	                // @"format":"dd/mm/yyyy"
-	            }
+	            member @"fecha" { @"caption":"Fecha" }
 	            member @"notas"
 	            {
 	                @"caption":"Notas"
+					member @"attributes" { @"style": "white-space:pre-wrap;" }
 	            }
-	            member @"usuario"
-	            {
-	                @"caption":"Usuario"
-	            }
+	            member @"usuario" { @"caption":"Usuario" }
 	        }
 	    }
 
