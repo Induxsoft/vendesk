@@ -15,7 +15,7 @@ module "cliente.dk"
     or email like '%@{text_filter}%' 
     order by 
     nombre asc 
-    limit 250"
+    limit #<@MAX_ROWS_LIMIT>"
 
     @read_query = "select sys_pk, sys_guid, sys_recver, sys_timestamp, sys_dtcreated, sys_deleted, 
     codigo, descuento,precio,limitecredito,saldo,monedero,saldopuntos,nombre, tipo, rfc, curp, domicilio1,domicilio2,domicilio3,diascredito,notas,codcuenta,telefonos, fax, email, website, contacto1,contacto2,contacto3, agente, idivisa,zona,status
@@ -92,9 +92,19 @@ module "cliente.dk"
     {
         do dbr.apps.action.grant("VC10")
         
-        if not(field.exist(params,"text_filter")){params<"text_filter">:"%"}
+        remove_f=@false
+        if not(field.exist(params,"text_filter"))
+        {
+            params<"text_filter">:"%"
+            remove_f=@true
+        }
 
-        return entity.list(db,params)
+        @MAX_ROWS_LIMIT= 100
+        ref entity=entity.list(db,params)
+        
+        if remove_f{do field.remove(params,"text_filter")}
+
+        return entity
 
         exception
         {
