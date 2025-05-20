@@ -59,7 +59,7 @@ program
     using res 
     { 
         @"success": @true
-        @"data*":dbr.rec(bd,"SELECT u.sys_pk,'2025-05-21' AS fecha,
+        @"data*":dbr.rec(bd,"SELECT u.sys_pk,date_format(u.Sys_TimeStamp,'%Y-%m-%d') AS fecha,
                     lower(date_format(u.Sys_TimeStamp,'%H:%i %p')) as hora,u.notas,
                     u.usuario FROM ut_crmnotacaso u 
                             WHERE u.sys_guid=@sys_guid",nota)
