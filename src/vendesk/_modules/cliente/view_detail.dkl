@@ -526,7 +526,45 @@ module "view-detail"
 	    	do uie.dbtable(table_general)
 	    }
 	}
-
+	#!
+	BitNotasCaso::
+	{
+		#$
+		div(id="div_bitacora")
+		{	
+			#!
+			last_fecha=""
+			for i = 0; i < @count(@("&./casonota"))
+			{
+				ref nota=@item(@("&./casonota"),i)
+				if trim(last_fecha)!=@@(nota,"$fecha")
+				{
+					last_fecha=@@(nota,"$fecha")
+					#$
+					div(class="d-flex" id="div-#<last_fecha>")
+					{
+						hr(class="hr-fecha"){}
+						small(class="f-fecha"){"#<@@(nota,'$fecha')>"}
+						hr(class="hr-fecha"){}
+					}
+				}
+				#$
+				div(class="body-bit")
+				{
+					div(class="d-flex align-items-center gap-2")
+					{
+						small(class="small-user"){"#<@@(nota,'$usuario')>"}
+						small{"#<tolower(@@(nota,'$hora'))>"}
+					}
+					div(class="bit")
+					{
+						div{"#<@@(nota,'$notas')>"}
+					}
+				}
+			}
+		}
+		
+	}
 	#!
 	cell_func_alert::&params, &row, &cell
 	{

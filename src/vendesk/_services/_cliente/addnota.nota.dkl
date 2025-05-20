@@ -23,7 +23,7 @@ program
         @"Sys_DTCreated*":now()
         @"usuario":@@(datos,"user")
         @"notas":@@(datos,"nota")
-        @"Sys_GUID":cut(uuid(),30)
+        @"sys_guid":uuid()
     }
     privileges="VC23"
         do dbr.apps.action.pre(privileges)
@@ -59,7 +59,10 @@ program
     using res 
     { 
         @"success": @true
-        @"data*":@null
+        @"data*":dbr.rec(bd,"SELECT u.sys_pk,'2025-05-21' AS fecha,
+                    lower(date_format(u.Sys_TimeStamp,'%H:%i %p')) as hora,u.notas,
+                    u.usuario FROM ut_crmnotacaso u 
+                            WHERE u.sys_guid=@sys_guid",nota)
     }
 
     exception

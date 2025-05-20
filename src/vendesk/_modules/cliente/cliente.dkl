@@ -4,6 +4,18 @@ script
     document.addEventListener('DOMContentLoaded', () => 
     {
         Filtroresize(null);
+        let nota=document.getElementById('nota');
+        if(nota)
+        {
+            nota.addEventListener('keydown', function(event) 
+            {
+                if (event.ctrlKey && event.key === 'Enter') 
+                {
+                    $('#addnotacaso').click();
+                }
+            });
+        }
+    
     });
     function Filtroresize(e)
     {
@@ -406,20 +418,24 @@ function EditCase(sys_pk, cliente = '') {
         icliente = '#<@('./sys_pk')>';
     window.location.href = './?_case=' + sys_pk + '&_key=' + icliente;
 }
-function selectColor(sys_pk, colorbd, color, e) {
+function selectColor(sys_pk, colorbd, color, e) 
+{
     e.stopPropagation();
     var data = { color: colorbd, sys_pk: sys_pk, bd: '#<@('$database')>'}
     showLoading();
     // /change_color.color
     definitive.rest('#<@SVC_CLIENTE>change_color.color.dkl', 'POST', data,
-        function (entity) {
-            if (!entity.success) {
+        function (entity) 
+        {
+            if (!entity.success) 
+            {
                 hideLoading();
                 alert(entity.message);
                 return;
             }
             $('.row_tr_' + sys_pk).attr('style', 'border-bottom:3px solid ' + color + '; border-left:6px solid ' + color);
             $('#div-row_' + sys_pk).attr('style', 'width: 75%!important;height:8px;background:' + color);
+            $('#show_color').attr('style','background-color:'+color+' !important');
             hideLoading();
 
         },
@@ -660,19 +676,25 @@ function updateItemBd(i = '', sys_pk, active = true) {
             setTimeout(()=>{$('#modalload').modal('hide');},300);
         }
 
-        function disabledElement(id, bool, e, obj) {
+        function disabledElement(id, bool, e, obj) 
+        {
             var d = 'usercrea,fechaapertura,asunto,descripcion,cliente,modalfiles,addnotacaso,nota';
             if ($(e).prop('disabled')) { $(e).prop('disabled', false); }
             else { $(e).prop('disabled', true); }
 
-            if ($(obj).attr('id') == 'btnEditar') {
+            if ($(obj).attr('id') == 'btnEditar') 
+            {
                 $('#btnsave').show();
                 $('#btncancel').show();
                 $(obj).hide();
-            } else {
+                DisableControl();
+            } 
+            else 
+            {
                 $('#btnsave').hide();
                 $('#btncancel').hide();
                 $('#btnEditar').show();
+                DisableControl(false);
             }
             $('#' + id).each(function () {
                 var element = this;
@@ -711,6 +733,23 @@ function updateItemBd(i = '', sys_pk, active = true) {
         var cliente = '';
         var numdura = 0;
         var tipodu = '@';
+
+        function DisableControl(disabled=true)
+        {
+            var btn_close_case=document.getElementById('btn_close_case');
+            var btn_reopen_case=document.getElementById('btn_reopen_case');
+            
+            if(btn_close_case)
+            {
+                if(disabled)btn_close_case.setAttribute('disabled',disabled);
+                else{btn_close_case.removeAttribute('disabled');}
+            }
+            if(btn_reopen_case)
+            {
+                if(disabled)btn_reopen_case.setAttribute('disabled',disabled);
+                else btn_reopen_case.removeAttribute('disabled');
+            }
+        }
         function updateCaso(sys_pk) {
 
             if (Number(numdura) > 0 && (tipodu == '@')) {
@@ -739,18 +778,24 @@ function updateItemBd(i = '', sys_pk, active = true) {
                 user: \"#<@('http/session/user/name')>\",
             bd: '#<@('$database')>'
         }
+            
             showLoading();
             // /update.case
             definitive.rest('#<@SVC_CLIENTE>update.case.dkl', 'POST', data,
-                function (entity) {
+                function (entity) 
+                {
                     if (!entity.success) {
                         hideLoading();
                         alert(entity.message);
                         return;
                     }
-                    window.location.href = './?_key=' + $('#cliente').attr('data');
+                    hideLoading();
+                    $('#btncancel').click();
+                  
+                    //window.location.href = './?_key=' + $('#cliente').attr('data');
                 },
-                function (error) {
+                function (error) 
+                {
                     hideLoading();
                     alert(error)
                     //Error de aplicación
@@ -762,10 +807,43 @@ function updateItemBd(i = '', sys_pk, active = true) {
                     alert(p.responseJSON.message);
                 });
         }
+        function PrintBit(data)
+        {
+            var divfecha=document.getElementById(`div-${data.fecha}`);
+            var div_bitacora=document.getElementById('div_bitacora');
 
-        function addnota(sys_pk) {
+            let plantilla_fecha=`<div class='d-flex' id='div-${data.fecha}'>
+                                <hr class='hr-fecha'>
+                                <small class='f-fecha'>${data.fecha}</small>
+                                <hr class='hr-fecha'>
+                                </div>`;
+
+            let plantilla=`<div class='body-bit'>
+                    <div class='d-flex align-items-center gap-2'>  
+                        <small class='small-user'>${data.usuario}</small>
+                        <small>${data.hora}</small>
+                    </div>
+
+                    <div class='bit'>
+                        <div>${data.notas}</div>
+                    </div>
+                </div>`;
+            console.log(divfecha)
+            if(divfecha)
+            {
+                divfecha.insertAdjacentHTML('afterend',plantilla);
+            }
+            else
+            {
+                plantilla=plantilla_fecha + plantilla;
+                div_bitacora.insertAdjacentHTML('afterend',plantilla);
+            }
+        }
+        function addnota(sys_pk) 
+        {
             var nota = $('#nota').val();
-            if ($.trim(nota) == '') {
+            if ($.trim(nota) == '') 
+            {
                 alert('Debe escribir una nota.');
                 $('#nota').focus();
                 return;
@@ -781,13 +859,22 @@ function updateItemBd(i = '', sys_pk, active = true) {
             showLoading();
             // addnota.nota
             definitive.rest('#<@SVC_CLIENTE>addnota.nota.dkl', 'POST', data,
-                function (entity) {
-                    if (!entity.success) {
+                function (entity) 
+                {
+                    if (!entity.success) 
+                    {
                         hideLoading();
                         alert(entity.message);
                         return;
                     }
-                    window.location.reload();
+                    hideLoading();
+                    if(entity.data)
+                    {
+                        PrintBit(entity.data);
+                    }
+                    $('#nota').val('');
+                    $('#nota').focus();
+                    //window.location.reload();
                 },
                 function (error) {
                     hideLoading();
