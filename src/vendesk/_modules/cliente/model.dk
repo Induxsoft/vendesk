@@ -113,7 +113,14 @@ module "cliente.dk"
             do rise_error(last_error_code(),last_error())
         }
     }
+    existIlinkType::&db
+    {
+        new p{@"detilink":@ILINK_TYPE}
+        pkilink=dbr.str(db,"select ifnull(id,'') from inlink_type where id=@detilink",p)
+        exception{pkilink=""}
 
+        return trim(pkilink)!=""
+    }
     cliente.read::&db,&params
     {
         query="SELECT u.Sys_PK,u.`status` AS completado,ut.uf_descripcion as tipo,ut.`status` ,ifnull(up.descripcion,'') AS prioridad,
@@ -226,7 +233,7 @@ module "cliente.dk"
             FROM ut_crmcasos u WHERE u.Sys_PK=@_case order BY u.Sys_TimeStamp desc;",params)
 
             cliente<"casonota*">:dbr.list(db,"SELECT u.Sys_PK,date_format(u.Sys_TimeStamp,'%Y-%m-%d') AS fecha,date_format(u.Sys_TimeStamp,'%H:%i %p') as hora,u.notas,u.usuario FROM ut_crmnotacaso u WHERE u.fk_caso=@_case order BY u.Sys_TimeStamp desc",params)
-            
+            cliente<"exist_ilinktype">:existIlinkType(db)
             return cliente
         }
 

@@ -39,7 +39,9 @@ module "view.caso"
 		case "16777215"{ background=background+"#FCFCFC !important;" 
 		break}
     }
-	url="/!/webshell/inlink/?inlink_type=DET095&trace="+@('$./caso/sys_pk')+"&det=DET095&key="+@('$./caso/sys_pk')
+
+	exist_ilinktype=@("#./exist_ilinktype")
+	url="/!/webshell/inlink/?inlink_type="+@ILINK_TYPE+"&trace="+@('$./caso/sys_pk')+"&det="+@ILINK_TYPE+"&key="+@('$./caso/sys_pk')
 
 	ref lkeys=list.create_from_fields(@("&parameters"))
 	for i = 0; i < @count(lkeys)
@@ -331,12 +333,16 @@ module "view.caso"
 				script
 				{
 					$'
-					var webshell=window.top.WebShell;
-					if(webshell)
+					if(#<exist_ilinktype>>0)
 					{
-						webshell.Panels.Show(webshell.Panels.Const.Left,"#<url>");
+						var webshell=window.top.WebShell;
+						if(webshell)
+						{
+							webshell.Panels.Show(webshell.Panels.Const.Left,"#<url>");
+						}
+						else console.warn("No se pudo obtener el elemento de webshell");
 					}
-					else console.warn("No se pudo obtener el elemento de webshell");
+					
 					
 					'
 				}
