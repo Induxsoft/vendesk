@@ -39,7 +39,7 @@ module "view.caso"
 		case "16777215"{ background=background+"#FCFCFC !important;" 
 		break}
     }
-	url="/!/webshell/inlink/?inlink_type=DET095&trace=CASO&det=DET095&key="+@('$./caso/sys_pk')
+	url="/!/webshell/inlink/?inlink_type=DET095&trace="+@('$./caso/sys_pk')+"&det=DET095&key="+@('$./caso/sys_pk')
 
 	ref lkeys=list.create_from_fields(@("&parameters"))
 	for i = 0; i < @count(lkeys)
