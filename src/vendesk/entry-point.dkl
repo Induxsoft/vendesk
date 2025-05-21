@@ -11,6 +11,7 @@ module "Controller configs"
 	#include "dbr.events.dkl"
 	#include "crudl/crudl.dk"
 	#include "_lib/list.query.dk"
+	#include "config.dkl"
 
 	@base_path = "_modules"
 	@path_root = "vendesk"

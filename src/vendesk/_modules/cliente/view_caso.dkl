@@ -39,7 +39,14 @@ module "view.caso"
 		case "16777215"{ background=background+"#FCFCFC !important;" 
 		break}
     }
-	
+	url="/!/webshell/inlink/?inlink_type=DET095&trace=CASO&det=DET095&key="+@('$./caso/sys_pk')
+
+	ref lkeys=list.create_from_fields(@("&parameters"))
+	for i = 0; i < @count(lkeys)
+	{
+		k=list.str(lkeys,i)
+		url=url + "&"+k+"="+@("$parameters/"+k)
+	}
 	#$
 	div(class="container-fluid v12-form-view" id="view")
 	{
@@ -319,6 +326,19 @@ module "view.caso"
 							#$
 						}
 					}
+				}
+				#$
+				script
+				{
+					$'
+					var webshell=window.top.WebShell;
+					if(!webshell)
+					{
+						console.warn("No se pudo obtener el elemento de webshell");
+						return;
+					}
+					webshell.Panels.Show(webshell.Panels.Const.Left,"#<url>");
+					'
 				}
 			}
 		}
