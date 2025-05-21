@@ -332,12 +332,12 @@ module "view.caso"
 				{
 					$'
 					var webshell=window.top.WebShell;
-					if(!webshell)
+					if(webshell)
 					{
-						console.warn("No se pudo obtener el elemento de webshell");
-						return;
+						webshell.Panels.Show(webshell.Panels.Const.Left,"#<url>");
 					}
-					webshell.Panels.Show(webshell.Panels.Const.Left,"#<url>");
+					else console.warn("No se pudo obtener el elemento de webshell");
+					
 					'
 				}
 			}
