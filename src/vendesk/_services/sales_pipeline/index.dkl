@@ -5,6 +5,10 @@ module "index.dkl"
 	#include "functions.dkh"
 	#include "serialize.dkh"
 	#include "dbr.dkh"
+	#include "dbr.security.dkl"
+	#include "dbr.events.dkl"
+    #include "dbr.vars.dkl"
+	#include "dbr.apps.dkl"
 
 	@SITE_INCLUDES="config.dk,config.dkl,lib.dk,list_query.dk"
 	#include "website.dkl"
@@ -42,18 +46,26 @@ module "index.dkl"
 		{
 			case "GET"
 			{
+				do dbr.apps.action.grant("VC70")
+
 				that @get(db,params)->*data
 			}
 			case "POST"
 			{
+				do dbr.apps.action.grant("VC71")
+
 				that @post(db,params,postData)->*data
 			}
 			case "PATCH"
 			{
+				do dbr.apps.action.grant("VC72")
+
 				that @patch(db,params,postData)->*data
 			}
 			case "DELETE"
 			{
+				do dbr.apps.action.grant("VC73")
+
 				that @delete(db,params,postData)->*data
 			}
 			default{that @custom(db,params,postData)->*data}

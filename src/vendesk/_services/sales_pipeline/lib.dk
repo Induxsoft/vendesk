@@ -90,7 +90,6 @@ module "lib.dk"
         return crm.get_pipelines(db,params)
     }
 
-
     #!
     open.db::qname
     {

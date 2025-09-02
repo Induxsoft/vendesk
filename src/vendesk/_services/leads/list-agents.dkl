@@ -1,0 +1,63 @@
+#include "dkli.dkh"
+#!
+module "listar-agentes"
+{
+	#include "functions.dkh"
+	#include "dbr.dkh"
+	#include "serialize.dkh"
+    #include "webcl.dkh"
+    #include "website.dkl"
+    #include "dbr.security.dkl"
+	#include "dbr.events.dkl"
+    #include "dbr.vars.dkl"
+	#include "dbr.apps.dkl"
+    
+    do cors_xhr()
+    if @@(@http_context,"request/headers/REQUEST_METHOD")=="OPTIONS"{return}
+        
+    new response
+    {
+        @"success":@false
+    }
+
+    ref params=from.json(field.dstr(@http_context,"request/post_string","{}"))
+
+    ref db=@@(@http_context,"&session/idp/database")
+    ref user=@@(@http_context,"&session/user")
+    permiso=@false
+    module "check privileges"
+    {
+        do dbr.apps.action.grant("VC84")
+        permiso=@true
+        exception{permiso=@false}
+    }
+    joins=""
+    sqlWhere=""
+    sql="select c.codigo id, c.nombre name,false manager 
+    from agente c 
+    #<joins>
+    where ifnull(c.sys_deleted,0)=0 #<sqlWhere>"
+
+    if not(permiso)
+    {
+        joins="INNER JOIN tuser t ON c.uf_iuser=t.sys_pk"
+        sqlWhere="AND t.userid=@uid"
+    }
+    ref l=dbr.list(db,ftext(sql),user)
+
+    response<"data*">:l
+    response<"success">:@true
+
+    exception
+    {
+        using response
+        {
+            @"success":@false
+            @"message":last_error()
+        }
+    }
+
+    @http_context<"response/output">:"text"
+    @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+    @http_context<"response/text">: to.json(response)
+}

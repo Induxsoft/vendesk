@@ -18,3 +18,16 @@ itemid,description,itemparent
 "VC50","Administración de prioridades de casos","vendesk"
 "VC60","Configurar notificaciones de atención a clientes","vendesk"
 "VC61","Asignar Notificación","vendesk"
+
+"vendesk.pipelines","Configurar pipelines","vendesk"
+"VC70","Configurar pipelines",vendesk.pipelines
+"VC71","Agregar pipelines",vendesk.pipelines
+"VC72","Editar pipelines",vendesk.pipelines
+"VC73","Eliminar pipelines",vendesk.pipelines
+
+"vendesk.prospectos","Gestión de prospectos","vendesk"
+"VC80","Gestión de prospectos",vendesk.prospectos
+"VC81","Agregar prospecto",vendesk.prospectos
+"VC82","Editar prospecto",vendesk.prospectos
+"VC83","Eliminar prospecto",vendesk.prospectos
+"VC84","Administrar prospectos de todos",vendesk.prospectos

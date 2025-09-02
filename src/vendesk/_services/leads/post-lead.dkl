@@ -1,0 +1,228 @@
+#include "dkli.dkh"
+#!
+module "Actualizar o agregar prospecto"
+{
+	#include "functions.dkh"
+	#include "dbr.dkh"
+	#include "serialize.dkh"
+    #include "webcl.dkh"
+    #include "website.dkl"
+    #include "dbr.security.dkl"
+	#include "dbr.events.dkl"
+    #include "dbr.vars.dkl"
+	#include "dbr.apps.dkl"
+
+    do cors_xhr()
+    if @@(@http_context,"request/headers/REQUEST_METHOD")=="OPTIONS"{return}
+        
+    new response
+    {
+        @"success":@false
+    }
+
+    ref params=from.json(field.dstr(@http_context,"request/post_string","{}"))
+    
+    ref db=@@(@http_context,"&session/idp/database")
+    ref user=@@(@http_context,"&session/user")
+
+
+    do checkDBStruct(db)
+
+    new newEntry{}
+    sys_pk=field.dnum(params,"sys_pk",0)
+
+    if sys_pk > 0{do dbr.apps.action.grant("VC82")} //editar
+    else{do dbr.apps.action.grant("VC81")}//agregar
+    
+    uuid=""
+
+    log=""
+
+    if field.exist(params,"recived") 
+    { 
+        newEntry<"uf_fecha">:@@(params,"recived")
+        log=log+" - fecha de recepción\r\n"
+    }
+
+    if field.exist(params,"next_contact") 
+    { 
+        newEntry<"uf_proxcontac">:@@(params,"next_contact")
+        log=log+" - próximo contacto\r\n"
+    }
+
+    if field.exist(params,"agent_id") 
+    { 
+        newEntry<"uf_perfil">:@@(params,"agent_id")
+        log=log+" - agente propietario\r\n"
+    }
+
+    if field.exist(params,"leadstatus") 
+    { 
+        newEntry<"uf_status">:@@(params,"#leadstatus")
+        log=log+" - status\r\n"
+    }
+
+    if field.exist(params,"subject") 
+    { 
+        newEntry<"uf_interes">:@@(params,"subject")
+        log=log+" - asunto\r\n"
+    }
+
+    if field.exist(params,"remarks") 
+    { 
+        newEntry<"uf_comentarios">:@@(params,"remarks")
+        log=log+" - comentarios\r\n"
+    }
+
+    if field.exist(params,"color") 
+    { 
+        newEntry<"uf_color">:@@(params,"#color")
+        log=log+" - color\r\n"
+    }
+
+    if field.exist(params,"name") 
+    { 
+        newEntry<"uf_nombre">:@@(params,"name")
+        log=log+" - nombre\r\n"
+    }
+
+    if field.exist(params,"email") 
+    { 
+        newEntry<"uf_email">:@@(params,"email")
+        log=log+" - email\r\n"
+    }
+
+    if field.exist(params,"phone") 
+    { 
+        newEntry<"uf_telefono">:@@(params,"phone")
+        log=log+" - telefono\r\n"
+    }
+
+    if field.exist(params,"organization") 
+    { 
+        newEntry<"uf_empresa">:@@(params,"organization")
+        log=log+" - empresa\r\n"
+    }
+
+    if field.exist(params,"position") 
+    { 
+        newEntry<"uf_puesto">:@@(params,"position")
+        log=log+" - puesto\r\n"
+    }
+
+    if field.exist(params,"pipeline") 
+    { 
+        if @@(params,"#pipeline")>0 { newEntry<"uf_pipeline">:@@(params,"#pipeline") }
+        else {newEntry<"uf_pipeline*">:@null }
+        log=log+" - pipeline \r\n"
+    }
+
+    if field.exist(params,"stage") 
+    { 
+        if @@(params,"#stage")>0 { newEntry<"uf_stage">:@@(params,"#stage") }
+        else {newEntry<"uf_stage*">:@null }
+        log=log+" - stage \r\n"
+    }
+
+    if field.exist(params,"probability") 
+    { 
+        newEntry<"uf_probability">:@@(params,"#probability")
+        log=log+" - probability \r\n"
+    }
+
+    if field.exist(params,"amount") 
+    { 
+        newEntry<"uf_amount">:@@(params,"#amount")
+        log=log+" - amount \r\n"
+    }
+
+    if sys_pk>0
+    {
+        //Actualizar
+        using newEntry
+        {
+            @"sys_timestamp*":dbr.sql("now()")
+        }
+
+        new p { @"sys_pk":sys_pk}
+        do dbr.update(db,"ut_icontact",newEntry,"sys_pk=@sys_pk",p)
+        log_text="Actualización de:\r\n"+log
+        if field.exist(params,"log")
+        {
+            log_text=@@(params,"$log")
+        }
+        do agregar_log(db,sys_pk,log_text,@@(user,"name"))
+
+    }
+    else
+    {
+        uuid=uuid()
+        //Insertar
+        using newEntry
+        {
+            @"sys_dtcreated*":dbr.sql("now()")
+            @"sys_timestamp*":dbr.sql("now()")
+            @"sys_guid":uuid
+        }
+
+        do dbr.insert(db,"ut_icontact",newEntry)
+        sys_pk=dbr.num(db,"SELECT LAST_INSERT_ID();",@null)
+        do agregar_log(db,sys_pk,"Nuevo prospecto",@@(user,"name"))
+
+    }
+    
+    
+    response<"data*">:dbr.rec(db,"
+    select sys_pk, 
+    date_format(sys_dtcreated,'%Y-%m-%dT%T') sys_dtcreated,
+    date_format(sys_timestamp,'%Y-%m-%dT%T') sys_timestamp, 
+    sys_guid, 
+    if(isnull(uf_fecha),date_format(sys_dtcreated,'%Y-%m-%dT%T'),date_format(uf_fecha,'%Y-%m-%dT%T')) recived,
+    if(isnull(uf_proxcontac),'',date_format(uf_proxcontac,'%Y-%m-%dT%T')) next_contact,
+    if(not ifnull(uf_contactado,0),'', if(isnull(uf_ultimocontac),'',date_format(uf_ultimocontac,'%Y-%m-%dT%T'))) last_contact,
+    if(isnull(uf_ultimointento),'',date_format(uf_ultimointento,'%Y-%m-%dT%T')) last_attempt,
+    ifnull(uf_perfil,'') agent_id, 
+    ifnull(uf_status,0) leadstatus,
+    uf_interes subject,
+    uf_color color, 
+    uf_nombre name, 
+    uf_email email, 
+    uf_telefono phone, 
+    uf_empresa organization, 
+    ifnull(uf_comentarios,'') remarks,
+    uf_puesto position,
+    uf_ref_customer customer_id,
+    uf_pipeline pipeline,
+    uf_stage stage,
+    uf_probability probability,
+    uf_amount amount
+    from ut_icontact where sys_pk="+str(sys_pk)+";
+    ",@null)
+
+    response<"data/agent_name">:@@(user,"name")
+    switch @@(response,"#data/leadstatus")
+    {
+        case 0 { response<"data/leadstatus_text">:"Recibido"}
+        case 1 { response<"data/leadstatus_text">:"Atendido"}
+        case 2 { response<"data/leadstatus_text">:"Descartado"}
+        case 3 { response<"data/leadstatus_text">:"Oportunidad"}
+        default { response<"data/leadstatus_text">:"Otro"}
+    }
+
+    do addNotes(db,@@(response,"&data"))
+
+    response<"success">:@true
+
+    exception
+    {
+        using response
+        {
+            @"success":@false
+            @"message":last_error()
+        }
+    }
+
+    @http_context<"response/output">:"text"
+    @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+    @http_context<"response/text">: to.json(response)
+}

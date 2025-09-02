@@ -1,0 +1,83 @@
+#include "dkli.dkh"
+#!
+module "listar-agentes"
+{
+	#include "functions.dkh"
+	#include "dbr.dkh"
+	#include "serialize.dkh"
+    #include "webcl.dkh"
+    #include "website.dkl"
+
+    do cors_xhr()
+    if @@(@http_context,"request/headers/REQUEST_METHOD")=="OPTIONS"{return}
+
+    new response
+    {
+        @"success":@false
+        
+    }
+
+    ref params=from.json(field.dstr(@http_context,"request/post_string","{}"))
+
+    ref res=validarAcceso(params)
+    
+    if not(field.exist(params,"lead_sys_pk"))
+    {
+        do rise_error(0,"Falta el parámetro 'lead_sys_pk'")
+    }
+
+    ref db=openStoreDB(@@(res,"data/storeid"))
+
+    new newEntry{}
+
+    if field.exist(params,"text")
+    {
+        if trim(@@(params,"text"))==""{ do rise_error(0,"No se ha indicado un texto")}
+        new note
+        {
+            @"uf_mensaje":@@(params,"text")
+            @"uf_tiempo*":dbr.sql("NOW()")
+            @"uf_iicontact":@@(params,"lead_sys_pk")
+            @"uf_usuario":cut(@@(res,"data/uname"),50)
+        }
+
+        do dbr.insert(db,"xt_biticontact",note)
+
+        using newEntry
+        {
+            @"sys_pk":dbr.num(db,"SELECT LAST_INSERT_ID();",@null)
+        }
+
+        ref newEntry=dbr.rec(db,"select 
+        sys_pk,
+        date_format(uf_tiempo,'%Y-%m-%dT%T') sys_dtcreated,
+        uf_usuario uname, 
+        uf_mensaje note 
+        from xt_biticontact where sys_pk=@sys_pk order by sys_pk desc limit 50; ", newEntry)
+    }
+    else
+    {
+        do rise_error(0,"Falta el parámetro 'text'")
+    }
+
+    if field.exist(params,"next_contact")
+    {
+        do dbr.execute(db,"update ut_icontact set uf_proxcontac=@next_contact where sys_pk=@lead_sys_pk", params)
+    }
+    
+    response<"data*">:newEntry
+    response<"success">:@true
+
+    exception
+    {
+        using response
+        {
+            @"success":@false
+            @"message":last_error()
+        }
+    }
+
+    @http_context<"response/output">:"text"
+    @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+    @http_context<"response/text">: to.json(response)
+}

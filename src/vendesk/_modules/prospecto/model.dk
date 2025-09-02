@@ -1,0 +1,34 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    @table_name="sales_pipeline"
+    ValidatePrivileges::&params
+    {
+        if field.exist(params,"vnts"){do dbr.apps.action.grant("VC80")}//prospectos
+        else if field.exist(params,"ps"){do dbr.apps.action.grant("VC70")}//pipelines
+        else if field.exist(params,"prc"){}//prospecto
+    }
+    list::&db,&params
+    {
+        do dbr.apps.action.grant("VC80")
+        do ValidatePrivileges(params)
+        return list.create()
+    }
+    read::&db,&params
+    {
+        do dbr.apps.action.grant("VC80")
+        do ValidatePrivileges(params)
+        return record.create()
+    }
+    blank::&db,&params
+    {
+        do dbr.apps.action.grant("VC81")
+        new entity{}
+        return entity
+    }
+    
+    point @blank to blank
+    point @read to read
+    point @list to list
+}

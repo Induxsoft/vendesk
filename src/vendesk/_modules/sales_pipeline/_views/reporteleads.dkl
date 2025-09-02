@@ -38,8 +38,6 @@ module "index.dkl"
 
     mes = val(mesActual)
 
- 
-
     ref @queryAgentes = dbr.list(db,"
         SELECT induxsoft.ut_icontactuser.nomBre,
             COUNT(induxsoft.ut_icontact.sys_pk) 

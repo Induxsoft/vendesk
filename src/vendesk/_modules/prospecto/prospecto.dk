@@ -1,0 +1,198 @@
+#include "dkli.dkh"
+#!
+module "condif lead"
+{
+	#include "functions.dkh"
+	#include "serialize.dkh"
+	#include "../config.dkl"
+	#include "lib.dk"
+
+	do @context.begin(@crud_context)
+	ref @http_context=@("&http")
+
+	#include "website.dkl"
+
+	ref data=@null
+	@isplazamundial=@false
+	if @@(data,"$database/source_type")=="plazamundial"{@isplazamundial=@true}
+
+	showModule=@true
+	idtienda=""
+	
+	sys_pk_lead=@@(@http_context,"request/get/lead")
+	text=ifstr(sys_pk_lead=="","Agregar Prospecto","Editar Prospecto")
+
+	url=@@(@http_context,"request/get/url")
+	if url!=""{url=url_dcode(url)}
+	else{url=".."}
+	#$
+	div(class="container-lg pt-1 ps-3 pe-3" style="background-color:#F5F5F5; min-height:94%;" id="container-clientes")
+	{
+		script(src="#<@JS_MODEL>"){""}
+		script
+		{
+			$'
+				model.url="#<@url_service_workspace>";
+				model.url_vendesk="#<@url_service_vendesk>";
+				model.ids="#<@@(@http_context,"session/user/ids")>";
+				model.uid="#<@@(@http_context,"session/user/uid")>";
+				model.ws="#<@@(@http_context,"request/get/ws")>";
+				model.source="#<idtienda>";
+				model.sourceId="#<idtienda>";
+				model.sys_pk="#<sys_pk_lead>";
+
+				$(document).ready(function()
+				{
+					model.load_agents(null,"#cbPropietario");
+					model.load_pipelines();
+					model.load_status(null,false);
+
+					if(Number(model.sys_pk)>0)
+						model.get_prospecto("#<sys_pk_lead>",true);
+							model.load_module_prospecto();
+				});
+
+			'
+		}
+		div(class="p-4 bg-white border-bottom")
+		{
+			div(class="d-flex justify-content-end " style="justify-items: center;align-items: center;")
+			{
+				div(class="w-100 rounded" style="height: 8px;background-color: #FCFCFC;" id="dv-color"){""}
+				a(href="..")
+				{
+					$'<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-x-lg pointer hover-gray" viewBox="0 0 16 16">
+					  <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
+					</svg>'
+				}
+				
+			}
+			h4{"#<text>"}
+
+			nav(style="" )
+  			{
+  				div(class="nav nav-tabs" id="nav-tab" role="tablist")
+  				{
+  					a(class="nav-item nav-link active" id="nav-general-tab" "data-bs-toggle"="tab" href="#nav-general" role="tab" "aria-controls"="nav-general" "aria-selected"="false"){"General"}
+  					a(class="nav-item nav-link" id="nav-proposito-tab" "data-bs-toggle"="tab" href="#nav-proposito" role="tab" "aria-controls"="nav-proposito" "aria-selected"="false"){"Propósito"}
+  					a(class="nav-item nav-link" id="nav-control-tab" "data-bs-toggle"="tab" href="#nav-control" role="tab" "aria-controls"="nav-control" "aria-selected"="false"){"Control"}
+  				}
+  			}
+  			div(class="tab-content " id="nav-tabContent" style="")
+  			{
+  				div(class="tab-pane fade show active" id="nav-general" role="tabpanel" "aria-labelledby"="nav-general-tab")
+  				{
+  					div(class="card")
+  					{
+  						div(class="card-body")
+  						{
+  							div(class="column")
+		  					{
+		  						div(class="col-lg-6")
+		  						{
+		  							label{"Nombre:"}
+		  							input(class="form-control form-control-sm" id="txtname"  maxlength="150")
+		  						}
+		  						div(class="col-lg-6")
+		  						{
+		  							label{"Teléfono:"}
+		  							input(class="form-control form-control-sm" id="txtphone" maxlength="100")
+		  						}
+		  						div(class="col-lg-6")
+		  						{
+		  							label{"Correo electrónico:"}
+		  							input(class="form-control form-control-sm" id="txtemail" maxlength="255")
+		  						}
+		  						div(class="col-lg-6")
+		  						{
+		  							label{"Empresa:"}
+		  							input(class="form-control form-control-sm" id="txtempresa" maxlength="100")
+		  						}
+		  						div(class="col-lg-6")
+		  						{
+		  							label{"Puesto:"}
+		  							input(class="form-control form-control-sm" id="txtpuesto" maxlength="100")
+		  						}
+		  					}
+  						}
+  					}
+  					
+  				}
+  				div(class="tab-pane" id="nav-proposito" role="tabpanel" "aria-labelledby"="nav-general-tab")
+  				{
+  					div(class="card")
+  					{
+  						div(class="card-body")
+  						{
+  							div(class="row")
+  							{
+  								div(class="col-lg-6")
+  								{
+  									label{"Asunto"}
+  									input(class="form-control form-control-sm" id="txtasunto" maxlength="150")
+  								}
+  								div(class="col-lg-10")
+  								{
+  									label{"Comentarios"}
+  									textarea(class="form-control form-control-sm" style="height: 299px;resize:none" id="txtcomentarios" maxlength="1024") {""}
+  								}
+  							}
+  						}
+  					}
+  				}
+  				div(class="tab-pane" id="nav-control" role="tabpanel" "aria-labelledby"="nav-general-tab")
+  				{
+  					div(class="card")
+  					{
+  						div(class="card-body")
+  						{
+  							div(class="column")
+  							{
+  								div(class="col-lg-6")
+  								{
+  									label{"Propietario"}
+  									select(class="form-select form-select-sm" id="cbPropietario"){$""}
+  								}
+  								div(class="col-lg-6")
+  								{
+  									label{"Status"}
+  									select(class="form-select form-select-sm" id="cbStatus"){$""}
+  								}
+  								div(class="col-lg-6")
+  								{
+  									label{"Pipeline"}
+  									select(class="form-select form-select-sm" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbPipeline"){$""}
+  								}
+  								div(class="col-lg-6")
+  								{
+  									label{"Stage"}
+  									select(class="form-select form-select-sm" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbStages"){$""}
+  								}
+  								div(class="col-lg-6")
+  								{
+  									label{"Probabilidad de éxito:"}
+  									input(class="form-control form-control-sm" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="txtProbabilidad" placeholder="%" maxlength="12")
+  								}
+  								div(class="col-lg-6")
+  								{
+  									label{"Importe del trato:"}
+  									input(class="form-control form-control-sm" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" onkeyup="model.filterFloat(event,this)" id="txtImporteTrato" maxlength="12")
+  								}
+  								div(class="col-lg-6")
+  								{
+  									label{"Color"}
+  									select(class="form-select form-select-sm" id="cbColors"){$""}
+  								}
+  							}
+  						}
+  					}
+  				}
+  			}
+  			div(class="d-flex justify-content-end")
+  			{
+  				button(class="btn btn-primary m-1" onclick="model.save_prospecto();"){"Aceptar"}
+  				a(class="btn btn-danger m-1" href="#<url>"){"Volver"}
+  			}
+		}
+	}
+}

@@ -16,3 +16,13 @@
 "VC25","Eliminar archivos adjuntos a un caso","Eliminar adjunto","","","0","vendesk.cliente","DET014","1","action"
 "VC26","Cerrar caso","Cerrar caso","","","0","vendesk.cliente","DET014","1","action"
 "VC27","Re-abrir caso","Reabrir caso","","","0","vendesk.cliente","DET014","1","action"
+
+"VC70","Configurar pipelines","Pipelines","","/!/vendesk/sales_pipeline/?ps=1","0","vendesk.pipelines","DET01C","0","shortcut"
+"VC71","Agregar pipelines","Agregar","","","0","vendesk.pipelines","DET01C","1","action"
+"VC72","Editar pipelines","Editar","","","0","vendesk.pipelines","DET01C","1","action"
+"VC73","Eliminar pipelines","Eliminar","","","0","vendesk.pipelines","DET01C","1","action"
+
+"VC80","Gestión de prospectos","Prospectos","","/!/vendesk/prospecto/","0","vendesk.prospectos","DET01C","0","shortcut"
+"VC81","Agregar prospecto","Agregar","","/!/vendesk/prospecto/_new/","0","vendesk.prospectos","DET01C","0","action"
+"VC82","Editar prospecto","Editar","","/!/vendesk/prospecto/@_src_context_item_id/","0","vendesk.prospectos","DET01C","1","action"
+"VC83","Eliminar prospecto","Eliminar","","javascript:InduxsoftCrudlModel.Delete(@_src_context_item_id);","0","vendesk.prospectos","DET01C","1","action"

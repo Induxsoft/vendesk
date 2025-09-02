@@ -270,13 +270,14 @@ var model =
     }
     return false;
   },
-  load_table: function (data, idtable) {
+  load_table: function (data, idtable) 
+  {
     var table = document.querySelector(idtable);
     var body = "";
 
-
     model.filter_search = ["sys_dtcreated", "next_contact", "subject", "name", "phone", "email", "organization", "position", "remarks", "leadstatus_text", "agent_name"];
-    for (var i = 0; i < data.length; i++) {
+    for (var i = 0; i < data.length; i++) 
+    {
       var itm = data[i];
       var ps = "";
       if (itm.leadstatus == 3) {
@@ -372,18 +373,22 @@ var model =
   redirec: function (url) {
     window.location.href = url;
   },
-  load_cb: function (data, key, value, idselect, attributes = "") {
+  load_cb: function (data, key, value, idselect, attributes = "") 
+  {
     var select = document.querySelector(idselect);
     var options = "";
-    if (idselect == "#cbAgentes") {
+    if (idselect == "#cbAgentes") 
+    {
       options = `<option value="unassigned">(Sin asignar)</option><option value="all">(Todos los agentes)</option>`;
     }
     var slected = "";
 
-    for (var i = 0; i < data.length; i++) {
+    for (var i = 0; i < data.length; i++) 
+    {
       var itm = data[i];
       if (model.isprospecto && idselect == "#cbStatus" && eval("itm." + key) == 999) continue;
-      if (idselect == "#cbPropietario") {
+      if (idselect == "#cbPropietario") 
+      {
         if (itm.id == model.uid) { slected = "selected='true'" }
       }
       options += `<option ${attributes} value="${eval("itm." + key)}" ${slected}>${eval("itm." + value)}</option>`;
@@ -501,7 +506,8 @@ var model =
         return;
       }
 
-      for (var i = 0; i < data.length; i++) {
+      for (var i = 0; i < data.length; i++) 
+      {
         var itm = data[i];
         if (itm.sys_pk === Number(sys_pk)) {
           var email = itm.email == null ? "" : itm.email;
@@ -538,7 +544,8 @@ var model =
                     <div class="d-flex justify-content-end">
                         <b></b><smal style="font-size: small;">${itm.sys_dtcreated}</smal>
                     </div>`;
-          if (itm.log != null) {
+          if (itm.log != null) 
+          {
 
             for (var l = 0; l < itm.log.length; l++) {
               var lg = itm.log[l];

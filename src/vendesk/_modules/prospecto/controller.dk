@@ -1,0 +1,7 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    @list_view="ventas.dk"
+    @form_view="prospecto.dk"
+}

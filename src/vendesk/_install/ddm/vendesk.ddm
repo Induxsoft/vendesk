@@ -152,9 +152,47 @@ model "erp.vendesk"
         @"sequence" int required
         @"name" string(50) required
         @"probability" decimal(4,1)
-        @"stuck_in_days" bool
+        @"stuck_in_days" int
     }
-
+    /* uod.ut_icontact */
+    entity "ut_icontact" : "TableModel"
+    {
+        @"uf_email" string(255) required
+        @"uf_nombre" string(150) required
+        @"uf_telefono" string(100) 
+        @"uf_empresa" string(100) 
+        @"uf_puesto" string(100) 
+        @"uf_ciudad" string(50) 
+        @"uf_estado" string(50) 
+        @"uf_pais" string(50) 
+        @"uf_interes" string(150) 
+        @"uf_comentarios" string(1024) 
+        @"uf_fecha" datetime 
+        @"uf_iejecutivo" int 
+        @"uf_status" int 
+        @"uf_notastatus" string(150) 
+        @"uf_fechastatus" datetime 
+        @"uf_tipo" int 
+        @"uf_color" int 
+        @"uf_redirect" string(1024) 
+        @"uf_correoverif" bool 
+        @"uf_contactado" bool 
+        @"uf_primercontac" datetime 
+        @"uf_ultimocontac" datetime 
+        @"uf_ultimointento" datetime 
+        @"uf_res_ultimointento" int 
+        @"uf_proxcontac" datetime 
+    }
+    /* uod.xt_biticontact */
+    entity "xt_biticontact"
+    {
+        @"sys_pk" int key required autoincrement
+        @"uf_mensaje" string(2048) required
+        @"uf_usuario" string(50) required
+        @"uf_tiempo" datetime required
+        @"uf_iicontact" int required
+        @"uf_iproxy" int
+    }
     entity "ut_crmtipocaso" : "TableModel"
     {
         @"uf_descripcion" string(100) unique required

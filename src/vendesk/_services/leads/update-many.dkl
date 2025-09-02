@@ -1,0 +1,139 @@
+#include "dkli.dkh"
+#!
+module "Actualizaciones masivas"
+{
+	#include "functions.dkh"
+	#include "dbr.dkh"
+	#include "serialize.dkh"
+    #include "webcl.dkh"
+    #include "website.dkl"
+    #include "dbr.security.dkl"
+	#include "dbr.events.dkl"
+    #include "dbr.vars.dkl"
+	#include "dbr.apps.dkl"
+
+    do cors_xhr()
+    if @@(@http_context,"request/headers/REQUEST_METHOD")=="OPTIONS"{return}
+    
+    new response
+    {
+        @"success":@false
+        
+    }
+
+    ref params=from.json(field.dstr(@http_context,"request/post_string","{}"))
+    
+    accion= field.dstr(params,"action","update")
+    ref leads=field.obj(params,"leads")
+
+    ref db=@@(@http_context,"&session/idp/database")
+    ref user=@@(@http_context,"&session/user")
+
+    max_rows=50 //Máximo de registros que pueden actualizarse
+
+    switch accion
+    {
+        case "delete"
+        {
+            do dbr.apps.action.grant("VC83")
+
+            max=@count(leads)
+            if max>max_rows {max=max_rows}
+            log="Prospecto eliminado"
+
+            if trim(@@(params,"note"))!="" { log=log+"\r\n"+@@(params,"note")}
+            for i=0;i<max
+            {
+                do dbr.execute(db,"update ut_icontact set sys_deleted=1 where sys_pk=@sys_pk",@item(leads,i))
+                do agregar_log(db,@@(@item(leads,i),"#sys_pk"),log,@@(user,"$name"))
+            }
+        }
+        case "update"
+        {
+            do dbr.apps.action.grant("VC82")
+
+            max=@count(leads)
+            if max>max_rows {max=max_rows}
+            new ndata{}
+            log=""
+
+            //if trim(@@(params,"note"))!="" { log=log+"\r\n"+@@(params,"note")}
+
+            if field.exist(params, "lead_owner") 
+            { 
+                ndata<"uf_perfil">:ifstr(@@(params,"$lead_owner")=="unassigned","",@@(params,"$lead_owner")) 
+                log=log+" Propietario "
+            }
+
+            if field.exist(params, "lead_status") 
+            { 
+                ndata<"uf_status">: @@(params,"lead_status")
+                ndata<"uf_fechastatus*">: dbr.sql("NOW()")
+                log=log+" Estado "
+            }
+
+            if field.exist(params, "lead_color") 
+            { 
+                ndata<"uf_color">: @@(params,"lead_color")
+                log=log+" Color "
+            }
+
+            if field.exist(params, "lead_pipeline") 
+            { 
+                ndata<"uf_pipeline">: @@(params,"lead_pipeline")
+                log=log+" Pipeline "
+            }
+
+            if field.exist(params, "lead_stage") 
+            { 
+                ndata<"uf_stage">: @@(params,"lead_stage")
+                log=log+" Stage "
+            }
+            if field.exist(params, "sys_deleted") 
+            { 
+                ndata<"sys_deleted">: @@(params,"sys_deleted")
+            }
+            log="Actualización de: "+trim(log)
+            if trim(@@(params,"note"))!="" { log=log+"\r\n"+@@(params,"note")}
+
+            if tolower(@@(ndata,"$uf_perfil"))=="freezer"
+            {
+                log=log +" "+ @@(ndata,"$uf_perfil")
+                for i=0;i<max
+                {
+                    ref p=@item(leads,i)
+                    p<"uf_perfil">:@@(ndata,"$uf_perfil")
+                    do dbr.execute(db,"update ut_icontact set sys_info=SUBSTRING(IFNULL(uf_perfil,''),1,32),Sys_User=SUBSTRING(IFNULL(uf_Nombre,''),1,5),uf_perfil=@uf_perfil where sys_pk=@sys_pk",p)
+                    do agregar_log(db,@@(@item(leads,i),"#sys_pk"),log,@@(user,"$name"))
+                }
+            }
+            else
+            {
+                 for i=0;i<max
+                {
+                    do dbr.update(db,"ut_icontact",ndata,"sys_pk=@sys_pk",@item(leads,i))
+                    do agregar_log(db,@@(@item(leads,i),"#sys_pk"),log,@@(user,"$name"))
+                }
+            }
+           
+        }
+    }
+
+    response<"data*">:leads
+    response<"success">:@true
+
+    exception
+    {
+        using response
+        {
+            @"success":@false
+            @"message":last_error()
+        }
+
+        if isset("db") { do dbr.close(db) }
+    }
+
+    @http_context<"response/output">:"text"
+    @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+    @http_context<"response/text">: to.json(response)
+}

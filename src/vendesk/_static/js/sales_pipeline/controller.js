@@ -168,7 +168,7 @@ var controller = {
             sequence: i,
             name: input.value,
             probability: inp_prob.value,
-            stuck_in_days: check.checked
+            stuck_in_days: Number(check.value??0)
           }
           if (Number(stg) == 0)
             pipeline_list_stages.push(data);
@@ -234,7 +234,7 @@ var controller = {
       sequence: views.getpositionStageByid(stage.id),
       name: input.value,
       probability: inp_prob.value,
-      stuck_in_days: check.checked
+      stuck_in_days: Number(check.value??0)
     }
 
     var data_pipeline =

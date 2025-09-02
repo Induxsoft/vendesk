@@ -139,7 +139,7 @@ function stage(data = null, showcancel = true) {
             sequence: 0,
             name: "New Stage",
             probability: 0,
-            stuck_in_days: false,
+            stuck_in_days: 0,
             sys_pk: 0
         };
     if (data.sys_pk == 0)
@@ -193,9 +193,9 @@ function stage(data = null, showcancel = true) {
                     </svg>
                 </icons>
             </div>
-            <div class="container1 flex-grow-1">
-                <div class="p-4 grid-item grid-item-2  active" id="form">
-                    <div class="letras">
+            <div class="container1">
+                <div class="ps-4 pe-3 pb-0 pt-0 grid-item grid-item-2  active" id="form">
+                    <div class="mt-2">
                         <label for="" class="label"><small class="text-secondary">Nombre</small></label>
                         <input class="inputs mb-4" onkeyup="views.txtchange('input${uuid}','${uuid}')" id="input${uuid}" type="text" placeholder="Cualificado" value="${data.name}" maxlength="50">
                         <label for="" class="label"><small class="text-secondary">Probabilidad</small></label>
@@ -204,16 +204,10 @@ function stage(data = null, showcancel = true) {
                     </div>
                     <label dkli-for="" class="label"><small class="text-secondary">Estancado en (dias)</small></label>
                     ${views.message(uuid, "est")}
-                    <label class="switch2">
-                        <input type="checkbox" id="togBtn2" ${data.stuck_in_days == true ? "checked" : ""}>
-                        <div class="slider2 round2">
-                            <span class="on"></span>
-                            <span class="off"></span>
-                        </div>
-                    </label>
+                    <input type="number" value="${data.stuck_in_days ?? 0}" class="inputs">
                 </div>
             </div>
-            <div class="botn-delete p-4">
+            <div class="botn-delete p-1 mt-5">
                 <div class="d-flex align-items-end justify-content-end gap-2">
                     <button class="btn btn-sm p-1 ps-2 pe-2 btn-primary d-flex align-items-center gap-2 ${data.sys_pk != 0 ? "hidde_control" : ""}" id="stage-save" onclick="controller.save_stage('${uuid}',${data.sys_pk})">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check2" viewBox="0 0 16 16">

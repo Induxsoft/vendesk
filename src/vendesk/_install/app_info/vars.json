@@ -1,0 +1,34 @@
+[
+    {
+        "id": "vendesk",
+        "caption": "Vendesk",
+        "help": "Variables del paquete: vendesk",
+        "vars": 
+        [
+            {
+                "varname": "vendesk_config_notif",
+                "vardefault": "/!/vendesk/notif/",
+                "varvalue": "/!/vendesk/notif/",
+                "varcaption": "Configuración de notificacion",
+                "varhelp": "Ir a configuración de notificaciones de vendesk.",
+                "vartype": "string",
+                "varinput": 
+                {
+                    "control": "button"
+                }
+            },
+            {
+                "varname": "vendesk_pipelines",
+                "vardefault": "/!/vendesk/sales_pipeline/?ps=1",
+                "varvalue": "/!/vendesk/sales_pipeline/?ps=1",
+                "varcaption": "Ir a pipelines",
+                "varhelp": "Ir a pipelines.",
+                "vartype": "string",
+                "varinput": 
+                {
+                    "control": "button"
+                }
+            }
+        ]
+    }
+]

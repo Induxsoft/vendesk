@@ -1,0 +1,202 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    cors_xhr::
+    {
+        @http_context<"response/headers/Access-Control-Allow-Origin">:"*"
+        @http_context<"response/headers/Access-Control-Allow-Methods">:"*"
+        @http_context<"response/headers/Access-Control-Allow-Headers">:"*"
+    }
+    addNotes::&db,&rw
+    {
+        ref t=dbr.table(db,"select 
+        sys_pk,
+        date_format(uf_tiempo,'%Y-%m-%dT%T') sys_dtcreated,
+        uf_usuario uname, 
+        uf_mensaje note 
+        from xt_biticontact where uf_iicontact=@sys_pk order by sys_pk desc limit 50; ", rw)
+
+        ref bit=list.create()
+
+        for i=0;i<@count(t)
+        {
+            do list.add(bit,row.get(t,i))
+        }
+
+        rw<"log*">:bit
+    }
+    
+    agregar_log::&bd,prospecto, texto, usuario
+    {
+        new note
+        {
+            @"uf_mensaje":texto
+            @"uf_tiempo*":dbr.sql("NOW()")
+            @"uf_iicontact":prospecto
+            @"uf_usuario":cut(usuario,50)
+        }
+
+        do dbr.insert(bd,"xt_biticontact",note)
+    }
+    //Esta función se encarga de realizar los ajustes a la estructura que sean necesarios
+    checkDBStruct::&db
+    {
+        if dbr.str(db,"show tables like 'sales_pipeline';",@null)=="" 
+        {
+            do dbr.execute(db,"CREATE TABLE `sales_pipeline` (
+                `sys_pk` int(11) NOT NULL AUTO_INCREMENT,
+                `sys_guid` varchar(32) NOT NULL,
+                `sys_dtcreated` datetime NOT NULL,
+                `sys_timestamp` datetime NOT NULL,
+                `sys_recver` int(11) DEFAULT NULL,
+                `sys_deleted` tinyint(1) DEFAULT NULL,
+                `sys_lock` int(11) DEFAULT NULL,
+                `sys_info` varchar(32) DEFAULT NULL,
+                `sys_user` varchar(32) DEFAULT NULL,
+                `name` varchar(50) DEFAULT NULL,
+                `probability` tinyint(1) DEFAULT NULL,
+                PRIMARY KEY (`sys_pk`),
+                UNIQUE KEY `sys_guid` (`sys_guid`)
+                );",@null)
+
+            do dbr.execute(db,"CREATE TABLE `sales_pipeline_stage` (
+                `sys_pk` int(11) NOT NULL AUTO_INCREMENT,
+                `sys_guid` varchar(32) NOT NULL,
+                `sys_dtcreated` datetime NOT NULL,
+                `sys_timestamp` datetime NOT NULL,
+                `sys_recver` int(11) DEFAULT NULL,
+                `sys_deleted` tinyint(1) DEFAULT NULL,
+                `sys_lock` int(11) DEFAULT NULL,
+                `sys_info` varchar(32) DEFAULT NULL,
+                `sys_user` varchar(32) DEFAULT NULL,
+                `ref_pipeline` int(11) NOT NULL,
+                `sequence` int(11) NOT NULL,
+                `name` varchar(50) NOT NULL,
+                `probability` decimal(4,1) DEFAULT NULL,
+                `stuck_in_days` int(11) DEFAULT NULL,
+                PRIMARY KEY (`sys_pk`),
+                UNIQUE KEY `sys_guid` (`sys_guid`),
+                KEY `ref_pipeline` (`ref_pipeline`),
+                CONSTRAINT `sales_pipeline_stage_ibfk_1` FOREIGN KEY (`ref_pipeline`) REFERENCES `sales_pipeline` (`sys_pk`)
+                );
+                ",@null)
+        }
+
+        if not(dbfield_exist(db,"ut_icontact", "uf_perfil"))
+        {
+            do dbr.execute(db,"ALTER TABLE `ut_icontact` 
+                ADD COLUMN `uf_perfil` VARCHAR(32);",@null)
+        }
+
+        if not(dbfield_exist(db,"ut_icontact", "uf_pipeline"))
+        {
+            do dbr.execute(db,"ALTER TABLE `ut_icontact` 
+                ADD COLUMN `uf_pipeline` INT NULL,
+                ADD COLUMN `uf_stage` INT NULL,
+                ADD COLUMN `uf_probability` DECIMAL(4,1) NULL,
+                ADD COLUMN `uf_amount` DECIMAL(12,2) NULL,
+                ADD COLUMN `uf_ref_customer` INT NULL;",@null)
+        }
+
+        if dbr.str(db,"show tables like 'cotizacion';",@null)=="" 
+        {
+            do dbr.execute(db,"CREATE TABLE `cotizacion`(
+            `sys_pk` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            `sys_guid` VARCHAR(32) NOT NULL UNIQUE,
+            `sys_dtcreated` DATETIME NOT NULL,
+            `sys_timestamp` DATETIME NOT NULL,
+            `sys_recver` INT,
+            `sys_deleted` BOOL,
+            `sys_lock` INT,
+            `sys_info` VARCHAR(32),
+            `sys_user` VARCHAR(32),
+            `en_atencion_a` TEXT,
+            `lugar` VARCHAR(500),
+            `fecha` DATETIME,
+            `vigencia_plazo` INT,
+            `vigencia_periodo` VARCHAR(50),
+            `referencia` VARCHAR(25) UNIQUE,
+            `condiciones_pago` TEXT,
+            `condicion_entrega` TEXT,
+            `notas` TEXT,
+            `entrega_plazo` INT,
+            `entrega_periodo` VARCHAR(50),
+            `preambulo` TEXT,
+            `divisa` VARCHAR(5),
+            `tipo_cambio` DECIMAL(12,4),
+            `agente` VARCHAR(32),
+            `codigo` VARCHAR(35),
+            `nombre` VARCHAR(150),
+            `rfc` VARCHAR(15),
+            `oportunidad` INT);",@null)
+
+            do dbr.execute(db,"CREATE TABLE `dcotizacion`(
+                `sys_pk` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                `sys_guid` VARCHAR(32) NOT NULL UNIQUE,
+                `sys_dtcreated` DATETIME NOT NULL,
+                `sys_timestamp` DATETIME NOT NULL,
+                `sys_recver` INT,
+                `sys_deleted` BOOL,
+                `sys_lock` INT,
+                `sys_info` VARCHAR(32),
+                `sys_user` VARCHAR(32),
+                `cantidad` DECIMAL(12,4),
+                `notas` TEXT,
+                `descuento` DECIMAL(12,4),
+                `importe_iva` DECIMAL(12,4),
+                `importe_ieps` DECIMAL(12,4),
+                `subtotal` DECIMAL(12,4),
+                `importe_isr` DECIMAL(12,4),
+                `importe_iva_retenido` DECIMAL(12,4),
+                `total` DECIMAL(12,4),
+                `sku` VARCHAR(35),
+                `descripcion` VARCHAR(1000),
+                `precio` DECIMAL(12,4),
+                `divisa` VARCHAR(5),
+                `unidad` VARCHAR(15),
+                `ieps` DECIMAL(12,4),
+                `iva` DECIMAL(12,4),
+                `iva_retenido` DECIMAL(12,4),
+                `isr_retenido` DECIMAL(12,4),
+                `ref_cotizacion` INT NOT NULL);",@null)
+
+            do dbr.execute(db,"ALTER TABLE `cotizacion` ADD FOREIGN KEY (`oportunidad`) REFERENCES `ut_icontact`(`sys_pk`);
+            ALTER TABLE `dcotizacion` ADD FOREIGN KEY (`ref_cotizacion`) REFERENCES `cotizacion`(`sys_pk`);",@null)
+        }
+        // if dbfield_exist(db,"dcotizacion", "descripcion")
+        // {
+        //     if verify_field(db,"dcotizacion","descripcion")=="var"
+        //     {
+
+        //     }
+        // }
+        if not(dbfield_exist(db,"cotizacion", "status"))
+        {
+            do dbr.execute(db,"ALTER TABLE `cotizacion` 
+                ADD COLUMN `status` INT NULL;",@null)
+        }
+    }
+
+    dbfield_exist::&db,table, field
+    {
+        do dbr.str(db,"select "+field+" from " +table+" limit 1;",@null)
+        exception { return @false}
+
+        return @true
+    }
+    verify_field::&db,table,field
+    {
+        sql="DESCRIBE "+table
+        ref l=dbr.list(db,sql,@null)
+
+        for i=0;i<@count(l)
+        {
+            ref ls=@item(l,i)
+            if @@(ls,"Field")==field
+            {
+                return cut(tolower(@@(ls,"Type")),3)
+            }
+        }
+    }
+}

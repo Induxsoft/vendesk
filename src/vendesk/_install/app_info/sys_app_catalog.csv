@@ -1,2 +1,4 @@
 "pack_id","app_id","app_title","created","app_info"
 "vendesk","vendesk.cliente","VenDesk",2024-01-15T23:59:59,"Atención a clientes."
+"vendesk","vendesk.pipelines","pipelines",2025-09-01T11:59:59,"Tuberías de ventas."
+"vendesk","vendesk.prospectos","prospectos",2025-09-01T11:59:59,"prospectos de ventas."

@@ -1,0 +1,24 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    ValidatePrivileges::&params
+    {
+        if field.exist(params,"vnts"){do dbr.apps.action.grant("VC80")}//prospectos
+        else if field.exist(params,"ps"){do dbr.apps.action.grant("VC70")}//pipelines
+        else if field.exist(params,"prc"){do dbr.apps.action.grant("VC81")}//prospecto
+    }
+    list::&db,&params
+    {
+        do ValidatePrivileges(params)
+        return list.create()
+    }
+    read::&db,&params
+    {
+        do ValidatePrivileges(params)
+        return record.create()
+    }
+    
+    point @read to read
+    point @list to list
+}

@@ -1,0 +1,51 @@
+#include "dkli.dkh"
+#!
+module "listar-pipelines"
+{
+	#include "functions.dkh"
+	#include "dbr.dkh"
+	#include "serialize.dkh"
+    #include "webcl.dkh"
+    #include "website.dkl"
+    
+    do cors_xhr()
+    if @@(@http_context,"request/headers/REQUEST_METHOD")=="OPTIONS"{return}
+        
+    new response
+    {
+        @"success":@false
+    }
+
+    ref params=from.json(field.dstr(@http_context,"request/post_string","{}"))
+
+
+    ref db=@@(@http_context,"&session/idp/database")
+
+    //verifica y agrega tablas y campos, solo se necesita cuando la bd se creó con PlazaMundial
+    do checkDBStruct(db)
+    ///////////////////////////////////////////////////////////////////////////////////////////
+    
+    ref l=dbr.list(db,"select sys_pk, sys_guid, name, probability from sales_pipeline order by name;",@null)
+    
+    for i=0;i<@count(l)
+    {
+        ref pipe=@item(l,i)
+        pipe<"stages*">:dbr.list(db,"select sys_pk, sys_guid, name, probability, stuck_in_days from sales_pipeline_stage where ref_pipeline=@sys_pk order by sequence;",pipe)
+    }
+
+    response<"data*">:l
+    response<"success">:@true
+
+    exception
+    {
+        using response
+        {
+            @"success":@false
+            @"message":last_error()
+        }
+    }
+
+    @http_context<"response/output">:"text"
+    @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+    @http_context<"response/text">: to.json(response)
+}

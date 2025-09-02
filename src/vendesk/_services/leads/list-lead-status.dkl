@@ -1,0 +1,46 @@
+#include "dkli.dkh"
+#!
+module "listar-agentes"
+{
+	#include "functions.dkh"
+	#include "dbr.dkh"
+	#include "serialize.dkh"
+    #include "webcl.dkh"
+    #include "website.dkl"
+
+    do cors_xhr()
+    if @@(@http_context,"request/headers/REQUEST_METHOD")=="OPTIONS"{return}
+        
+    new response
+    {
+        @"success":@false
+    }
+
+    ref params=from.json(field.dstr(@http_context,"request/post_string","{}"))
+
+    ref l=from.json('[
+        {"key":999,"caption":"(Por atender)","final":false},
+        {"key":0,"caption":"Recibido","final":false},
+        {"key":1,"caption":"Atendido","final":true},
+        {"key":2,"caption":"Descartado","final":true},
+        {"key":3,"caption":"Oportunidad","final":false},
+        {"key":4,"caption":"Ganado :)","final":true},
+        {"key":5,"caption":"Perdido :(","final":true},
+        ]')
+    
+    response<"data*">:l
+    response<"success">:@true
+
+    exception
+    {
+        using response
+        {
+            @"success":@false
+            @"message":last_error()
+        }
+    }
+
+    @http_context<"response/output">:"text"
+    @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+    @http_context<"response/text">: to.json(response)
+}

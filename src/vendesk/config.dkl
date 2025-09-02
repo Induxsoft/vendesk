@@ -89,9 +89,9 @@ module "config.dkl"
 	@crudl.pwd=""
 	@ws=""
 	@_entities_type="cliente"
-	@url_home="https://ws.induxsoft.net/"
+	@url_home="/"
 	@url_service_workspace="https://api.induxsoft.net/workspaces/"
-	@url_service_vendesk="https://pm.api.induxsoft.net/"
+	@url_service_vendesk="/vendesk/_services/"
 	
 	if isset("@http_context")
 	{
@@ -111,7 +111,8 @@ module "config.dkl"
 	{
 		ref @http_context=@@(@crud_context,"&http")
 		@http_context<"session/idp/database*">:@@(@crud_context,"database")
-		if @@(@http_context,"request/get/ws")!=""{
+		if @@(@http_context,"request/get/ws")!=""
+		{
 			@url_root=path.concat(@url_root,@@(@http_context,"request/get/ws")+"/request/")
 			@url_root_entity=path.concat(@url_root,@@(@http_context,"request/get/_entities_type")+"/")
 		}

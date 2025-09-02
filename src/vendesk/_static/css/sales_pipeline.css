@@ -28,11 +28,11 @@ body
     --bs-table-hover-bg: rgba(0, 0, 0, 0.075);
 	--border-drag-color: #0B5ED7;
 }
-.navbar{
+/* .navbar{
     width: 70px;
     height: 100%;
     background-color:#461c50;
-}
+} */
 .icon{
     color: white;
     display: block;

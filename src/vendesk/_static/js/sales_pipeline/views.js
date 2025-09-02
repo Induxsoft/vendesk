@@ -93,9 +93,6 @@ var views = {
             sys_pk.value = data.sys_pk;
             probability.checked = data.probability ?? false;
         }
-
-
-
     },
     clear_modal: function () {
         var name = document.getElementById("txt_name");
@@ -116,9 +113,9 @@ var views = {
                     var togle = document.querySelector(`#${stage.id} .switch2`);
 
                     if (enable)
-                        togle.classList.remove("p-event-n");
+                        if(togle)togle.classList.remove("p-event-n");
                     else
-                        togle.classList.add("p-event-n");
+                       if(togle) togle.classList.add("p-event-n");
 
                     for (var j = 0; j < elements.length; j++) {
                         var inp = elements[j];
@@ -199,9 +196,11 @@ var views = {
             for (var i = 0; i < data.length; i++) {
                 var d = data[i];
                 select.insertAdjacentHTML('afterbegin', `
-                  <option value="${d.sys_pk}">${d.name}</option>
+                  <option value="${d.sys_pk}" ${i==0 ? "selected":""}>${d.name}</option>
                 `);
             }
+
+        tools.trigger(idpipeline,"change");
     },
     mostrarMensaje(uuid) {
         var popup = document.getElementById(`popup${uuid}`);
