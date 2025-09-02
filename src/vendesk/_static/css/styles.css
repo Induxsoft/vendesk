@@ -107,6 +107,11 @@ body
   line-height: 1.5;
   border-radius: 0.2rem;
 }
+.no-shadow
+{
+  box-shadow: none !important;
+}
+
 @media screen and (max-width: 1000px) 
 {
   #container-card

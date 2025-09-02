@@ -114,15 +114,15 @@ module "ventas"
 								{
 									div(class="col-lg-2 mb-1 mt-1")
 									{
-										select(class="form-select form-select-sm" id="cbAgentes"){$""}
+										select(class="form-select form-select-sm induxsoft-corners no-shadow" id="cbAgentes"){$""}
 									}
 									div(class="col-lg-2 mb-1 mt-1")
 									{
-										select(class="form-select form-select-sm" id="cbStatus"){$""}
+										select(class="form-select form-select-sm induxsoft-corners no-shadow" id="cbStatus"){$""}
 									}
 									div(class="col-lg-2 mb-1 mt-1")
 									{
-										select(class="form-select form-select-sm" id="cbColors"){$""}
+										select(class="form-select form-select-sm induxsoft-corners no-shadow" id="cbColors"){$""}
 									}
 									div(class="col-lg-2 mb-1 mt-1 btn-w-100" style="width:auto;")
 									{
@@ -135,7 +135,7 @@ module "ventas"
 											// label(class="sr-only" "for"="txtFilter"){""}
 											div(class="input-group input-group-sm mb-2")
 											{
-												input(type="text" class="form-control" "aria-label"="Small" "aria-describedby"="inputGroup-sizing-sm" id="txtFilter" placeholder="..."  onkeyup="model.filter_table_text();")
+												input(type="text" class="form-control induxsoft-corners no-shadow" "aria-label"="Small" "aria-describedby"="inputGroup-sizing-sm" id="txtFilter" placeholder="..."  onkeyup="model.filter_table_text();")
 												div(class="input-group-prepend" onclick="model.filter_table_text();" style="cursor:pointer")
 												{
 													div(class="input-group-text input-small" id="inputGroup-sizing-sm")
@@ -155,9 +155,8 @@ module "ventas"
 										div(class="d-flex justify-content-end" id="dv-select-orderby" style="width:30%;align-items: center;gap: 10px;")
 										{
 											label{"Filtrar por:"}
-											select(class="form-select form-select-sm" id="sOrderBy" style="width: auto !important;"){$""}
+											select(class="form-select form-select-sm induxsoft-corners no-shadow" id="sOrderBy" style="width: auto !important;"){$""}
 										}
-									
 									}
 									
 									hr{}
@@ -172,9 +171,7 @@ module "ventas"
 											div(class="placeholder"){$""}
 										}
 									}
-									
 								}
-							
 							}
 	  					}
 		  			}

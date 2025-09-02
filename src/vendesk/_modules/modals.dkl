@@ -80,14 +80,6 @@ module
             {
                 div(class="modal-content" style="height:5rem;justify-content:center")
                 {
-                    // div(class="modal-header")
-                    // {
-                    //     h5(class="modal-title" id="textomdl"){"#<@title_modal>."}
-                    //     button(type="button" class="close" "data-dismiss"="modal" "aria-label"="Close")
-                    //     {
-                    //         span ("aria-hidden"="true") {$"&times;"}
-                    //     }
-                    // }
                     div(class="modal-body" id="bdymsg")
                     {
                         span(class="loading style-2"){""}
@@ -96,10 +88,6 @@ module
                         span{"."}
                         span{"."}
                     }
-                    // div(class="modal-footer" id="ftrAddClt")
-                    // {
-                    //     button(type="button" class="btn btn-danger" "data-dismiss"="modal") { "Cerrar"}
-                    // }
                 }
             }       
         }
