@@ -33,7 +33,8 @@ module "listar-agentes"
     }
     joins=""
     sqlWhere=""
-    sql="select c.codigo id, c.nombre name,false manager 
+    sql="
+    select c.codigo id, c.nombre `name`,false manager 
     from agente c 
     #<joins>
     where ifnull(c.sys_deleted,0)=0 #<sqlWhere>"

@@ -1,3 +1,24 @@
+
+var _bitacora=
+{
+  url_ilink:"",
+  _url:"",
+  EnableLog(guid,det="") 
+  {
+      if(guid.trim()=="" || this._url.trim()=="")return;
+
+      var webshell=window.top.WebShell;
+      if(!webshell)
+      {
+          console.warn("No se pudo obtener el elemento de webshell");
+          return;
+      }
+
+      var uri=_bitacora._url.replace("@guid",guid).replace("@det",det);
+      webshell.Panels.Show(webshell.Panels.Const.Right,uri,"Notas");
+      webshell.Panels.Show(webshell.Panels.Const.Left,this.url_ilink,"Relacionados");
+  }
+}
 var model =
 {
   sOrder: null,
@@ -55,22 +76,22 @@ var model =
         location.reload();
     });
   },
-  Init_prospecto: function () {
+  Init_prospecto: function () 
+  {
 
     model.model_cbStatus = document.querySelector("#cbStatus");
     model.cmpipelines = document.querySelector("#cbPipeline");
     model.cbStages = document.querySelector("#cbStages");
 
-
-
-    if (model.cmpipelines) model.cmpipelines.addEventListener("change", function () {
+    if (model.cmpipelines) model.cmpipelines.addEventListener("change", function () 
+    {
       model.load_stages(this.value);
     });
 
-
     model.enabled_control_prospecto(true);
 
-    if (model.model_cbStatus) model.model_cbStatus.addEventListener("change", function () {
+    if (model.model_cbStatus) model.model_cbStatus.addEventListener("change", function () 
+    {
       var t = this.value;
       if (t == 3) {
 
@@ -83,11 +104,44 @@ var model =
     });
 
   },
-  trigger: function (element, event) {
+  EditProspecto(disabled=true)
+  {
+    if(!this.div_controls)return;
+    this.disabled_controls=disabled;
+    this.DisabledElements(this.div_controls.querySelectorAll("input,select,textarea"),disabled);
+
+    if(disabled)return;
+
+    if(this.btn_cancel_proc)this.btn_cancel_proc.classList.remove("d-none");
+    if(this.btn_edit_proc)this.btn_edit_proc.classList.add("d-none");
+    if(this.btn_save_proc)this.btn_save_proc.classList.remove("d-none");
+  },
+  CancelEdit(show=true)
+  {
+    if(this.btn_edit_proc)this.btn_edit_proc.classList.remove("d-none");
+    if(this.btn_cancel_proc)this.btn_cancel_proc.classList.add("d-none");
+    if(this.btn_save_proc)this.btn_save_proc.classList.add("d-none");
+
+    this.DisabledElements(this.div_controls.querySelectorAll("input,select,textarea"),true);
+  },
+  DisabledElements(controls,disabled=true)
+  {
+    for (let i = 0; i < controls.length; i++) 
+    {
+      const element = controls[i];
+      if(element)
+      {
+          element.disabled=disabled;
+      }
+    }
+  },
+  trigger: function (element, event) 
+  {
     var e = new Event(event);
     if (element) element.dispatchEvent(e);
   },
-  load_boxes: function () {
+  load_boxes: function () 
+  {
     model.name = document.querySelector("#txtname");
     model.txtphone = document.querySelector("#txtphone");
     model.txtemail = document.querySelector("#txtemail");
@@ -102,6 +156,8 @@ var model =
     model.txtProbabilidad = document.querySelector("#txtProbabilidad");
     model.txtImporteTrato = document.querySelector("#txtImporteTrato");
     model.cbColor = document.querySelector("#cbColors");
+
+
   },
   enabled_control_prospecto: function (enabled) {
     var txtProbabilidad = document.querySelector("#txtProbabilidad");
@@ -142,6 +198,8 @@ var model =
     var color = document.querySelector("#cbColors");
     var status = document.querySelector("#cbStatus");
 
+    if(!cbAgentes || !color || !status)return;
+
     var params = {
       agent_filter: cbAgentes.value == "" ? "unassigned" : cbAgentes.value,
       color_filter: color.value,
@@ -149,7 +207,8 @@ var model =
     }
     return params;
   },
-  Init: function () {
+  Init: function () 
+  {
     var data =
     {
       ids: model.ids,
@@ -165,18 +224,74 @@ var model =
 
     model.load_colors();
 
-    model.filters_leads(model.getDataFilters());
-
     model.sOrder = document.querySelector("#sOrderBy");
-    if (model.sOrder) model.sOrder.addEventListener("change", function () {
+    if (model.sOrder) model.sOrder.addEventListener("change", function () 
+    {
       model.orderBy(this.value);
     });
+
+    model.LoadFields();
+    model.SetEvents();
+
+    if(!model.agente)model.filters_leads(model.getDataFilters());
+
   },
-  load_agents: function (data = null, idsag = "#cbAgentes") {
+  LoadFields()
+  {
+    this.cbAgentes = document.querySelector("#cbAgentes");
+    this.color = document.querySelector("#cbColors");
+    this.status = document.querySelector("#cbStatus");
+    this.btn_edit_proc=document.getElementById("btn_edit_proc");
+    this.btn_cancel_proc=document.getElementById("btn_cancel_proc");
+    this.btn_save_proc=document.getElementById("btn_save_proc");
+    this.div_controls=document.getElementById("div_controls");
+    this.btn_link_client=document.getElementById("btn_link_client");
+    this.inputkye_cliente=document.getElementById("inputkye_cliente");
+    this.txtempresa=document.getElementById("txtempresa");
+  },
+  SetEvents()
+  {
+    if(this.cbAgentes)this.cbAgentes.addEventListener("change",()=>{model.filters_leads(model.getDataFilters());});
+    if(this.color)this.color.addEventListener("change",()=>{model.filters_leads(model.getDataFilters());});
+    if(this.status)this.status.addEventListener("change",()=>{model.filters_leads(model.getDataFilters());});
+    if(this.btn_link_client)this.btn_link_client.addEventListener("click",()=>{model.ShowInputKey()});
+    if(this.inputkye_cliente)this.inputkye_cliente.addEventListener("change",()=>{model.SetClient();});
+
+    
+  },
+  ShowInputKey()
+  {
+    if(!this.inputkye_cliente)return;
+    this.inputkye_cliente.searchText("",false);
+  },
+  SetClient(clear=false)
+  {
+    if(!this.inputkye_cliente)return;
+    if(!this.txtempresa)return;
+    
+    this.txtempresa.value="";
+    this.txtempresa.disabled=false;
+    this.txtempresa.focus();
+    if(clear)
+    {
+      this.inputkye_cliente.setValue({});
+      return;
+    }
+
+    var data=this.inputkye_cliente.getValue();
+    if(!data || Object.keys(data).length<1)return;
+    this.txtempresa.disabled=true;
+    this.txtempresa.value=data.codigo+":"+data.nombre;
+    this.txtempresa.focus();
+  },
+  load_agents: function (data = null, idsag = "#cbAgentes") 
+  {
     if (data == null) data = model.getParameters();
 
-    model.invoke_service(model.url_vendesk + "leads/list-agents.dkl", data, function (data) {
-      model.load_cb(data, "id", "name", idsag);
+    model.invoke_service(model.url_vendesk + "leads/list-agents.dkl", data, function (data) 
+    {
+      model.load_cb(data, "id", "name", idsag,"",model.agente?.codigo??"");
+      if(model.agente)model.filters_leads(model.getDataFilters());
     },
       function (error) {
         model.alert(error.message);
@@ -298,7 +413,7 @@ var model =
                <div><smal>${itm.leadstatus_text}</smal></div>
               </div>
                 <hr style="margin: 0;"></hr>
-                    <div class="card-body pointer" style="overflow:auto;display: flex;flex-direction: column;" onclick="model.redirec('./?cfg=1&lead=${itm.sys_pk}')">
+                    <div class="card-body pointer" style="overflow:auto;display: flex;flex-direction: column;" onclick="model.redirec('./${itm.sys_pk}/')">
                       <div class="justify-items-center pointer flex-grow-1" >
                         <b><smal>${itm.name}</smal> </b><br>
                         <smal>${itm.phone}</smal>${itm.phone == "" ? "" : "<br>"}
@@ -332,12 +447,12 @@ var model =
                               <button type="button" onclick="model.setColor(${itm.sys_pk},4,event);" style="background-color:#6f42c1;" title="Morado" class="color border"></button>
                               <button type="button" onclick="model.setColor(${itm.sys_pk},5,event);" style="background-color:#ffc107;" title="Amarillo" class="color border"></button>
                             </div>
-                            <a class="" href="./?prc=1&lead=${itm.sys_pk}" style="margin-right:5px;margin-left:5px">
+                            <a class="" href="./${itm.sys_pk}/" style="margin-right:5px;margin-left:5px">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
                                   <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"></path>
                                 </svg>
                             </a>
-                            <a class="" href="#" style="margin-right:5px;margin-left:5px;color:red" onclick="model.deleteLead(${itm.sys_pk})">
+                            <a class="" href="#" style="margin-right:5px;margin-left:5px;color:red" onclick="model.deleteLead(${itm.sys_pk},event)">
                               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
                                 <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6Z"/>
                                 <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1ZM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118ZM2.5 3h11V2h-11v1Z"/>
@@ -352,10 +467,15 @@ var model =
     }
     if (table) table.innerHTML = body;
   },
-  deleteLead: function (sys_pk) {
+  deleteLead: function (sys_pk,event) 
+  {
     var r = model.confirm("¿Esta seguro de eliminar este prospecto?");
     if (!r) return;
 
+    if(event)
+    {
+      event.stopPropagation();
+    }
     var lead = { sys_pk: sys_pk }
     var leads = [];
     leads.push(lead);
@@ -373,13 +493,16 @@ var model =
   redirec: function (url) {
     window.location.href = url;
   },
-  load_cb: function (data, key, value, idselect, attributes = "") 
+  disabled_controls:false,
+  load_cb: function (data, key, value, idselect, attributes = "",optselected="") 
   {
     var select = document.querySelector(idselect);
-    var options = "";
+    if(!select)return;
+
+    var options = (idselect == "#cbAgentes"  || idselect=="#cbPropietario")?`<option value="unassigned">(Sin asignar)</option>`:"";
     if (idselect == "#cbAgentes") 
     {
-      options = `<option value="unassigned">(Sin asignar)</option><option value="all">(Todos los agentes)</option>`;
+      options += `<option value="all">(Todos los agentes)</option>`;
     }
     var slected = "";
 
@@ -391,9 +514,10 @@ var model =
       {
         if (itm.id == model.uid) { slected = "selected='true'" }
       }
-      options += `<option ${attributes} value="${eval("itm." + key)}" ${slected}>${eval("itm." + value)}</option>`;
+      options += `<option ${attributes} ${optselected==eval("itm." + key) ? "selected":""} value="${eval("itm." + key)}" ${slected}>${eval("itm." + value)}</option>`;
     }
-    if (select) select.innerHTML = options;
+    select.innerHTML = options;
+    if(Number(model.sys_pk)>0)select.disabled=true;
   },
   load_colors: function (all = true) {
     var al = "";
@@ -412,8 +536,10 @@ var model =
   filter_table: function () {
     model.filters_leads(model.getDataFilters());
   },
-  loadSpinner: function (element) {
-    if (element) {
+  loadSpinner: function (element) 
+  {
+    if (element) 
+    {
       element.style.cssText = `min-height: 40%;position: relative;`;
       element.innerHTML = `<div class="d-flex placeholder-glow w-100" style=" position: absolute;width: 100% !important;height: 100% !important;">
                               <div class="placeholder" style="width: 100%;height: 100%;display: flex;align-items: center;justify-content: center;background-color: lightgray;">
@@ -426,18 +552,21 @@ var model =
     var data = model.getParameters();
     var tbl = document.querySelector("#prospectos");
     model.loadSpinner(tbl);
-    if (params != null) {
-      for (var key in params) {
+    if (params != null) 
+    {
+      for (var key in params) 
+      {
         data[key] = params[key];
       }
     }
-    model.invoke_service(model.url_vendesk + "leads/list-leads.dkl", data, function (data) {
+    model.invoke_service(model.url_vendesk + "leads/list-leads.dkl", data, function (data) 
+    {
       model.data_leads = data;
       model.load_table(data, "#prospectos");
     },
-      function (error) {
-        model.alert(error.message);
-      }, "POST", false);
+    function (error) {
+      model.alert(error.message);
+    }, "POST", false);
   },
   filter_table_text: function () {
     if (model.data_leads == null) return;
@@ -735,7 +864,8 @@ var model =
         model.alert(error.message);
       }, "POST", false);
   },
-  save_prospecto: function () {
+  save_prospecto: function () 
+  {
     var name = document.querySelector("#txtname");
     var txtphone = document.querySelector("#txtphone");
     var txtemail = document.querySelector("#txtemail");
@@ -755,14 +885,16 @@ var model =
       model.alert("El nombre del prospecto debe ser mayor a 5 caracteres.");
       return;
     }
-    if (cbPropietario.value == "") {
+    if (cbPropietario.value == "") 
+    {
       model.alert("Debe indicar el agente propietario");
       return;
     }
 
     var data = {}
     if (model.data_leads != null) {
-      for (var i = 0; i < model.data_leads.length; i++) {
+      for (var i = 0; i < model.data_leads.length; i++) 
+      {
         var itm = model.data_leads[i];
         if (Number(itm.sys_pk) == Number(model.sys_pk)) {
           if (itm.name != name.value) data["name"] = name.value;
@@ -801,13 +933,16 @@ var model =
       data[key] = dt[key];
     }
     //si es oportunidad
-    if (Number(cbStatus.value) == 3) {
+    if (Number(cbStatus.value) == 3) 
+    {
 
-      if (cbPipeline.value.trim() == "") {
+      if (cbPipeline.value.trim() == "") 
+      {
         model.alert("Debe indicar un pipeline");
         return;
       }
-      if (cbStages.value.trim() == "") {
+      if (cbStages.value.trim() == "") 
+      {
         model.alert("Debe indicar un pipeline");
         return;
       }
@@ -817,12 +952,13 @@ var model =
       data["probability"] = txtProbabilidad.value;
       data["amount"] = txtImporteTrato.value;
     }
-    model.invoke_service(model.url_vendesk + "leads/post-lead.dkl", data, function (data) {
-      window.location.href = "./?vnts=1";
+    model.invoke_service(model.url_vendesk + "leads/post-lead.dkl", data, function (data) 
+    {
+      window.location.href = "..";
     },
-      function (error) {
-        model.alert(error.message);
-      }, "POST", false);
+    function (error) {
+      model.alert(error.message);
+    }, "POST", false);
 
   },
   load_stages: function (sys_pk) {
@@ -863,7 +999,8 @@ var model =
       if (model.model_cbStatus != null && model.model_cbStatus.childNodes.length <= 0) { model._load_status_(); }
       if (model.cmpipelines != null && model.cmpipelines.childNodes.length <= 0) { model.load_pipelines_(); }
 
-      for (var i = 0; i < model.data_leads.length; i++) {
+      for (var i = 0; i < model.data_leads.length; i++) 
+      {
         var itm = model.data_leads[i];
 
         if (Number(itm.sys_pk) == Number(model.sys_pk)) {
@@ -891,6 +1028,8 @@ var model =
           model.cbColor.value = itm.color;
         }
       }
+
+      this.DisabledElements(this.div_controls.querySelectorAll("input,select,textarea"),true);
     }
   },
   setColor: function (sys_pk, color, e) {

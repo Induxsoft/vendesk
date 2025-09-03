@@ -50,11 +50,12 @@ module "Actualizar o agregar prospecto"
         log=log+" - próximo contacto\r\n"
     }
 
-    if field.exist(params,"agent_id") 
+    if field.exist(params,"agent_id")  && trim(@@(params,"$agent_id"))!="unassigned"
     { 
         newEntry<"uf_perfil">:@@(params,"agent_id")
         log=log+" - agente propietario\r\n"
     }
+    else {newEntry<"uf_perfil">:""}
 
     if field.exist(params,"leadstatus") 
     { 

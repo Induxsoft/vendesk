@@ -130,6 +130,8 @@ module "config.dkl"
 
 	if @ws==""{@ws="MaxiComercio.R5/BdR8_MXCR5"}
 
+	@LIST_AGENTES = "/!/catbas/agente/"
+	@URL_GO="/?go=@url"
 	@use_bdconfig=@true
 	@accept_qnames=@false
 
@@ -198,10 +200,12 @@ module "config.dkl"
 		{"id":"group","text":"Grupo"}
 	]'
 
+	@URL_BITACORA = "/!/webshell/log/DET01C/@guid/"
 	//url modulo de notificación
 	@URL_CLIENT_ALERT="/!/vendesk/cliente/_detail/?_key=@cliente&i=alert"
 	@URL_CLIENT_CASE_LIST="/!/vendesk/cliente/_detail/?_key=@cliente&i=case"
 	@URL_CLIENT_CASE="/!/vendesk/cliente/_detail/?_case=@case&_key=@cliente"
+	@URL_BUSCAR_CLIENTE = "/!/vendesk/cliente/?s=@search"
 	//Eventos que por el momento generarán notificaciones:
 	@EVENTS_ACTIVE_NOTIF="VC13,VC21,VC22,VC23,VC24,VC26,VC27"
 

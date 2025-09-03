@@ -1,15 +1,21 @@
 #include "dkli.dkh"
+#def InputKey "input-key"
 #!
 module "condif lead"
 {
 	#include "functions.dkh"
 	#include "serialize.dkh"
 	#include "../config.dkl"
-	#include "lib.dk"
+	#include "../lib.dk"
+	#include "uielements.v12.dkl"
 
 	do @context.begin(@crud_context)
 	ref @http_context=@("&http")
-
+	using @http_context
+    {
+        member "session" { member "resource" { member "properties" { member  "web_meta_tags" {@"title":"Notas" }  } } }
+    }
+	ref bitacora=ifnull(@("&./bitacora"),list.create())
 	#include "website.dkl"
 
 	ref data=@null
@@ -20,15 +26,208 @@ module "condif lead"
 	idtienda=""
 	
 	sys_pk_lead=@@(@http_context,"request/get/lead")
+	if parse.num(sys_pk_lead)<1{sys_pk_lead=@("$./sys_pk")}
 	text=ifstr(sys_pk_lead=="","Agregar Prospecto","Editar Prospecto")
 
 	url=@@(@http_context,"request/get/url")
 	if url!=""{url=url_dcode(url)}
 	else{url=".."}
+	
+	exist_ilinktype=@("#./exist_ilinktype")
+	url_ilink="/!/webshell/inlink/?inlink_type=DET01C&trace="+@('$./sys_pk')+"&det=DET01C&key="+@('$./sys_pk')
+
+	ref lkeys=list.create_from_fields(@("&parameters"))
+	for i = 0; i < @count(lkeys)
+	{
+		k=list.str(lkeys,i)
+		url_ilink=url_ilink + "&"+k+"="+@("$parameters/"+k)
+	}
+
+	new nav_config
+    {
+        @"title": text
+        @"urlexit": ".."
+        @"jscurrentcontext": ""
+		member @"hidden"
+		{
+			@"print":@true
+			@"csv":@true
+			@"copy":@true
+		}
+    }
+	edit_proc=@("#./sys_pk")> 0
 	#$
 	div(class="container-lg pt-1 ps-3 pe-3" style="background-color:#F5F5F5; min-height:94%;" id="container-clientes")
 	{
 		script(src="#<@JS_MODEL>"){""}
+		
+		section(id="top_area")
+		{
+			#! 
+            do uie.printV12FormBar(nav_config)
+            #$
+		}
+		div(class="p-4 bg-white border-bottom" id="div_controls")
+		{
+			div(class="d-flex justify-content-end mb-2 gap-2" )
+			{
+				span(class="flex-grow-1"){""}
+				button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action #<ifstr(edit_proc,'d-none','')>" onclick="model.save_prospecto();" id="btn_save_proc")
+				{
+					$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-floppy2-fill" viewBox="0 0 16 16">
+						<path d="M12 2h-2v3h2z"></path>
+						<path d="M1.5 0A1.5 1.5 0 0 0 0 1.5v13A1.5 1.5 0 0 0 1.5 16h13a1.5 1.5 0 0 0 1.5-1.5V2.914a1.5 1.5 0 0 0-.44-1.06L14.147.439A1.5 1.5 0 0 0 13.086 0zM4 6a1 1 0 0 1-1-1V1h10v4a1 1 0 0 1-1 1zM3 9h10a1 1 0 0 1 1 1v5H2v-5a1 1 0 0 1 1-1"></path>
+					</svg>'
+				}
+
+				#!
+				 if edit_proc
+				 {
+					#$
+					button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="model.EditProspecto(false);" id="btn_edit_proc")
+					{
+						$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
+						<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/>
+						</svg>'
+					}
+					button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action d-none" onclick="model.CancelEdit(false);" id="btn_cancel_proc")
+					{
+						$'Cancelar'
+					}
+				 }
+			}
+			div(class="d-flex justify-content-end " style="justify-items: center;align-items: center;")
+			{
+				div(class="w-100" style="height: 8px;background-color: #FCFCFC;" id="dv-color"){""}
+			}
+
+			div(class="card")
+			{
+				div(class="card-body")
+				{
+					div(class="row")
+					{
+						div(class="col-lg-6")
+						{
+							label(class="fw-bold"){"Nombre:"}
+							input(class="form-control form-control-sm induxsoft-corners" id="txtname"  maxlength="150")
+						}
+						div(class="col-lg-2")
+						{
+							label{"Teléfono:"}
+							input(class="form-control form-control-sm induxsoft-corners" id="txtphone" maxlength="100")
+						}
+						div(class="col-lg-4")
+						{
+							label{"Correo electrónico:"}
+							input(type="email" class="form-control form-control-sm induxsoft-corners" id="txtemail" maxlength="255")
+						}
+						div(class="col-lg-6")
+						{
+							label(class="fw-bold"){"Empresa:"}
+							div(class="input-group ")
+							{
+								input(class="form-control form-control-sm induxsoft-corners" id="txtempresa" maxlength="100")
+								div(class="input-group-prepend d-flex")
+								{
+									button(class="input-group-text" id="btn_link_client")
+									{
+										$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-link-45deg" viewBox="0 0 16 16">
+										<path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1 1 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4 4 0 0 1-.128-1.287z"/>
+										<path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/>
+										</svg>'
+									}
+									button(class="input-group-text" onclick="model.SetClient(true)")
+									{
+										$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">
+										<path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+										</svg>'
+									}
+								}
+							}
+							InputKey(name="inputkye_cliente" id="inputkye_cliente" "data-key"="sys_pk" "data-search"="codigo" "data-text"="nombre" "data-source"="#<@URL_BUSCAR_CLIENTE>" "data-value"="{}" columns="codigo,nombre" colcaptions="Código,Nombre" "control-styles"="#container{display:none !important;}"){$""}
+							
+						}
+						div(class="col-lg-6")
+						{
+							label{"Puesto:"}
+							input(class="form-control form-control-sm induxsoft-corners" id="txtpuesto" maxlength="100")
+						}
+						div(class="col-lg-12")
+						{
+							label(class="fw-bold"){"Asunto:"}
+							input(class="form-control form-control-sm induxsoft-corners" id="txtasunto" maxlength="150")
+						}
+						
+						div(class="col-lg-12")
+						{
+							label{"Comentarios:"}
+							textarea(class="form-control form-control-sm induxsoft-corners" rows="2" id="txtcomentarios" maxlength="1024") {""}
+						}
+						div(class="col-lg-3")
+						{
+							label(class="fw-bold"){"Propietario:"}
+							select(class="form-select form-select-sm induxsoft-corners" id="cbPropietario"){$""}
+						}
+						div(class="col-lg-3")
+						{
+							label{"Status:"}
+							select(class="form-select form-select-sm induxsoft-corners" id="cbStatus"){$""}
+						}
+						div(class="col-lg-3")
+						{
+							label{"Pipeline:"}
+							select(class="form-select form-select-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbPipeline"){$""}
+						}
+						div(class="col-lg-3")
+						{
+							label{"Stage:"}
+							select(class="form-select form-select-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbStages"){$""}
+						}
+						div(class="col-lg-3")
+						{
+							label{"Probabilidad de éxito:"}
+							input(class="form-control form-control-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="txtProbabilidad" placeholder="%" maxlength="12")
+						}
+						div(class="col-lg-3")
+						{
+							label{"Importe del trato:"}
+							input(class="form-control form-control-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" onkeyup="model.filterFloat(event,this)" id="txtImporteTrato" maxlength="12")
+						}
+						div(class="col-lg-3")
+						{
+							label{"Color:"}
+							select(class="form-select form-select-sm induxsoft-corners" id="cbColors"){$""}
+						}
+					}
+
+					#!
+					if @count(bitacora) > 0
+					{
+						#$
+						hr{}
+
+						div(class="table-responsive mt-2" style="height: 28vh;")
+						{
+							#!
+							for i = 0; i < @count(bitacora)
+							{
+								ref bit=@item(bitacora,i)
+								#$
+								div(class="mb-2 p-2 bg-white" style="display: grid;")
+								{
+									small{"#<@@(bit,'$uf_mensaje')>"}
+									small(style="font-size: 11px;"){"#<@@(bit,'$uf_usuario')>"}
+									small(style="font-size: 10px;"){"#<@@(bit,'$tiempo')>"}
+								}
+							}
+						}
+						
+					}
+				}
+			}
+		}
+		#$
 		script
 		{
 			$'
@@ -46,153 +245,23 @@ module "condif lead"
 					model.load_agents(null,"#cbPropietario");
 					model.load_pipelines();
 					model.load_status(null,false);
+					model.LoadFields();
 
 					if(Number(model.sys_pk)>0)
+					{
 						model.get_prospecto("#<sys_pk_lead>",true);
-							model.load_module_prospecto();
+						model.load_module_prospecto();
+						model.EditProspecto();
+					}
+
+					model.SetEvents();
 				});
 
-			'
-		}
-		div(class="p-4 bg-white border-bottom")
-		{
-			div(class="d-flex justify-content-end " style="justify-items: center;align-items: center;")
-			{
-				div(class="w-100 rounded" style="height: 8px;background-color: #FCFCFC;" id="dv-color"){""}
-				a(href="..")
-				{
-					$'<svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="currentColor" class="bi bi-x-lg pointer hover-gray" viewBox="0 0 16 16">
-					  <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
-					</svg>'
-				}
-				
-			}
-			h4{"#<text>"}
+				_bitacora.url_ilink="#<url_ilink>";
+				_bitacora._url="#<@URL_BITACORA>";
+				_bitacora.EnableLog("#<@("$./sys_guid")>");
 
-			nav(style="" )
-  			{
-  				div(class="nav nav-tabs" id="nav-tab" role="tablist")
-  				{
-  					a(class="nav-item nav-link active" id="nav-general-tab" "data-bs-toggle"="tab" href="#nav-general" role="tab" "aria-controls"="nav-general" "aria-selected"="false"){"General"}
-  					a(class="nav-item nav-link" id="nav-proposito-tab" "data-bs-toggle"="tab" href="#nav-proposito" role="tab" "aria-controls"="nav-proposito" "aria-selected"="false"){"Propósito"}
-  					a(class="nav-item nav-link" id="nav-control-tab" "data-bs-toggle"="tab" href="#nav-control" role="tab" "aria-controls"="nav-control" "aria-selected"="false"){"Control"}
-  				}
-  			}
-  			div(class="tab-content " id="nav-tabContent" style="")
-  			{
-  				div(class="tab-pane fade show active" id="nav-general" role="tabpanel" "aria-labelledby"="nav-general-tab")
-  				{
-  					div(class="card")
-  					{
-  						div(class="card-body")
-  						{
-  							div(class="column")
-		  					{
-		  						div(class="col-lg-6")
-		  						{
-		  							label{"Nombre:"}
-		  							input(class="form-control form-control-sm" id="txtname"  maxlength="150")
-		  						}
-		  						div(class="col-lg-6")
-		  						{
-		  							label{"Teléfono:"}
-		  							input(class="form-control form-control-sm" id="txtphone" maxlength="100")
-		  						}
-		  						div(class="col-lg-6")
-		  						{
-		  							label{"Correo electrónico:"}
-		  							input(class="form-control form-control-sm" id="txtemail" maxlength="255")
-		  						}
-		  						div(class="col-lg-6")
-		  						{
-		  							label{"Empresa:"}
-		  							input(class="form-control form-control-sm" id="txtempresa" maxlength="100")
-		  						}
-		  						div(class="col-lg-6")
-		  						{
-		  							label{"Puesto:"}
-		  							input(class="form-control form-control-sm" id="txtpuesto" maxlength="100")
-		  						}
-		  					}
-  						}
-  					}
-  					
-  				}
-  				div(class="tab-pane" id="nav-proposito" role="tabpanel" "aria-labelledby"="nav-general-tab")
-  				{
-  					div(class="card")
-  					{
-  						div(class="card-body")
-  						{
-  							div(class="row")
-  							{
-  								div(class="col-lg-6")
-  								{
-  									label{"Asunto"}
-  									input(class="form-control form-control-sm" id="txtasunto" maxlength="150")
-  								}
-  								div(class="col-lg-10")
-  								{
-  									label{"Comentarios"}
-  									textarea(class="form-control form-control-sm" style="height: 299px;resize:none" id="txtcomentarios" maxlength="1024") {""}
-  								}
-  							}
-  						}
-  					}
-  				}
-  				div(class="tab-pane" id="nav-control" role="tabpanel" "aria-labelledby"="nav-general-tab")
-  				{
-  					div(class="card")
-  					{
-  						div(class="card-body")
-  						{
-  							div(class="column")
-  							{
-  								div(class="col-lg-6")
-  								{
-  									label{"Propietario"}
-  									select(class="form-select form-select-sm" id="cbPropietario"){$""}
-  								}
-  								div(class="col-lg-6")
-  								{
-  									label{"Status"}
-  									select(class="form-select form-select-sm" id="cbStatus"){$""}
-  								}
-  								div(class="col-lg-6")
-  								{
-  									label{"Pipeline"}
-  									select(class="form-select form-select-sm" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbPipeline"){$""}
-  								}
-  								div(class="col-lg-6")
-  								{
-  									label{"Stage"}
-  									select(class="form-select form-select-sm" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbStages"){$""}
-  								}
-  								div(class="col-lg-6")
-  								{
-  									label{"Probabilidad de éxito:"}
-  									input(class="form-control form-control-sm" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="txtProbabilidad" placeholder="%" maxlength="12")
-  								}
-  								div(class="col-lg-6")
-  								{
-  									label{"Importe del trato:"}
-  									input(class="form-control form-control-sm" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" onkeyup="model.filterFloat(event,this)" id="txtImporteTrato" maxlength="12")
-  								}
-  								div(class="col-lg-6")
-  								{
-  									label{"Color"}
-  									select(class="form-select form-select-sm" id="cbColors"){$""}
-  								}
-  							}
-  						}
-  					}
-  				}
-  			}
-  			div(class="d-flex justify-content-end")
-  			{
-  				button(class="btn btn-primary m-1" onclick="model.save_prospecto();"){"Aceptar"}
-  				a(class="btn btn-danger m-1" href="#<url>"){"Volver"}
-  			}
+			'
 		}
 	}
 }

@@ -49,6 +49,25 @@ module "listar-prospectos"
     sqlWhere=""
     sqlOrder=" ifnull(uf_fecha,sys_dtcreated) desc "
 
+    permiso=@false
+    module "check privileges"
+    {
+        do dbr.apps.action.grant("VC84")
+        permiso=@true
+        exception{}
+    }
+    if not(permiso)
+    {
+        yoagentes=dbr.str(db,"SELECT GROUP_CONCAT(a.codigo) FROM agente a 
+                    INNER JOIN tuser t ON a.uf_iuser=t.sys_pk WHERE t.userid=@uid",user)
+
+        yoagentes=to.json(split(yoagentes,","))
+        yoagentes=replace(yoagentes,"[","")
+        yoagentes=replace(yoagentes,"]","")
+        
+        sqlWhere="ifnull(uf_perfil,'') in("+yoagentes+")"
+    }
+    
     switch field.dstr(params,"agent_filter","all")
     {
         case "unassigned"
@@ -57,26 +76,7 @@ module "listar-prospectos"
         }
         case "all"
         {
-            permiso=@false
-            module "check privileges"
-            {
-                do dbr.apps.action.grant("VC84")
-                permiso=@true
-                exception{}
-            }
-
             if permiso {sqlWhere="true "}
-            else
-            {
-                yoagentes=dbr.str(db,"SELECT GROUP_CONCAT(a.codigo) FROM agente a 
-                            INNER JOIN tuser t ON a.uf_iuser=t.sys_pk WHERE t.userid=@uid",user)
-
-                yoagentes=to.json(split(yoagentes,","))
-                yoagentes=replace(yoagentes,"[","")
-                yoagentes=replace(yoagentes,"]","")
-                
-                sqlWhere="ifnull(uf_perfil,'') in("+yoagentes+")"
-            }
         }
         default
         {
@@ -131,7 +131,7 @@ module "listar-prospectos"
     if(isnull(uf_proxcontac),'',date_format(uf_proxcontac,'%Y-%m-%dT%T')) next_contact,
     if(not ifnull(uf_contactado,0),'', if(isnull(uf_ultimocontac),'',date_format(uf_ultimocontac,'%Y-%m-%dT%T'))) last_contact,
     if(isnull(uf_ultimointento),'',date_format(uf_ultimointento,'%Y-%m-%dT%T')) last_attempt,
-    ifnull(uf_perfil,'') agent_id, 
+    if(ifnull(uf_perfil,'')='','unassigned',uf_perfil) agent_id, 
     ifnull(uf_status,0) leadstatus,
     uf_interes subject,
     uf_color color, 

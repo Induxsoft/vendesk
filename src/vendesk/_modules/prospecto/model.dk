@@ -2,7 +2,15 @@
 #!
 module ""
 {
-    @table_name="sales_pipeline"
+    @table_name="ut_icontact"
+    existIlinkType::&db
+    {
+        new p{@"detilink":@ILINK_TYPE}
+        pkilink=dbr.str(db,"select ifnull(id,'') from inlink_type where id='DET01C'",p)
+        exception{pkilink=""}
+
+        return trim(pkilink)!=""
+    }
     ValidatePrivileges::&params
     {
         if field.exist(params,"vnts"){do dbr.apps.action.grant("VC80")}//prospectos
@@ -12,14 +20,40 @@ module ""
     list::&db,&params
     {
         do dbr.apps.action.grant("VC80")
+        do errordet(@false)
         do ValidatePrivileges(params)
-        return list.create()
+        ref user=@@(@http_context,"&session/user")
+        
+        sql="SELECT a.codigo,a.nombre
+        from agente a
+        INNER JOIN tuser t ON a.uf_iuser=t.sys_pk
+        WHERE t.userid=@uid"
+
+        url=replace(@URL_GO,"@url",url_encode(@LIST_AGENTES))
+        ref agente=dbr.rec(db,sql,user)
+        if isnull(agente){do rise_error(500,"No estas vinculado a ningún agente <br> <a target='_top' href='"+url+"' class='btn'>Vincular</a>")}
+        
+        new entity
+        {
+            @"entity*":list.create()
+            @"agente*":agente
+        }
+        return entity
     }
     read::&db,&params
     {
         do dbr.apps.action.grant("VC80")
         do ValidatePrivileges(params)
-        return record.create()
+
+        ref entity=entity.read(db,params)
+        using entity
+        {
+            @"bitacora*":dbr.list(db,"SELECT sys_pk,uf_mensaje,uf_usuario,TRIM(uf_tiempo)tiempo 
+                        FROM xt_biticontact WHERE uf_iicontact=@_entity_id
+                        ORDER BY sys_pk DESC LIMIT 250",params)
+            @"exist_ilinktype":existIlinkType(db)
+        }
+        return entity
     }
     blank::&db,&params
     {

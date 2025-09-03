@@ -137,7 +137,7 @@ function stage(data = null, showcancel = true) {
         data = {
             ref_pipeline: idpipeline.value,
             sequence: 0,
-            name: "New Stage",
+            name: "Nueva etapa",
             probability: 0,
             stuck_in_days: 0,
             sys_pk: 0
