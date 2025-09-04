@@ -1,0 +1,85 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    #$
+    div(class="modal fade" id="mdl_tranferir" tabindex="-1" role="dialog" "aria-labelledby"="modalforms" "aria-hidden"="true" "data-keyboard"="false" "data-bs-backdrop"="false")
+    {
+        div(class= "modal-dialog modal-md modal-dialog-centered" role ="document")
+        {
+            div(class="modal-content" )
+            {
+                div(class="modal-header")
+                {
+                    h6(class="modal-title" id=""){$"Tranferir Prospecto"}
+                    button(type="button" class="close border-0" "data-bs-dismiss"="modal" "aria-bs-label"="Close")
+                    {
+                        span ("aria-hidden"="true") {$"&times;"}
+                    }
+                }
+                div(class="modal-body" id="body_tranferir")
+                {
+                    div(class="card")
+                    {
+                        div(class="card-body")
+                        {
+                            form(id="fmr_tranferir")
+                            {
+                                small(class="text-secondary"){$"Propietario:"}
+                                select(class="form-select form-select-sm induxsoft-corners no-shadow" id="mdl_cbAgentes" "ctrl-name"="lead_owner" required="true"){$""}
+                                
+                                small(class="text-secondary"){$"Mensaje:"}
+                                textarea(class="form-control induxsoft-corners no-shadow" rows="3" id="mdl_mensaje" "ctrl-name"="note"){""}
+                            }
+                        }
+                    }
+                }
+                div(class="modal-footer" )
+                {
+                    button(type="button" class="btn btn-sm border-secondary induxsoft-corners v12-context-act-0 list-action" onclick="model.Transferir(false)"){ "Aceptar"}
+                    button(type="button" class="btn btn-sm border-secondary induxsoft-corners v12-context-act-0 list-action" "data-bs-dismiss"="modal"){ "Cerrar"}
+                }
+            }
+        }       
+    }
+    //cambiar estado
+    div(class="modal fade" id="mdl_change_status" tabindex="-1" role="dialog" "aria-labelledby"="modalforms" "aria-hidden"="true" "data-keyboard"="false" "data-bs-backdrop"="false")
+    {
+        div(class= "modal-dialog modal-md modal-dialog-centered" role ="document")
+        {
+            div(class="modal-content" )
+            {
+                div(class="modal-header")
+                {
+                    h6(class="modal-title" id=""){$"Cambiar estado"}
+                    button(type="button" class="close border-0" "data-bs-dismiss"="modal" "aria-bs-label"="Close")
+                    {
+                        span ("aria-hidden"="true") {$"&times;"}
+                    }
+                }
+                div(class="modal-body" id="")
+                {
+                    div(class="card")
+                    {
+                        div(class="card-body")
+                        {
+                            form(id="frm_change_status")
+                            {
+                                small(class="text-secondary"){$"Estado:"}
+                                select(class="form-select form-select-sm induxsoft-corners no-shadow" id="mdl_status" "ctrl-name"="lead_status" required="true"){$""}
+                                
+                                small(class="text-secondary"){$"Mensaje:"}
+                                textarea(class="form-control induxsoft-corners no-shadow" rows="3" id="mdl_mensaje" "ctrl-name"="note"){""}
+                            }
+                        }
+                    }
+                }
+                div(class="modal-footer" )
+                {
+                    button(type="button" class="btn btn-sm border-secondary induxsoft-corners v12-context-act-0 list-action" onclick="model.ChangeStatus(false)"){ "Aceptar"}
+                    button(type="button" class="btn btn-sm border-secondary induxsoft-corners v12-context-act-0 list-action" "data-bs-dismiss"="modal"){ "Cerrar"}
+                }
+            }
+        }       
+    }
+}

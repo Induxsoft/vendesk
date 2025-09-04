@@ -62,7 +62,7 @@ module "Actualizaciones masivas"
             if field.exist(params, "lead_owner") 
             { 
                 ndata<"uf_perfil">:ifstr(@@(params,"$lead_owner")=="unassigned","",@@(params,"$lead_owner")) 
-                log=log+" Propietario "
+                log=log+" Propietario: "+@@(ndata,"$uf_perfil")
             }
 
             if field.exist(params, "lead_status") 
@@ -109,7 +109,7 @@ module "Actualizaciones masivas"
             }
             else
             {
-                 for i=0;i<max
+                for i=0;i<max
                 {
                     do dbr.update(db,"ut_icontact",ndata,"sys_pk=@sys_pk",@item(leads,i))
                     do agregar_log(db,@@(@item(leads,i),"#sys_pk"),log,@@(user,"$name"))

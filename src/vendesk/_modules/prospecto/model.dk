@@ -17,6 +17,15 @@ module ""
         else if field.exist(params,"ps"){do dbr.apps.action.grant("VC70")}//pipelines
         else if field.exist(params,"prc"){}//prospecto
     }
+    CanViewAll::
+    {
+        permiso=@false
+        do dbr.apps.action.grant("VC84")
+        permiso=@true
+        exception{}
+
+        return permiso
+    }
     list::&db,&params
     {
         do dbr.apps.action.grant("VC80")
@@ -31,7 +40,7 @@ module ""
 
         url=replace(@URL_GO,"@url",url_encode(@LIST_AGENTES))
         ref agente=dbr.rec(db,sql,user)
-        if isnull(agente){do rise_error(500,"No estas vinculado a ningún agente <br> <a target='_top' href='"+url+"' class='btn'>Vincular</a>")}
+        if isnull(agente) && not(CanViewAll()){do rise_error(500,"No estas vinculado a ningún agente <br> <a target='_top' href='"+url+"' class='btn'>Vincular</a>")}
         
         new entity
         {

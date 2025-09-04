@@ -44,6 +44,7 @@ module "listar-agentes"
         joins="INNER JOIN tuser t ON c.uf_iuser=t.sys_pk"
         sqlWhere="AND t.userid=@uid"
     }
+    sqlWhere=sqlWhere + " ORDER BY c.nombre ASC"
     ref l=dbr.list(db,ftext(sql),user)
 
     response<"data*">:l

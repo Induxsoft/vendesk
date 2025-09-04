@@ -5,7 +5,7 @@ module "condif lead"
 {
 	#include "functions.dkh"
 	#include "serialize.dkh"
-	#include "../config.dkl"
+	#include "../../config.dkl"
 	#include "../lib.dk"
 	#include "uielements.v12.dkl"
 
@@ -34,7 +34,7 @@ module "condif lead"
 	else{url=".."}
 	
 	exist_ilinktype=@("#./exist_ilinktype")
-	url_ilink="/!/webshell/inlink/?inlink_type=DET01C&trace="+@('$./sys_pk')+"&det=DET01C&key="+@('$./sys_pk')
+	url_ilink="/!/webshell/inlink/?inlink_type=DET0AF&trace="+@('$./sys_pk')+"&det=DET0AF&key="+@('$./sys_pk')
 
 	ref lkeys=list.create_from_fields(@("&parameters"))
 	for i = 0; i < @count(lkeys)
@@ -56,6 +56,8 @@ module "condif lead"
 		}
     }
 	edit_proc=@("#./sys_pk")> 0
+	show_btns_recibido=@("#./uf_status")==0
+	show_btns_oprt=@("#./uf_status")==3
 	#$
 	div(class="container-lg pt-1 ps-3 pe-3" style="background-color:#F5F5F5; min-height:94%;" id="container-clientes")
 	{
@@ -71,8 +73,45 @@ module "condif lead"
 		{
 			div(class="d-flex justify-content-end mb-2 gap-2" )
 			{
+				#!
+				if show_btns_recibido
+				{
+					#$
+					button(class="btn btn-sm border-secondary induxsoft-corners"){"Atendido"}
+					button(class="btn btn-sm border-secondary induxsoft-corners"){"Descartado"}
+					button(class="btn btn-sm border-secondary induxsoft-corners"){"Crear oportunidad"}
+					#!
+				}
+				else if show_btns_oprt
+				{
+					#$
+					button(class="btn btn-sm border-secondary induxsoft-corners"){"Retroceder"}
+					button(class="btn btn-sm border-secondary induxsoft-corners"){"Avanzar"}
+					button(class="btn btn-sm border-secondary induxsoft-corners"){"Ganada"}
+					button(class="btn btn-sm border-secondary induxsoft-corners"){"Perdida"}
+					#!
+				}
+				if edit_proc
+				{
+					#$
+					button(class="btn btn-sm border-secondary induxsoft-corners" title="Próximo contacto"){"Prox. contacto"}
+					button(class="btn btn-sm border-secondary induxsoft-corners" title="Agendar evento"){"Evento"}
+					button(class="btn btn-sm border-secondary induxsoft-corners" title="Congelar")
+					{
+						$'<img src="/$/vendesk/img/icons/restore-freezer.png" style="width: 25px;height: 25px;" /> '
+					}
+					button(class="btn btn-sm border-secondary induxsoft-corners" onclick="model.deleteLead(#<@('#./sys_pk')>,event)" title="Eliminar")
+					{
+						$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+													<path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+													<path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+													</svg>'
+					}
+				}
+				
+
 				span(class="flex-grow-1"){""}
-				button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action #<ifstr(edit_proc,'d-none','')>" onclick="model.save_prospecto();" id="btn_save_proc")
+				button(class="btn btn-sm border-secondary induxsoft-corners #<ifstr(edit_proc,'d-none','')>" onclick="model.save_prospecto();" id="btn_save_proc")
 				{
 					$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-floppy2-fill" viewBox="0 0 16 16">
 						<path d="M12 2h-2v3h2z"></path>
@@ -84,13 +123,13 @@ module "condif lead"
 				 if edit_proc
 				 {
 					#$
-					button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action" onclick="model.EditProspecto(false);" id="btn_edit_proc")
+					button(class="btn btn-sm border-secondary induxsoft-corners " onclick="model.EditProspecto(false);" id="btn_edit_proc")
 					{
 						$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
 						<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/>
 						</svg>'
 					}
-					button(class="btn btn-sm border-secondary induxsoft-corners btn-main-action d-none" onclick="model.CancelEdit(false);" id="btn_cancel_proc")
+					button(class="btn btn-sm border-secondary induxsoft-corners d-none" onclick="model.CancelEdit(false);" id="btn_cancel_proc")
 					{
 						$'Cancelar'
 					}
@@ -101,128 +140,131 @@ module "condif lead"
 				div(class="w-100" style="height: 8px;background-color: #FCFCFC;" id="dv-color"){""}
 			}
 
-			div(class="card")
+			form(onsubmit="return false" id="form_prospecto")
 			{
-				div(class="card-body")
+				div(class="card")
 				{
-					div(class="row")
+					div(class="card-body")
 					{
-						div(class="col-lg-6")
+						div(class="row gx-1")
 						{
-							label(class="fw-bold"){"Nombre:"}
-							input(class="form-control form-control-sm induxsoft-corners" id="txtname"  maxlength="150")
-						}
-						div(class="col-lg-2")
-						{
-							label{"Teléfono:"}
-							input(class="form-control form-control-sm induxsoft-corners" id="txtphone" maxlength="100")
-						}
-						div(class="col-lg-4")
-						{
-							label{"Correo electrónico:"}
-							input(type="email" class="form-control form-control-sm induxsoft-corners" id="txtemail" maxlength="255")
-						}
-						div(class="col-lg-6")
-						{
-							label(class="fw-bold"){"Empresa:"}
-							div(class="input-group ")
+							div(class="col-lg-6 col-md-5")
 							{
-								input(class="form-control form-control-sm induxsoft-corners" id="txtempresa" maxlength="100")
-								div(class="input-group-prepend d-flex")
+								label(class="fw-bold"){"Nombre:"}
+								input(class="form-control form-control-sm induxsoft-corners" id="txtname"  maxlength="150")
+							}
+							div(class="col-lg-2 col-md-3")
+							{
+								label{"Teléfono:"}
+								input(class="form-control form-control-sm induxsoft-corners" id="txtphone" maxlength="100")
+							}
+							div(class="col-lg-4 col-md-4")
+							{
+								label{"Correo electrónico:"}
+								input(type="email" class="form-control form-control-sm induxsoft-corners" id="txtemail" maxlength="255")
+							}
+							div(class="col-lg-6 col-md-6")
+							{
+								label(class="fw-bold"){"Empresa:"}
+								div(class="input-group ")
 								{
-									button(class="input-group-text" id="btn_link_client")
+									input(class="form-control form-control-sm induxsoft-corners" id="txtempresa" maxlength="100")
+									div(class="input-group-prepend d-flex")
 									{
-										$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-link-45deg" viewBox="0 0 16 16">
-										<path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1 1 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4 4 0 0 1-.128-1.287z"/>
-										<path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/>
-										</svg>'
+										button(class="input-group-text" id="btn_link_client" "#<ifstr(edit_proc,'disabled','')>"="")
+										{
+											$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-link-45deg" viewBox="0 0 16 16">
+											<path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1 1 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4 4 0 0 1-.128-1.287z"/>
+											<path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/>
+											</svg>'
+										}
+										button(class="input-group-text" id="btn_clear_cliente" onclick="model.SetClient(true)" "#<ifstr(edit_proc,'disabled','')>"="")
+										{
+											$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">
+											<path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+											</svg>'
+										}
 									}
-									button(class="input-group-text" onclick="model.SetClient(true)")
+								}
+								InputKey(name="inputkye_cliente" id="inputkye_cliente" "data-key"="sys_pk" "data-search"="codigo" "data-text"="nombre" "data-source"="#<@URL_BUSCAR_CLIENTE>" "data-value"="{}" columns="codigo,nombre" colcaptions="Código,Nombre" "control-styles"="#container{display:none !important;}"){$""}
+								
+							}
+							div(class="col-lg-6 col-md-6")
+							{
+								label{"Puesto:"}
+								input(class="form-control form-control-sm induxsoft-corners" id="txtpuesto" maxlength="100")
+							}
+							div(class="col-lg-12")
+							{
+								label(class="fw-bold"){"Asunto:"}
+								input(class="form-control form-control-sm induxsoft-corners" id="txtasunto" maxlength="150")
+							}
+							
+							div(class="col-lg-12")
+							{
+								label{"Comentarios:"}
+								textarea(class="form-control form-control-sm induxsoft-corners" rows="2" id="txtcomentarios" maxlength="1024") {""}
+							}
+							div(class="col-lg-3 col-md-5")
+							{
+								label(class="fw-bold"){"Propietario:"}
+								select(class="form-select form-select-sm induxsoft-corners" id="cbPropietario"){$""}
+							}
+							div(class="col-lg-3 col-md-3")
+							{
+								label{"Status:"}
+								select(class="form-select form-select-sm induxsoft-corners" id="cbStatus"){$""}
+							}
+							div(class="col-lg-3 col-md-3")
+							{
+								label{"Pipeline:"}
+								select(class="form-select form-select-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbPipeline"){$""}
+							}
+							div(class="col-lg-3 col-md-3")
+							{
+								label{"Stage:"}
+								select(class="form-select form-select-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbStages"){$""}
+							}
+							div(class="col-lg-3 col-md-3")
+							{
+								label{"Probabilidad de éxito:"}
+								input(class="form-control form-control-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="txtProbabilidad" placeholder="%" maxlength="12")
+							}
+							div(class="col-lg-3 col-md-3")
+							{
+								label{"Importe del trato:"}
+								input(class="form-control form-control-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" onkeyup="model.filterFloat(event,this)" id="txtImporteTrato" maxlength="12")
+							}
+							div(class="col-lg-3 col-md-3")
+							{
+								label{"Color:"}
+								select(class="form-select form-select-sm induxsoft-corners" id="cbColors"){$""}
+							}
+						}
+
+						#!
+						if @count(bitacora) > 0
+						{
+							#$
+							hr{}
+
+							div(class="table-responsive mt-2" style="height: 28vh;")
+							{
+								#!
+								for i = 0; i < @count(bitacora)
+								{
+									ref bit=@item(bitacora,i)
+									#$
+									div(class="mb-2 p-2 bg-white" style="display: grid;")
 									{
-										$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">
-										<path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
-										</svg>'
+										small{"#<@@(bit,'$uf_mensaje')>"}
+										small(style="font-size: 11px;"){"#<@@(bit,'$uf_usuario')>"}
+										small(style="font-size: 10px;"){"#<@@(bit,'$tiempo')>"}
 									}
 								}
 							}
-							InputKey(name="inputkye_cliente" id="inputkye_cliente" "data-key"="sys_pk" "data-search"="codigo" "data-text"="nombre" "data-source"="#<@URL_BUSCAR_CLIENTE>" "data-value"="{}" columns="codigo,nombre" colcaptions="Código,Nombre" "control-styles"="#container{display:none !important;}"){$""}
 							
 						}
-						div(class="col-lg-6")
-						{
-							label{"Puesto:"}
-							input(class="form-control form-control-sm induxsoft-corners" id="txtpuesto" maxlength="100")
-						}
-						div(class="col-lg-12")
-						{
-							label(class="fw-bold"){"Asunto:"}
-							input(class="form-control form-control-sm induxsoft-corners" id="txtasunto" maxlength="150")
-						}
-						
-						div(class="col-lg-12")
-						{
-							label{"Comentarios:"}
-							textarea(class="form-control form-control-sm induxsoft-corners" rows="2" id="txtcomentarios" maxlength="1024") {""}
-						}
-						div(class="col-lg-3")
-						{
-							label(class="fw-bold"){"Propietario:"}
-							select(class="form-select form-select-sm induxsoft-corners" id="cbPropietario"){$""}
-						}
-						div(class="col-lg-3")
-						{
-							label{"Status:"}
-							select(class="form-select form-select-sm induxsoft-corners" id="cbStatus"){$""}
-						}
-						div(class="col-lg-3")
-						{
-							label{"Pipeline:"}
-							select(class="form-select form-select-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbPipeline"){$""}
-						}
-						div(class="col-lg-3")
-						{
-							label{"Stage:"}
-							select(class="form-select form-select-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbStages"){$""}
-						}
-						div(class="col-lg-3")
-						{
-							label{"Probabilidad de éxito:"}
-							input(class="form-control form-control-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="txtProbabilidad" placeholder="%" maxlength="12")
-						}
-						div(class="col-lg-3")
-						{
-							label{"Importe del trato:"}
-							input(class="form-control form-control-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" onkeyup="model.filterFloat(event,this)" id="txtImporteTrato" maxlength="12")
-						}
-						div(class="col-lg-3")
-						{
-							label{"Color:"}
-							select(class="form-select form-select-sm induxsoft-corners" id="cbColors"){$""}
-						}
-					}
-
-					#!
-					if @count(bitacora) > 0
-					{
-						#$
-						hr{}
-
-						div(class="table-responsive mt-2" style="height: 28vh;")
-						{
-							#!
-							for i = 0; i < @count(bitacora)
-							{
-								ref bit=@item(bitacora,i)
-								#$
-								div(class="mb-2 p-2 bg-white" style="display: grid;")
-								{
-									small{"#<@@(bit,'$uf_mensaje')>"}
-									small(style="font-size: 11px;"){"#<@@(bit,'$uf_usuario')>"}
-									small(style="font-size: 10px;"){"#<@@(bit,'$tiempo')>"}
-								}
-							}
-						}
-						
 					}
 				}
 			}

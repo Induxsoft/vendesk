@@ -22,7 +22,14 @@ var _bitacora=
 var model =
 {
   sOrder: null,
-  data_leads: null, filter_search: [], pipelines_stages: null, isrecord: false, isquit: false, next_contac: null, model_cbStatus: null, cmpipelines: null, isprospecto: false, cbStages: null, data_status: null, text_color_n: "Naranja",
+  data_leads: null, filter_search: [],
+  pipelines_stages: null, 
+  isrecord: false, isquit: false, 
+  next_contac: null, model_cbStatus: null, 
+  cmpipelines: null, isprospecto: false, 
+  cbStages: null, data_status: null, 
+  text_color_n: "Naranja",
+  sys_pk:0,
   invoke_service: function (url, params, callback_success, callback_fail, http_method, reload = true, async = true, autorizations = "") {
     if (!http_method) http_method = "POST";
 
@@ -82,8 +89,8 @@ var model =
     model.model_cbStatus = document.querySelector("#cbStatus");
     model.cmpipelines = document.querySelector("#cbPipeline");
     model.cbStages = document.querySelector("#cbStages");
-
-    if (model.cmpipelines) model.cmpipelines.addEventListener("change", function () 
+    
+    if(model.cmpipelines) model.cmpipelines.addEventListener("change", function () 
     {
       model.load_stages(this.value);
     });
@@ -93,12 +100,13 @@ var model =
     if (model.model_cbStatus) model.model_cbStatus.addEventListener("change", function () 
     {
       var t = this.value;
-      if (t == 3) {
-
+      if (t == 3) 
+      {
         model.enabled_control_prospecto(false);
         if (model.cmpipelines) model.cmpipelines.value = 0;
       }
-      else {
+      else 
+      {
         model.enabled_control_prospecto(true);
       }
     });
@@ -115,13 +123,26 @@ var model =
     if(this.btn_cancel_proc)this.btn_cancel_proc.classList.remove("d-none");
     if(this.btn_edit_proc)this.btn_edit_proc.classList.add("d-none");
     if(this.btn_save_proc)this.btn_save_proc.classList.remove("d-none");
+
+    if(this.btn_link_client)this.btn_link_client.disabled=false;
+    if(this.btn_clear_cliente)this.btn_clear_cliente.disabled=false;
+
+    model.load_module_prospecto();
+    tools.trigger(this.model_cbStatus,"change");
   },
   CancelEdit(show=true)
   {
     if(this.btn_edit_proc)this.btn_edit_proc.classList.remove("d-none");
     if(this.btn_cancel_proc)this.btn_cancel_proc.classList.add("d-none");
     if(this.btn_save_proc)this.btn_save_proc.classList.add("d-none");
+    if(this.btn_link_client)this.btn_link_client.disabled=true;
+    if(this.btn_clear_cliente)this.btn_clear_cliente.disabled=true;
 
+    //cargar los datos del prospecto
+    model.get_prospecto(model.sys_pk,true);
+    
+    // model.EditProspecto();
+    // if(this.form_prospecto)this.form_prospecto.reset();
     this.DisabledElements(this.div_controls.querySelectorAll("input,select,textarea"),true);
   },
   DisabledElements(controls,disabled=true)
@@ -193,17 +214,21 @@ var model =
     }
     return data;
   },
-  getDataFilters: function () {
+  getDataFilters: function () 
+  {
     var cbAgentes = document.querySelector("#cbAgentes");
     var color = document.querySelector("#cbColors");
     var status = document.querySelector("#cbStatus");
 
     if(!cbAgentes || !color || !status)return;
 
-    var params = {
+    var params = 
+    {
       agent_filter: cbAgentes.value == "" ? "unassigned" : cbAgentes.value,
       color_filter: color.value,
       status_filter: status.value == "" ? "999" : status.value,
+      pipeline:this.cmpipelines?.value??0,
+      stage:this.cbStages?.value??0
     }
     return params;
   },
@@ -248,16 +273,66 @@ var model =
     this.btn_link_client=document.getElementById("btn_link_client");
     this.inputkye_cliente=document.getElementById("inputkye_cliente");
     this.txtempresa=document.getElementById("txtempresa");
+    this.btn_clear_cliente=document.getElementById("btn_clear_cliente");
+    this.form_prospecto=document.getElementById("form_prospecto");
+    this.checked_all=document.getElementById("checked_all");
+    this.prospectos=document.querySelector("#prospectos");
+    this.mdl_cbAgentes=document.getElementById("mdl_cbAgentes");
+    this.mdl_status=document.getElementById("mdl_status");
+    this.div_pipeline=document.getElementById("div_pipeline");
+    this.cmpipelines=document.getElementById("cbPipeline");
+    this.cbStages=document.getElementById("cbStages");
+    if(!this.model_cbStatus)this.model_cbStatus=document.getElementById("cbStatus");
   },
   SetEvents()
   {
     if(this.cbAgentes)this.cbAgentes.addEventListener("change",()=>{model.filters_leads(model.getDataFilters());});
     if(this.color)this.color.addEventListener("change",()=>{model.filters_leads(model.getDataFilters());});
-    if(this.status)this.status.addEventListener("change",()=>{model.filters_leads(model.getDataFilters());});
+    if(this.status)this.status.addEventListener("change",()=>
+    {
+      if(this.div_pipeline)this.div_pipeline.classList.add("d-none");
+      if(Number(this.status.value??0)==3 && this.div_pipeline)this.div_pipeline.classList.remove("d-none");
+      
+      model.filters_leads(model.getDataFilters());
+    });
     if(this.btn_link_client)this.btn_link_client.addEventListener("click",()=>{model.ShowInputKey()});
     if(this.inputkye_cliente)this.inputkye_cliente.addEventListener("change",()=>{model.SetClient();});
+    if(this.checked_all)this.checked_all.addEventListener("change",()=>{this.CheckedAll(this.checked_all.checked)});
+    if(this.cmpipelines) model.cmpipelines.addEventListener("change", function () 
+    {
+      model.load_stages(this.value);
+      model.filters_leads(model.getDataFilters());
+    });
+    if(this.cbStages)this.cbStages.addEventListener("change",()=>{model.filters_leads(model.getDataFilters());});
+  },
 
-    
+  CheckedAll(checked=false)
+  {
+    if(!this.prospectos)return;
+
+    let elements=this.prospectos.querySelectorAll("input[type='checkbox']");
+    for (let i = 0; i < elements.length; i++) 
+    {
+      const element = elements[i];
+      if(element)element.checked=checked;
+    }
+  },
+  GetElementsCheked()
+  {
+    var l=[];
+    if(!this.prospectos)return l;
+
+    let elements=this.prospectos.querySelectorAll("input[type='checkbox']");
+    for (let i = 0; i < elements.length; i++) 
+    {
+      const element = elements[i];
+      if(element && element.checked)
+      {
+        var itm={sys_pk:Number(element.value)};
+        l.push(itm);
+      }
+    }
+    return l;
   },
   ShowInputKey()
   {
@@ -284,6 +359,7 @@ var model =
     this.txtempresa.value=data.codigo+":"+data.nombre;
     this.txtempresa.focus();
   },
+  
   load_agents: function (data = null, idsag = "#cbAgentes") 
   {
     if (data == null) data = model.getParameters();
@@ -292,6 +368,7 @@ var model =
     {
       model.load_cb(data, "id", "name", idsag,"",model.agente?.codigo??"");
       if(model.agente)model.filters_leads(model.getDataFilters());
+      if(this.mdl_cbAgentes)model.load_cb(data, "id", "name", "#"+this.mdl_cbAgentes.id);
     },
       function (error) {
         model.alert(error.message);
@@ -304,6 +381,7 @@ var model =
       model.data_status = data;
       model.load_cb(data, "key", "caption", "#cbStatus");
       model.trigger(model.cbStatus, "change");
+      if(this.mdl_status)model.load_cb(data, "key", "caption", "#"+this.mdl_status.id);
     },
       function (error) {
         model.alert(error.message);
@@ -317,7 +395,8 @@ var model =
   },
   load_pipelines: function () {
     var data = model.getParameters();
-    model.invoke_service(model.url_vendesk + "leads/list-pipelines.dkl", data, function (data) {
+    model.invoke_service(model.url_vendesk + "leads/list-pipelines.dkl", data, function (data) 
+    {
       model.pipelines_stages = data;
       model.load_pipelines_();
     },
@@ -359,7 +438,8 @@ var model =
     }
     return ps;
   },
-  getColor: function (color) {
+  getColor: function (color) 
+  {
     var clr = "";
     switch (color) {
       case 0: clr = "background:#FFFFFF !important"; break;
@@ -371,7 +451,8 @@ var model =
     }
     return clr;
   },
-  alertNextContact: function (next_contact) {
+  alertNextContact: function (next_contact) 
+  {
     if (next_contact == null && next_contact == "") return false;
 
     var dt = new Date();
@@ -385,17 +466,21 @@ var model =
     }
     return false;
   },
+  DataArray:[],
+  OnlyRows:false,
   load_table: function (data, idtable) 
   {
     var table = document.querySelector(idtable);
     var body = "";
 
     model.filter_search = ["sys_dtcreated", "next_contact", "subject", "name", "phone", "email", "organization", "position", "remarks", "leadstatus_text", "agent_name"];
+    this.DataArray=data;
     for (var i = 0; i < data.length; i++) 
     {
       var itm = data[i];
       var ps = "";
-      if (itm.leadstatus == 3) {
+      if (itm.leadstatus == 3) 
+      {
         ps = model.getTextPipelineStage(itm);
       }
       var email = itm.email == null ? "" : itm.email;
@@ -406,11 +491,14 @@ var model =
       if (model.alertNextContact(itm.next_contact)) style = "background:red;";
 
       body += `<div class="card bg-white shadow shadow-sm">
-              <div class="d-flex" id="dv-color_${itm.sys_pk}" style="padding-left: 1rem !important;padding-right: 1rem !important;${model.getColor(itm.color)}">
+              <div class="d-flex" id="dv-color_${itm.sys_pk}" style="padding-left: 1rem !important;padding-right: .5rem !important;${model.getColor(itm.color)}">
                 <div class="flex-grow-1">
                   <h6>${itm.subject == null || itm.subject == "" ? "(Sin asunto)" : itm.subject}</h6>
                 </div>
-               <div><smal>${itm.leadstatus_text}</smal></div>
+               <div class="d-flex gap-2 align-items-center">
+                  <smal>${itm.leadstatus_text}</smal>
+                  <input type="checkbox" id="check_action_${itm.sys_pk}" value="${itm.sys_pk}" class="form-check-input" style="transform: scale(1.2);" />
+                </div>
               </div>
                 <hr style="margin: 0;"></hr>
                     <div class="card-body pointer" style="overflow:auto;display: flex;flex-direction: column;" onclick="model.redirec('./${itm.sys_pk}/')">
@@ -458,7 +546,15 @@ var model =
                                 <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1ZM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118ZM2.5 3h11V2h-11v1Z"/>
                               </svg>
                             </a>
+                            
                           </div>
+                          ${itm.sys_info=="freezer" && this.OnlyRows ? `
+                          <div class="card-footer header-items-center border-0 mb-2" style="padding: 0; cursor: default;padding-bottom: 8px; padding-top:6px" title="Descongelar">
+                              <button onclick="model.UnFreezer(${itm.sys_pk},event)" class="border-0">
+                              <img src="/$/vendesk/img/icons/restore-freezer.png" style="width: 25px;height: 25px;" /> 
+                            </button>
+                          </div>`:""}
+                          
                         </div>
 
                       </div>
@@ -467,23 +563,115 @@ var model =
     }
     if (table) table.innerHTML = body;
   },
-  deleteLead: function (sys_pk,event) 
+  Transferir(show=true)
   {
-    var r = model.confirm("¿Esta seguro de eliminar este prospecto?");
+    if(!this.ValidateSelection())return;
+    if(show)tools.showModal("mdl_tranferir");
+    else
+    {
+      this.ActionAll("fmr_tranferir","mdl_tranferir");
+    }
+  },
+  ValidateSelection()
+  {
+    let leads=this.GetElementsCheked();
+    if(leads.length<1)
+    {
+      model.alert("Debe seleccionar algunos prospectos");
+      return false;
+    }
+    return leads;
+  },
+  ActionAll(idfrm,idmodal="")
+  {
+    let data=this.GetControlModal(idfrm,true);
+    if(!data)return;
+    data["leads"]=this.ValidateSelection();
+    data["action"]="update";
+    model.invoke_service(model.url_vendesk + "leads/update-many.dkl", data, function (data) 
+    {
+      model.filter_table();
+      if(this.checked_all)tools.trigger(this.checked_all,"change");
+      if(idmodal)tools.hideModal(idmodal);
+    },
+    function (error) 
+    {
+      model.alert(error.message);
+    }, "POST", false);
+  },
+  GetControlModal(idcontainer,isform=false)
+  {
+    let container=document.getElementById(idcontainer);
+    if(!container) return {};
+
+    if(isform && !container.reportValidity())return null;
+
+    var elements=container.querySelectorAll("input,select,textarea");
+    var itm={}
+    for (let i = 0; i < elements.length; i++) 
+    {
+      const element = elements[i];
+      let control=element.name??element.id;
+      let name=element.getAttribute("ctrl-name");
+      if(name)control=name;
+      
+      itm[name]=element.value;
+
+    }
+    return itm;
+  },
+  ChangeStatus(show=true)
+  {
+    if(!this.ValidateSelection())return;
+    if(show)tools.showModal("mdl_change_status");
+    else
+    {
+      this.ActionAll("frm_change_status","mdl_change_status");
+    }
+  },
+  DeleteSelecteds()
+  {
+    let leads=this.ValidateSelection();
+    if(!leads)return;
+
+    this.deleteLead(0,null,leads);
+  },
+  UnFreezer(sys_pk,event)
+  {
+    if(event)
+    {
+      event.stopPropagation();
+    }
+    let leads=[];
+    if(sys_pk>0)leads.push(sys_pk)
+  },
+  Recicle()
+  {
+
+  },
+  deleteLead: function (sys_pk,event,_leads=null) 
+  {
+    var r = model.confirm("¿Esta seguro de realizar este proceso?");
     if (!r) return;
 
     if(event)
     {
       event.stopPropagation();
     }
-    var lead = { sys_pk: sys_pk }
-    var leads = [];
-    leads.push(lead);
+    var leads = _leads?? [];
+    if(!_leads)
+    {
+      var lead = { sys_pk: sys_pk }
+      leads.push(lead);
+    }
+    
     var data = model.getParameters();
     data["action"] = "delete";
     data["leads"] = leads;
 
-    model.invoke_service(model.url_vendesk + "leads/update-many.dkl", data, function (data) {
+    model.invoke_service(model.url_vendesk + "leads/update-many.dkl", data, function (data) 
+    {
+      if(model.sys_pk>0)window.location.href="..";
       model.filter_table();
     },
       function (error) {
@@ -494,12 +682,14 @@ var model =
     window.location.href = url;
   },
   disabled_controls:false,
-  load_cb: function (data, key, value, idselect, attributes = "",optselected="") 
+  load_cb: function (data, key, value, idselect, attributes = "",optselected="",fisrt_value="",fisrt_text="") 
   {
     var select = document.querySelector(idselect);
     if(!select)return;
 
     var options = (idselect == "#cbAgentes"  || idselect=="#cbPropietario")?`<option value="unassigned">(Sin asignar)</option>`:"";
+    if(fisrt_value)options+=`<option value="${fisrt_value}">${fisrt_text}</option>`;
+
     if (idselect == "#cbAgentes") 
     {
       options += `<option value="all">(Todos los agentes)</option>`;
@@ -548,7 +738,10 @@ var model =
                     </div></div>`;
     }
   },
-  filters_leads: function (params = null) {
+  filters_leads: function (params = null) 
+  {
+    if(model.sys_pk>0)return;
+
     var data = model.getParameters();
     var tbl = document.querySelector("#prospectos");
     model.loadSpinner(tbl);
@@ -564,11 +757,13 @@ var model =
       model.data_leads = data;
       model.load_table(data, "#prospectos");
     },
-    function (error) {
+    function (error) 
+    {
       model.alert(error.message);
     }, "POST", false);
   },
-  filter_table_text: function () {
+  filter_table_text: function () 
+  {
     if (model.data_leads == null) return;
 
     var text = document.querySelector("#txtFilter");
@@ -612,13 +807,16 @@ var model =
         model.alert(error.message);
       }, "POST", false);
   },
-  get_prospecto: function (sys_pk, prospecto = false) {
+  get_prospecto: function (sys_pk, prospecto = false) 
+  {
     var data = model.getParameters();
     data["sys_pk"] = sys_pk;
     data["ids"] = model.ids;
     data["agent_filter"] = "all";
     data["color_filter"] = "-1";
     data["status_filter"] = "-1";
+    
+    if(model.sys_pk>0 && !prospecto)return;
 
     model.invoke_service(model.url_vendesk + "leads/list-leads.dkl", data, function (data) {
       if (data == null) return;
@@ -890,9 +1088,10 @@ var model =
       model.alert("Debe indicar el agente propietario");
       return;
     }
-
+    
     var data = {}
-    if (model.data_leads != null) {
+    if (model.data_leads != null) 
+    {
       for (var i = 0; i < model.data_leads.length; i++) 
       {
         var itm = model.data_leads[i];
@@ -932,10 +1131,22 @@ var model =
     for (var key in dt) {
       data[key] = dt[key];
     }
+    if(Number(cbStatus.value??0)==4 || Number(cbStatus.value??0)==5)
+    {
+      if((cbPropietario.value.trim()=="unassigned" || Number(cbPropietario.value??0) < 1))
+      {
+        model.alert("Debe indicar el agente propietario");
+        return;
+      }
+    }
     //si es oportunidad
     if (Number(cbStatus.value) == 3) 
     {
-
+      if((cbPropietario.value.trim()=="unassigned" || Number(cbPropietario.value??0) < 1))
+      {
+        model.alert("Debe indicar el agente propietario");
+        return;
+      }
       if (cbPipeline.value.trim() == "") 
       {
         model.alert("Debe indicar un pipeline");
@@ -961,24 +1172,46 @@ var model =
     }, "POST", false);
 
   },
-  load_stages: function (sys_pk) {
-    if (model.pipelines_stages != null) {
-      for (var i = 0; i < model.pipelines_stages.length; i++) {
+  load_stages: function (sys_pk) 
+  {
+    if (model.pipelines_stages != null) 
+    {
+      for (var i = 0; i < model.pipelines_stages.length; i++) 
+      {
         var itm = model.pipelines_stages[i];
-        if (itm.sys_pk == sys_pk) {
-          model.load_cb(itm.stages, "sys_pk", "name", "#cbStages");
+        if (itm.sys_pk == sys_pk) 
+        {
+          this.LoadStagesPipeline(itm.stages);
           break;
         }
       }
     }
   },
-  load_pipelines_: function () {
-    if (model.pipelines_stages != null) {
-      model.load_cb(model.pipelines_stages, "sys_pk", "name", "#cbPipeline");
-    }
-    if (model.cmpipelines) model.cmpipelines.value = 0;
+  LoadStagesPipeline(stages)
+  {
+    if(!this.div_pipeline)
+      model.load_cb(stages, "sys_pk", "name", "#cbStages");
+    else model.load_cb(stages, "sys_pk", "name", "#cbStages","","","all","(Todos)");
   },
-  load_module_prospecto: function () {
+  load_pipelines_: function () 
+  {
+    if (model.pipelines_stages != null) 
+    {
+      if(!this.div_pipeline)
+      {
+        model.load_cb(model.pipelines_stages, "sys_pk", "name", "#cbPipeline");
+        if (model.cmpipelines) model.cmpipelines.value = 0;
+      }
+      else 
+      {
+        model.load_cb(model.pipelines_stages, "sys_pk", "name", "#cbPipeline","","","all","(Todos)");
+        this.LoadStagesPipeline([]);
+      }
+    }
+    
+  },
+  load_module_prospecto: function () 
+  {
     model.isprospecto = true;
     model.load_colors(false);
     model.Init_prospecto();
@@ -991,10 +1224,12 @@ var model =
     }
 
   },
-  load_data_lead: function () {
+  load_data_lead: function () 
+  {
     if (Number(model.sys_pk) <= 0) return;
 
-    if (model.data_leads != null) {
+    if (model.data_leads != null) 
+    {
       model.load_boxes();
       if (model.model_cbStatus != null && model.model_cbStatus.childNodes.length <= 0) { model._load_status_(); }
       if (model.cmpipelines != null && model.cmpipelines.childNodes.length <= 0) { model.load_pipelines_(); }
@@ -1116,7 +1351,8 @@ var model =
     }
 
   },
-  orderBy: function (field) {
+  orderBy: function (field) 
+  {
     if (model.data_leads == null) return;
 
     var data = model.data_leads.sort((a, b) => {
