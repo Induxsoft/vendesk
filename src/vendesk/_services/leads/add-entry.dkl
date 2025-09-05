@@ -7,6 +7,10 @@ module "listar-agentes"
 	#include "serialize.dkh"
     #include "webcl.dkh"
     #include "website.dkl"
+    #include "dbr.security.dkl"
+	#include "dbr.events.dkl"
+    #include "dbr.vars.dkl"
+	#include "dbr.apps.dkl"
 
     do cors_xhr()
     if @@(@http_context,"request/headers/REQUEST_METHOD")=="OPTIONS"{return}
@@ -19,14 +23,15 @@ module "listar-agentes"
 
     ref params=from.json(field.dstr(@http_context,"request/post_string","{}"))
 
-    ref res=validarAcceso(params)
+    do dbr.apps.action.grant("VC81")
     
     if not(field.exist(params,"lead_sys_pk"))
     {
         do rise_error(0,"Falta el parámetro 'lead_sys_pk'")
     }
 
-    ref db=openStoreDB(@@(res,"data/storeid"))
+    ref db=@@(@http_context,"&session/idp/database")
+    ref user=@@(@http_context,"&session/user")
 
     new newEntry{}
 
@@ -38,7 +43,7 @@ module "listar-agentes"
             @"uf_mensaje":@@(params,"text")
             @"uf_tiempo*":dbr.sql("NOW()")
             @"uf_iicontact":@@(params,"lead_sys_pk")
-            @"uf_usuario":cut(@@(res,"data/uname"),50)
+            @"uf_usuario":cut(@@(user,"$name"),50)
         }
 
         do dbr.insert(db,"xt_biticontact",note)

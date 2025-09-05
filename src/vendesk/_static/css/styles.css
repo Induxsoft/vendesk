@@ -111,9 +111,10 @@ body
 {
   box-shadow: none !important;
 }
-
+/* media query lg */
 @media screen and (max-width: 1000px) 
 {
+  
   #container-card
   {
     padding: 0 !important;
@@ -139,6 +140,7 @@ body
   {
     justify-content: center !important;
   }
+  
   .btn-w-100,.btn-w-100>button{width: 100% !important;}
   .div-w-100{width: 100% !important;}
   .grid-modal{grid-template-columns: 100% !important;}
@@ -147,4 +149,12 @@ body
   #dv-select-orderby{width: 100% !important;}
   #dv-cont-order{padding: 0 !important;}
 
+}
+/* media query md */
+@media screen and (max-width: 780px) 
+{
+  .d-block-media{display: block !important;}
+  .btn-w-50{width: 50% !important;}
+  .mt-md{margin-top: 4px !important;}
+  .w-100-md{width: 100% !important;}
 }

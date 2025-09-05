@@ -179,7 +179,8 @@ module "config.dkl"
 	//* ======================================== [ _PACKAGE ]
 	@VDK_CLIENTE = "/!/vendesk/cliente/"
 	@VDK_PIPELINE = "/!/vendesk/sales_pipeline/"
-
+	@VDK_PROSPECTO="/!/vendesk/prospecto/"
+	@VDK_PROSPECTO_NEW=@VDK_PROSPECTO +"_new/"
 	@URL_ROOT_GO="/?go=@url"
 
 	@CONFIG_NOTIF_LIST="/!/vendesk/notif/"
@@ -206,6 +207,9 @@ module "config.dkl"
 	@URL_CLIENT_CASE_LIST="/!/vendesk/cliente/_detail/?_key=@cliente&i=case"
 	@URL_CLIENT_CASE="/!/vendesk/cliente/_detail/?_case=@case&_key=@cliente"
 	@URL_BUSCAR_CLIENTE = "/!/vendesk/cliente/?text_filter=@search"
+	@URL_INLINK_PROSPECTO="/!/webshell/inlink/?inlink_type=DET0AF&trace=@trace&det=DET0AF&key=@key"
+	@ILINK_TYPE="DET095"//Administración de casos
+	@URL_INLINK_CASO="/!/webshell/inlink/?inlink_type="+@ILINK_TYPE+"&trace=@trace&det="+@ILINK_TYPE+"&key=@key"
 	//Eventos que por el momento generarán notificaciones:
 	@EVENTS_ACTIVE_NOTIF="VC13,VC21,VC22,VC23,VC24,VC26,VC27"
 
@@ -229,5 +233,5 @@ module "config.dkl"
 	@AUT_ACCESS_ADMIN_CASOS="FX3-CRM-30-100"
 
 	@MAX_ROWS_LIMIT= 250
-	@ILINK_TYPE="DET095"
+	
 }

@@ -36,15 +36,14 @@ module
 	                    			{$""
 	                    			}
                     			}
-                    			
                     		}
                     	}
                             
                     }
                     div(class="modal-footer" id="ftrAddClt")
                     {
-                        button(type="button" onclick="model.save_registro();" id="btnAceptardml" class="btn btn-sm btn-primary") {$"Aceptar"}
-                        button(type="button" id="close" class="btn btn-sm btn-light close" "data-bs-dismiss"="modal") {$"Cerrar"}
+                        button(type="button" onclick="model.save_registro(true);" id="btnAceptardml" class="btn btn-sm border-secondary induxsoft-corners v12-context-act-0 list-action") {$"Aceptar"}
+                        button(type="button" id="close" class="btn btn-sm border-secondary induxsoft-corners v12-context-act-0 list-action close" "data-bs-dismiss"="modal") {$"Cerrar"}
                     }
                 }
             }       

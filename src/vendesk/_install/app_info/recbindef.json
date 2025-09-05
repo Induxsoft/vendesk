@@ -1,0 +1,9 @@
+[
+    {
+        "det":"DET0AF",
+        "qbrowser":"SELECT u.sys_pk,u.uf_nombre nombre,u.uf_empresa empresa,u.uf_puesto puesto,u.uf_interes interes, u.uf_comentarios comentario,u.uf_perfil usuario,(case u.uf_status WHEN 0 then 'Recibido' when 1 then 'Atendido' when 2 then 'Descartado' when 3 then 'Oportunidad' when 4 then 'Ganado' when 5 then 'Pedido' ELSE '(Por atender)' END )AS estado FROM ut_icontact u WHERE IFNULL(u.sys_deleted,0)=1",
+        "qrestore":"update ut_icontact set sys_deleted=0 where sys_pk=@sys_pk",
+        "qforze":"update ut_icontact set sys_deleted=0 where sys_pk=@sys_pk",
+        "qdelete":"delete from ut_icontact where sys_pk=@sys_pk;"
+    }
+]

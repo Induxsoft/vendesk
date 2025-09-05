@@ -41,7 +41,9 @@ module "view.caso"
     }
 
 	exist_ilinktype=@("#./exist_ilinktype")
-	url="/!/webshell/inlink/?inlink_type="+@ILINK_TYPE+"&trace="+@('$./caso/sys_pk')+"&det="+@ILINK_TYPE+"&key="+@('$./caso/sys_pk')
+
+	url=replace(@URL_INLINK_CASO,"@trace",@('$./caso/sys_pk'))
+	url=replace(url,"@key",@('$./sys_pk'))
 
 	ref lkeys=list.create_from_fields(@("&parameters"))
 	for i = 0; i < @count(lkeys)
@@ -338,7 +340,7 @@ module "view.caso"
 						var webshell=window.top.WebShell;
 						if(webshell)
 						{
-							webshell.Panels.Show(webshell.Panels.Const.Left,"#<url>");
+							webshell.Panels.Show(webshell.Panels.Const.Left,"#<url>","Relacionados");
 						}
 						else console.warn("No se pudo obtener el elemento de webshell");
 					}

@@ -1,0 +1,141 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+    do @context.begin(@crud_context)
+	ref @http_context = @("&http")
+    PATH_TRANSLATED = field.dstr(@http_context,'request/headers/PATH_TRANSLATED','')
+	PATH_TRANSLATED = path.concat(dir.name(PATH_TRANSLATED),"_modules/freezer.dk")
+	
+	@SITE_INCLUDES="config.dkl,lib.dk"
+	@http_context<"request/headers/PATH_TRANSLATED"> : replace(PATH_TRANSLATED,"\\","/")
+	
+	#include "website.dkl"
+
+    new nav_config
+    {
+        @"title": "Congeladora"
+        @"urlexit": ".."
+        @"jscurrentcontext": ""
+		member @"hidden"
+		{
+			@"print":@true
+			@"csv":@true
+			@"copy":@true
+		}
+    }
+
+    #$
+	div(class="pt-1 ps-3 pe-3" style="background-color:#F5F5F5; min-height:94%;" id="container-ventas")
+	{
+		section(id="top_area")
+		{
+			#! 
+            do uie.printV12FormBar(nav_config)
+            #$
+		}
+        div(class="p-4 bg-white border-bottom" id="container-card")
+		{			
+			#$ 
+			script(src="#<@JS_MODEL>"){""}
+			script
+			{
+				$'
+					model.url="#<@url_service_workspace>";
+					model.url_vendesk="#<@url_service_vendesk>";
+					model.ids="#<@@(@http_context,"session/user/ids")>";
+					model.ws="#<@@(@http_context,"request/get/ws")>";
+				'
+			}
+            div(class="module-filter")
+            {
+                div(class="row gy-1")
+                {
+                    div(class="col-md-8")
+                    {
+                        div(class="flex-grow-1")
+                        {
+                            "filter-text"(
+                                "id"="text_filter"
+                                "text-field"="text_filter"
+                                "placeholder"="Buscar..."
+                                "form"=""
+                                "value"=""
+                                "auto-submit"="true"
+                                "class"="w-100"
+                            ){$""}
+                        }
+                    }
+                    div(class="col-md-4")
+                    {
+                        label
+                        {
+                            input(type="checkbox" class="input-form-check" id="myleads" name="myleads" "#<ifstr(@('#./hash_privg'),'checked','')>"="true" "#<ifstr(@('#./hash_privg'),'disabled','')>"="true")
+                            "Mis prospectos"
+                        }
+                    }
+                    div(class="col-lg-2")
+                    {
+                        label(class="d-flex gap-2")
+                        {
+                            input(type="checkbox" id="checked_all" name="checked_all" class="form-check-input" style="transform: scale(1.2);")
+                            "Seleccionar todos"
+                        }
+                    }
+                    div(class="col-lg-6 mb-1 p-1" style="border: 1px solid lightgray;")
+                    {
+                        div(class="d-flex gap-2 w-100")
+                        {
+                            div(class="w-50 w-100-md")
+                            {
+                                label{"Agente:"}
+                                select(class="form-select induxsoft-corners no-shadow" id="frezr_cbAgentes"){$""}
+                            }
+                            
+                            div(class="mt-4")
+                            {
+                                button(onclick="model.UnFreezer()" class="btn btn-sm border-secondary induxsoft-corners no-print v12-context-act-0 list-action" title="Descongelar")
+                                {
+                                    $'<img src="/$/vendesk/img/icons/restore-freezer.png" style="width: 20px;height: 25px;" /> '
+                                }
+                            }
+                            
+                        }
+                        
+                    }
+                }
+            }
+            hr{}
+            div(class="table-responsive" style="max-height:72vh")
+            {
+                div(class="grid-container" id="prospectos")
+                {
+                    $""
+                    div(class="d-flex placeholder-glow")
+                    {
+                        div(class="placeholder"){$""}
+                    }
+                }
+            }
+        }
+        #$
+		script
+		{
+			$'
+				$(document).ready(function()
+				{
+					model.source="";
+					model.sourceId="";
+                    model.IsFreezer=true;
+                    model.ids="#<@@(@http_context,"session/user/ids")>";
+				    model.uid="#<@@(@http_context,"session/user/uid")>";
+                    model.filters_leads(model.getDataFiltersFreezer());
+				});
+				
+			'
+		}
+    }
+}

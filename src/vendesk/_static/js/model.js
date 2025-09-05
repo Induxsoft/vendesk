@@ -103,10 +103,11 @@ var model =
       if (t == 3) 
       {
         model.enabled_control_prospecto(false);
-        if (model.cmpipelines) model.cmpipelines.value = 0;
       }
       else 
       {
+        if (model.cmpipelines) model.cmpipelines.value = "";
+        if(model.cbStages)model.cbStages.value="";
         model.enabled_control_prospecto(true);
       }
     });
@@ -117,6 +118,7 @@ var model =
     if(!this.div_controls)return;
     this.disabled_controls=disabled;
     this.DisabledElements(this.div_controls.querySelectorAll("input,select,textarea"),disabled);
+    this.DisabledElements(this.div_controls.querySelectorAll("button.btn-disabled"),!disabled);
 
     if(disabled)return;
 
@@ -140,10 +142,9 @@ var model =
 
     //cargar los datos del prospecto
     model.get_prospecto(model.sys_pk,true);
-    
-    // model.EditProspecto();
-    // if(this.form_prospecto)this.form_prospecto.reset();
+
     this.DisabledElements(this.div_controls.querySelectorAll("input,select,textarea"),true);
+    this.DisabledElements(this.div_controls.querySelectorAll("button.btn-disabled"),false);
   },
   DisabledElements(controls,disabled=true)
   {
@@ -163,22 +164,20 @@ var model =
   },
   load_boxes: function () 
   {
-    model.name = document.querySelector("#txtname");
-    model.txtphone = document.querySelector("#txtphone");
-    model.txtemail = document.querySelector("#txtemail");
-    model.txtempresa = document.querySelector("#txtempresa");
-    model.txtpuesto = document.querySelector("#txtpuesto");
-    model.txtasunto = document.querySelector("#txtasunto");
-    model.txtcomentarios = document.querySelector("#txtcomentarios");
-    model.cbPropietario = document.querySelector("#cbPropietario");
-    model.cbStatus = document.querySelector("#cbStatus");
-    model.cbPipeline = document.querySelector("#cbPipeline");
-    model.cbStages = document.querySelector("#cbStages");
-    model.txtProbabilidad = document.querySelector("#txtProbabilidad");
-    model.txtImporteTrato = document.querySelector("#txtImporteTrato");
-    model.cbColor = document.querySelector("#cbColors");
-
-
+    if(!model.name)model.name = document.querySelector("#txtname");
+    if(!model.txtphone)model.txtphone = document.querySelector("#txtphone");
+    if(!model.txtemail)model.txtemail = document.querySelector("#txtemail");
+    if(!model.txtempresa)model.txtempresa = document.querySelector("#txtempresa");
+    if(!model.txtpuesto)model.txtpuesto = document.querySelector("#txtpuesto");
+    if(!model.txtasunto)model.txtasunto = document.querySelector("#txtasunto");
+    if(!model.txtcomentarios)model.txtcomentarios = document.querySelector("#txtcomentarios");
+    if(!model.cbPropietario)model.cbPropietario = document.querySelector("#cbPropietario");
+    if(!model.cbStatus)model.cbStatus = document.querySelector("#cbStatus");
+    if(!model.cbPipeline)model.cbPipeline = document.querySelector("#cbPipeline");
+    if(!model.cbStages)model.cbStages = document.querySelector("#cbStages");
+    if(!model.txtProbabilidad)model.txtProbabilidad = document.querySelector("#txtProbabilidad");
+    if(!model.txtImporteTrato)model.txtImporteTrato = document.querySelector("#txtImporteTrato");
+    if(!model.cbColor)model.cbColor = document.querySelector("#cbColors");
   },
   enabled_control_prospecto: function (enabled) {
     var txtProbabilidad = document.querySelector("#txtProbabilidad");
@@ -232,6 +231,40 @@ var model =
     }
     return params;
   },
+  setEvetsBool:false,
+  lastText:"%",
+  getDataFiltersFreezer(text="%")
+  {
+    // let txtFilter=document.getElementById("txtFilter");
+    let myleads=document.getElementById("myleads");
+    let text_filter=document.getElementById("text_filter");
+    this.lastText=text;
+
+    if(text_filter && !this.setEvetsBool)
+    {
+        text_filter._submitFilter=(ipt_search, ipt_hidden)=>
+        {
+          ipt_hidden.value = ipt_search.value;
+          model.filters_leads(model.getDataFiltersFreezer(ipt_hidden.value));
+          text_filter.action_handler(text_filter.actions.bloquear);
+        }
+        if(myleads)myleads.addEventListener("change",()=>{model.filters_leads(model.getDataFiltersFreezer(this.lastText));});
+
+        model.LoadFields();
+        model.SetEvents();
+        model.load_agents(null,"#frezr_cbAgentes","unassigned","(Sin asignar)");
+        this.setEvetsBool=true;
+    }
+    if(!text)text="%";
+    var params=
+    {
+      text:text,
+      special:"freezer",
+      agent_filter:myleads.checked?model.uid:""
+    }
+
+    return params;
+  },
   Init: function () 
   {
     var data =
@@ -282,6 +315,8 @@ var model =
     this.div_pipeline=document.getElementById("div_pipeline");
     this.cmpipelines=document.getElementById("cbPipeline");
     this.cbStages=document.getElementById("cbStages");
+    this.mdl_cbPipeline=document.getElementById("mdl_cbPipeline");
+    this.mdl_cbStages=document.getElementById("mdl_cbStages");
     if(!this.model_cbStatus)this.model_cbStatus=document.getElementById("cbStatus");
   },
   SetEvents()
@@ -301,9 +336,13 @@ var model =
     if(this.cmpipelines) model.cmpipelines.addEventListener("change", function () 
     {
       model.load_stages(this.value);
-      model.filters_leads(model.getDataFilters());
+      if(model.sys_pk<1)model.filters_leads(model.getDataFilters());
     });
     if(this.cbStages)this.cbStages.addEventListener("change",()=>{model.filters_leads(model.getDataFilters());});
+    if(this.mdl_cbPipeline)this.mdl_cbPipeline.addEventListener("change",()=>
+    {
+      model.load_stages(this.mdl_cbPipeline.value,"#"+(this.mdl_cbStages.id??"otro"));
+    });
   },
 
   CheckedAll(checked=false)
@@ -360,13 +399,13 @@ var model =
     this.txtempresa.focus();
   },
   
-  load_agents: function (data = null, idsag = "#cbAgentes") 
+  load_agents: function (data = null, idsag = "#cbAgentes",fvalue="",ftext="") 
   {
     if (data == null) data = model.getParameters();
 
     model.invoke_service(model.url_vendesk + "leads/list-agents.dkl", data, function (data) 
     {
-      model.load_cb(data, "id", "name", idsag,"",model.agente?.codigo??"");
+      model.load_cb(data, "id", "name", idsag,"",model.agente?.codigo??"",fvalue,ftext);
       if(model.agente)model.filters_leads(model.getDataFilters());
       if(this.mdl_cbAgentes)model.load_cb(data, "id", "name", "#"+this.mdl_cbAgentes.id);
     },
@@ -374,12 +413,14 @@ var model =
         model.alert(error.message);
       }, "POST", false);
   },
-  load_status: function (data = null, async = true) {
+  load_status: function (data = null, async = true,selected="") 
+  {
     if (data == null) data = model.getParameters();
 
     model.invoke_service(model.url_vendesk + "leads/list-lead-status.dkl", data, function (data) {
       model.data_status = data;
-      model.load_cb(data, "key", "caption", "#cbStatus");
+      model.load_cb(data, "key", "caption", "#cbStatus","",selected);
+      console.log(model.cbStatus)
       model.trigger(model.cbStatus, "change");
       if(this.mdl_status)model.load_cb(data, "key", "caption", "#"+this.mdl_status.id);
     },
@@ -466,8 +507,21 @@ var model =
     }
     return false;
   },
+  LoadDataAllStages()
+  {
+    let element=document.querySelector("prospectos");
+    if(!element)return false;
+
+    if(model.cbStages.value!="all")
+    {
+      element.classList.add("grid-container");
+      return false;
+    }
+    element.classList.remove("grid-container");
+  },
   DataArray:[],
   OnlyRows:false,
+  IsFreezer:false,
   load_table: function (data, idtable) 
   {
     var table = document.querySelector(idtable);
@@ -478,19 +532,25 @@ var model =
     for (var i = 0; i < data.length; i++) 
     {
       var itm = data[i];
-      var ps = "";
-      if (itm.leadstatus == 3) 
-      {
-        ps = model.getTextPipelineStage(itm);
-      }
-      var email = itm.email == null ? "" : itm.email;
-      var org = itm.organization == null ? "" : itm.organization;
-      var pos = itm.position == null ? "" : itm.position;
+      body += this.CreateItem(itm);
+    }
+    if (table) table.innerHTML = body;
+  },
+  CreateItem(itm)
+  {
+    var ps = "";
+    if (itm.leadstatus == 3) 
+    {
+      ps = model.getTextPipelineStage(itm);
+    }
+    var email = itm.email == null ? "" : itm.email;
+    var org = itm.organization == null ? "" : itm.organization;
+    var pos = itm.position == null ? "" : itm.position;
 
-      var style = "";
-      if (model.alertNextContact(itm.next_contact)) style = "background:red;";
+    var style = "";
+    if (model.alertNextContact(itm.next_contact)) style = "background:red;";
 
-      body += `<div class="card bg-white shadow shadow-sm">
+    return `<div class="card bg-white shadow shadow-sm">
               <div class="d-flex" id="dv-color_${itm.sys_pk}" style="padding-left: 1rem !important;padding-right: .5rem !important;${model.getColor(itm.color)}">
                 <div class="flex-grow-1">
                   <h6>${itm.subject == null || itm.subject == "" ? "(Sin asunto)" : itm.subject}</h6>
@@ -501,8 +561,8 @@ var model =
                 </div>
               </div>
                 <hr style="margin: 0;"></hr>
-                    <div class="card-body pointer" style="overflow:auto;display: flex;flex-direction: column;" onclick="model.redirec('./${itm.sys_pk}/')">
-                      <div class="justify-items-center pointer flex-grow-1" >
+                    <div class="card-body ${this.IsFreezer?"":"pointer"}" style="overflow:auto;display: flex;flex-direction: column;" onclick="${this.IsFreezer?"":`model.redirec('./${itm.sys_pk}/')`}">
+                      <div class="justify-items-center ${this.IsFreezer?"":"pointer"} flex-grow-1" >
                         <b><smal>${itm.name}</smal> </b><br>
                         <smal>${itm.phone}</smal>${itm.phone == "" ? "" : "<br>"}
                         <smal>${email}</smal>${email == "" ? "" : "<br>"}
@@ -526,7 +586,7 @@ var model =
                           <div class="d-flex justify-content-end">
                               <b></b><smal style="font-size: small;">${itm.sys_dtcreated}</smal>
                           </div>
-                          <div class="card-footer header-items-center" style="padding: 0; cursor: default;">
+                          <div class="card-footer header-items-center ${this.IsFreezer?"d-none":""}" style="padding: 0; cursor: default;">
                             <div class="btn-group d-inline-block flex-wrap mt-1 flex-grow-1" id="group-colors">
                               <button type="button" onclick="model.setColor(${itm.sys_pk},0,event);" style="background-color:#FFFFFF;" title="Sin color" class="color border"></button>
                               <button type="button" onclick="model.setColor(${itm.sys_pk},1,event);" style="background-color:#fd7e14;" title="${model.text_color_n}" class="color border"></button>
@@ -560,8 +620,6 @@ var model =
                       </div>
                      
                 </div>`;
-    }
-    if (table) table.innerHTML = body;
   },
   Transferir(show=true)
   {
@@ -593,6 +651,64 @@ var model =
       model.filter_table();
       if(this.checked_all)tools.trigger(this.checked_all,"change");
       if(idmodal)tools.hideModal(idmodal);
+    },
+    function (error) 
+    {
+      model.alert(error.message);
+    }, "POST", false);
+  },
+  what_action:0,
+  lastIdModal:"",
+  LastIdForm:"",
+  GanadaPerdidaOP(show=true,action=0)
+  {
+    if(show)
+    {
+      if(action!=3)
+      {
+        lastIdModal="mdl_ganada_perdida";
+        LastIdForm="frm_ganada_perdida"
+      }
+      else 
+      {
+        lastIdModal="mdl_oportunidad"
+        LastIdForm="frm_oportunidad"
+      }
+
+      tools.showModal(lastIdModal);
+      what_action=action;
+    }
+    else
+    {
+      let data=this.GetControlModal(LastIdForm,true);
+      if(!data)return;
+      data["lead_status"]=what_action;
+      this.ActionLead(model.sys_pk,data);
+    }
+  },
+  ActionLead(sys_pk,data=null,event=null,leads=null)
+  {
+    if(!data || Object.keys(data).length<1)
+    {
+      model.alert("Debe indicar datos");
+      return;
+    }
+    
+    if(event)event.stopPropagation();
+
+    if(!leads)leads=[];
+    if(sys_pk>0)leads.push({sys_pk:sys_pk});
+    if(leads.length<1)
+    {
+      model.alert("Debe indicar un prospecto");
+      return;
+    }
+    data["leads"]=leads;
+    data["action"]="update";
+    model.invoke_service(model.url_vendesk + "leads/update-many.dkl", data, function (data) 
+    {
+      if(model.sys_pk>0)window.location.reload();
+      else window.location.href="..";
     },
     function (error) 
     {
@@ -636,14 +752,64 @@ var model =
 
     this.deleteLead(0,null,leads);
   },
-  UnFreezer(sys_pk,event)
+  Freezer(sys_pk,event,leads=null)
   {
     if(event)
     {
       event.stopPropagation();
     }
-    let leads=[];
-    if(sys_pk>0)leads.push(sys_pk)
+    if(!leads)leads=[];
+    if(sys_pk>0)leads.push({sys_pk:sys_pk});
+
+    if(leads.length<1)
+    {
+      model.alert("Debe indicar un prospecto");
+      return;
+    }
+    var data={};
+    data["action"] = "update";
+    data["lead_owner"] = "freezer";
+    data["leads"] = leads;
+
+    model.invoke_service(model.url_vendesk + "leads/update-many.dkl", data, function (data) 
+    {
+      if(model.sys_pk>0){window.location.href="..";}
+    },
+      function (error) {
+        model.alert(error.message);
+      }, "POST", false);
+  },
+  UnFreezer(sys_pk=0,event=null)
+  {
+    if(event)
+    {
+      event.stopPropagation();
+    }
+    let frezr_cbAgentes=document.getElementById("frezr_cbAgentes");
+    let leads=this.GetElementsCheked();
+    if(sys_pk>0)leads.push(sys_pk);
+
+    if(leads.length<1)
+    {
+      model.alert("Debe seleccionar un prospecto");
+      return;
+    }
+
+    var data={};
+    data["action"] = "update";
+    data["lead_owner"] = frezr_cbAgentes.value??"unassigned";
+    data["leads"] = leads;
+
+    model.invoke_service(model.url_vendesk + "leads/update-many.dkl", data, function (data) 
+    {
+      model.filters_leads(model.getDataFiltersFreezer());
+    },
+      function (error) {
+        model.alert(error.message);
+      }, "POST", false);
+  },
+  NextContact()
+  {
   },
   Recicle()
   {
@@ -682,6 +848,10 @@ var model =
     window.location.href = url;
   },
   disabled_controls:false,
+  FindControl(idctrl)
+  {
+    return document.querySelector("#div_controls "+idctrl);
+  },
   load_cb: function (data, key, value, idselect, attributes = "",optselected="",fisrt_value="",fisrt_text="") 
   {
     var select = document.querySelector(idselect);
@@ -707,9 +877,13 @@ var model =
       options += `<option ${attributes} ${optselected==eval("itm." + key) ? "selected":""} value="${eval("itm." + key)}" ${slected}>${eval("itm." + value)}</option>`;
     }
     select.innerHTML = options;
-    if(Number(model.sys_pk)>0)select.disabled=true;
+
+    let btn_edit_proc=document.getElementById("btn_edit_proc");
+    let ctrl_disabled=(btn_edit_proc && btn_edit_proc.classList.contains("d-none"));
+    if(Number(model.sys_pk)>0 && !ctrl_disabled && this.FindControl(idselect))select.disabled=true;
   },
-  load_colors: function (all = true) {
+  load_colors: function (all = true) 
+  {
     var al = "";
     if (all) al = `<option value="-1">(Todos)</option>`;
     var cols = `${al}
@@ -740,7 +914,7 @@ var model =
   },
   filters_leads: function (params = null) 
   {
-    if(model.sys_pk>0)return;
+    if(model.sys_pk>0 || this.isform)return;
 
     var data = model.getParameters();
     var tbl = document.querySelector("#prospectos");
@@ -897,7 +1071,8 @@ var model =
                         </button>
                       </div>`;
   },
-  showModal: function (idmodal, module = "notas") {
+  showModal: function (idmodal, module = "notas") 
+  {
     var title = document.querySelector("#textomdl");
     var rcord = document.querySelector("#recordatorio");
     var mdl = document.querySelector("#mdl-registro");
@@ -906,14 +1081,14 @@ var model =
     var ntcont = document.querySelector("#newt_contact_hours");
     var btn = document.querySelector("#btnAceptardml");
     if (btn && btn.innerHTML != "Aceptar") btn.innerHTML = 'Aceptar';
-
+    
     if (nts) nts.value = "";
-
+    this.addHours();
     title.innerHTML = "Registro";
     etnotas.innerHTML = "Notas:";
 
-
-    switch (module) {
+    switch (module) 
+    {
       case "notas":
         model.isquit = false;
         model.isrecord = false;
@@ -928,7 +1103,8 @@ var model =
         mdl.classList.add("grid-modal");
         break;
       case "quit_record":
-        if (model.next_contac == null || model.next_contac == "") {
+        if (model.next_contac == null || model.next_contac == "") 
+        {
           model.alert("No hay recordatorio de próximo contacto establecido para este prospecto.");
           return;
         }
@@ -944,42 +1120,50 @@ var model =
     }
     //quitar esto si quiere que se afecte la modal columna de 2
     mdl.classList.remove("grid-modal");
-
     $(idmodal).modal("show");
   },
   hideModal: function (idmodal) {
     $(idmodal).modal("hide");
   },
-  addHours: function (minuteInterval = 15, start = 0, end = 23) {
+  addHours: function (minuteInterval = 15, start = 0, end = 23) 
+  {
     var hours = document.querySelector("#newt_contact_hours");
+    if (!hours) return;
     var options = "";
-    for (var i = start; i <= end; i++) {
-      for (var j = 0; j < 60; j += minuteInterval) {
+    for (var i = start; i <= end; i++) 
+    {
+      for (var j = 0; j < 60; j += minuteInterval) 
+      {
         var v = ((i * 100) + j);
         var h = parseInt(Math.trunc(v / 100));
-        var m = parseInt((((Number(v) / 100) - Math.trunc(Number(v) / 100)) * 100));
+        let _v=(Number(v) / 100);
+        var m = Math.RoundTo((_v - Math.trunc(_v)) * 100,0);
+        let res=model.pad(h, m);
 
-        if (model.pad(h, m) != "")
-          options += `<option value="${model.pad(h, m)}">${model.pad(h, m)}</option>`;
+        if (res != "")
+          options += `<option value="${res}">${res}</option>`;
       }
     }
-    if (hours) {
-      hours.innerHTML = options;
-    }
+    
+    hours.innerHTML = options;
   },
-  pad: function (h, m) {
+  pad: function (h, m) 
+  {
     m = m.toString();
     h = h.toString();
 
     var num = "";
-    if (h.length == 1) {
+    if (h.length == 1) 
+    {
       if (m.length == 1) num = "0" + h + ":0" + m;
       else num = "0" + h + ":" + m;
     }
-    else {
+    else 
+    {
       if (m.length == 1) num = h + ":0" + m;
       else num = h + ":" + m;
     }
+
     return num;
   },
   cut: function (cad, size) {
@@ -987,7 +1171,8 @@ var model =
 
     cad = cad.substr(cad.length, size)
   },
-  save_registro: function () {
+  save_registro: function (reload=false) 
+  {
     var nota = document.querySelector("#txtNotas");
     var next_contact = document.querySelector("#next_contact");
     var next_contact_hours = document.querySelector("#newt_contact_hours");
@@ -996,12 +1181,15 @@ var model =
     var data = model.getParameters();
 
     var ntcont = "";
-    if (nota.value == "" && !model.isquit) {
+    if (nota.value == "" && !model.isquit) 
+    {
       model.alert("Debe escribir una nota");
       return;
     }
-    if (model.isquit) {
-      if (nota.value == "") {
+    if (model.isquit) 
+    {
+      if (nota.value == "") 
+      {
         model.alert("Debe indicar un motivo");
         return;
       }
@@ -1012,8 +1200,10 @@ var model =
 
     var ntrec = "";
     var style = "";
-    if (model.isrecord) {
-      if (next_contact_hours.value == "") {
+    if (model.isrecord) 
+    {
+      if (next_contact_hours.value == "") 
+      {
         model.alert("Seleccione una hora");
         return;
       }
@@ -1021,7 +1211,8 @@ var model =
       var dt = new Date();
       var ndt = new Date(nextc);
 
-      if (ndt.getTime() < dt.getTime()) {
+      if (ndt.getTime() < dt.getTime()) 
+      {
         model.alert("No puedes programar un evento en el pasado");
         return;
       }
@@ -1034,17 +1225,22 @@ var model =
 
 
     data["text"] = nota.value + " " + ntcont;
-    if (model.isquit) {
+    if (model.isquit) 
+    {
       data["text"] = ntcont + " " + nota.value;
     }
-    data["lead_sys_pk"] = model.lead_sys_pk;
-    model.invoke_service(model.url_vendesk + "leads/add-entry.dkl", data, function (data) {
-      if (model.isquit) {
+    data["lead_sys_pk"] = model.lead_sys_pk??model.sys_pk;
+    model.invoke_service(model.url_vendesk + "leads/add-entry.dkl", data, function (data) 
+    {
+      if (model.isquit) 
+      {
         if (mdlrec) mdlrec.remove();
       }
 
-      if (model.isrecord) {
-        if (mdlrec) {
+      if (model.isrecord) 
+      {
+        if (mdlrec) 
+        {
           mdlrec.innerHTML = ` ${model.next_contac == null || model.next_contac == "" ? "" : `<svg xmlns="http://www.w3.org/2000/svg" class="" style="margin-right: 4px;" title="Próximo evento" width="25" height="25" fill="currentColor" viewBox="0 0 16 16">
                      <path d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022l-.074.997zm2.004.45a7.003 7.003 0 0 0-.985-.299l.219-.976c.383.086.76.2 1.126.342l-.36.933zm1.37.71a7.01 7.01 0 0 0-.439-.27l.493-.87a8.025 8.025 0 0 1 .979.654l-.615.789a6.996 6.996 0 0 0-.418-.302zm1.834 1.79a6.99 6.99 0 0 0-.653-.796l.724-.69c.27.285.52.59.747.91l-.818.576zm.744 1.352a7.08 7.08 0 0 0-.214-.468l.893-.45a7.976 7.976 0 0 1 .45 1.088l-.95.313a7.023 7.023 0 0 0-.179-.483zm.53 2.507a6.991 6.991 0 0 0-.1-1.025l.985-.17c.067.386.106.778.116 1.17l-1 .025zm-.131 1.538c.033-.17.06-.339.081-.51l.993.123a7.957 7.957 0 0 1-.23 1.155l-.964-.267c.046-.165.086-.332.12-.501zm-.952 2.379c.184-.29.346-.594.486-.908l.914.405c-.16.36-.345.706-.555 1.038l-.845-.535zm-.964 1.205c.122-.122.239-.248.35-.378l.758.653a8.073 8.073 0 0 1-.401.432l-.707-.707z"></path>
                      <path d="M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0v1z"></path>
@@ -1056,11 +1252,11 @@ var model =
       var elogs = document.querySelector("#logs");
       if (elogs) elogs.innerHTML = model.add_logs(data) + elogs.innerHTML;
       model.hideModal("#modal_notas_recordatorio");
-
     },
-      function (error) {
+      function (error) 
+      {
         model.alert(error.message);
-      }, "POST", false);
+      }, "POST", reload);
   },
   save_prospecto: function () 
   {
@@ -1165,14 +1361,14 @@ var model =
     }
     model.invoke_service(model.url_vendesk + "leads/post-lead.dkl", data, function (data) 
     {
-      window.location.href = "..";
+      window.location.href = model.url ?model.url:"..";
     },
     function (error) {
       model.alert(error.message);
     }, "POST", false);
 
   },
-  load_stages: function (sys_pk) 
+  load_stages: function (sys_pk,idstage="#cbStages") 
   {
     if (model.pipelines_stages != null) 
     {
@@ -1181,17 +1377,19 @@ var model =
         var itm = model.pipelines_stages[i];
         if (itm.sys_pk == sys_pk) 
         {
-          this.LoadStagesPipeline(itm.stages);
+          this.LoadStagesPipeline(itm.stages,idstage);
           break;
         }
       }
     }
   },
-  LoadStagesPipeline(stages)
+  LoadStagesPipeline(stages,idstage="#cbStages")
   {
     if(!this.div_pipeline)
-      model.load_cb(stages, "sys_pk", "name", "#cbStages");
-    else model.load_cb(stages, "sys_pk", "name", "#cbStages","","","all","(Todos)");
+    {
+      model.load_cb(stages, "sys_pk", "name", idstage);
+    }
+    else model.load_cb(stages, "sys_pk", "name", idstage,"","","all","(Todos)");
   },
   load_pipelines_: function () 
   {
@@ -1199,8 +1397,9 @@ var model =
     {
       if(!this.div_pipeline)
       {
-        model.load_cb(model.pipelines_stages, "sys_pk", "name", "#cbPipeline");
+        model.load_cb(model.pipelines_stages, "sys_pk", "name", "#cbPipeline","",(this.cbPipeline?this.cbPipeline.value:""));
         if (model.cmpipelines) model.cmpipelines.value = 0;
+        if(this.mdl_cbPipeline)model.load_cb(model.pipelines_stages, "sys_pk", "name", "#"+this.mdl_cbPipeline.id);
       }
       else 
       {

@@ -54,9 +54,12 @@ module ""
         do dbr.apps.action.grant("VC80")
         do ValidatePrivileges(params)
 
+        if @@(params,"$_entity_id")=="freezer"{return record.create()}
+
         ref entity=entity.read(db,params)
         using entity
         {
+            @"hash_privg":CanViewAll()
             @"bitacora*":dbr.list(db,"SELECT sys_pk,uf_mensaje,uf_usuario,TRIM(uf_tiempo)tiempo 
                         FROM xt_biticontact WHERE uf_iicontact=@_entity_id
                         ORDER BY sys_pk DESC LIMIT 250",params)
@@ -68,6 +71,16 @@ module ""
     {
         do dbr.apps.action.grant("VC81")
         new entity{}
+        
+        if field.exist(params,"_context")
+        {
+            ref entity=from.json(url_dcode(@@(params,"$_context")))
+            using entity
+            {
+                @"empresa":@@(entity,"$codigo")+":"+@@(entity,"$nombre")
+                @"oportunidad": 3
+            }
+        }
         return entity
     }
     

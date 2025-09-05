@@ -57,7 +57,10 @@ module "Actualizaciones masivas"
             new ndata{}
             log=""
 
-            //if trim(@@(params,"note"))!="" { log=log+"\r\n"+@@(params,"note")}
+            if field.exist(params,"next") || field.exist(params,"previus")
+            {
+                
+            }
 
             if field.exist(params, "lead_owner") 
             { 

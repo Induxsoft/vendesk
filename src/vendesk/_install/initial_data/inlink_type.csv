@@ -1,2 +1,3 @@
 ﻿id,det,link
 DET0AF,DET0AF,"/!/vendesk/prospecto/@_entity_id/"
+DET095,DET095,"/!/vendesk/cliente/_admin/?_case=@_case&_key=@_key"

@@ -4,4 +4,13 @@ module ""
 {
     @list_view="ventas.dk"
     @form_view="prospecto.dk"
+
+    switch @@(params,"$_entity_id")
+    {
+        case "freezer"
+        {
+            @form_view="freezer.dk"
+            break
+        }
+    }
 }

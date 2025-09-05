@@ -82,4 +82,81 @@ module ""
             }
         }       
     }
+    //ganada o perdida
+    div(class="modal fade" id="mdl_ganada_perdida" tabindex="-1" role="dialog" "aria-labelledby"="modalforms" "aria-hidden"="true" "data-keyboard"="false" "data-bs-backdrop"="false")
+    {
+        div(class= "modal-dialog modal-md modal-dialog-centered" role ="document")
+        {
+            div(class="modal-content" )
+            {
+                div(class="modal-header")
+                {
+                    h6(class="modal-title" id=""){$"Cambiar estado"}
+                    button(type="button" class="close border-0" "data-bs-dismiss"="modal" "aria-bs-label"="Close")
+                    {
+                        span ("aria-hidden"="true") {$"&times;"}
+                    }
+                }
+                div(class="modal-body" id="")
+                {
+                    div(class="card")
+                    {
+                        div(class="card-body")
+                        {
+                            form(id="frm_ganada_perdida")
+                            {
+                                small(class="text-secondary"){$"Motivo:"}
+                                textarea(class="form-control induxsoft-corners no-shadow" rows="3" id="mdl_mensaje" "ctrl-name"="note" required=""){""}
+                            }
+                        }
+                    }
+                }
+                div(class="modal-footer" )
+                {
+                    button(type="button" class="btn btn-sm border-secondary induxsoft-corners v12-context-act-0 list-action" onclick="model.GanadaPerdida(false)"){ "Aceptar"}
+                    button(type="button" class="btn btn-sm border-secondary induxsoft-corners v12-context-act-0 list-action" "data-bs-dismiss"="modal"){ "Cerrar"}
+                }
+            }
+        }       
+    }
+    //oportunidad
+    div(class="modal fade" id="mdl_oportunidad" tabindex="-1" role="dialog" "aria-labelledby"="modalforms" "aria-hidden"="true" "data-keyboard"="false" "data-bs-backdrop"="false")
+    {
+        div(class= "modal-dialog modal-md modal-dialog-centered" role ="document")
+        {
+            div(class="modal-content" )
+            {
+                div(class="modal-header")
+                {
+                    h6(class="modal-title" id=""){$"Oportunidad"}
+                    button(type="button" class="close border-0" "data-bs-dismiss"="modal" "aria-bs-label"="Close")
+                    {
+                        span ("aria-hidden"="true") {$"&times;"}
+                    }
+                }
+                div(class="modal-body" id="")
+                {
+                    div(class="card")
+                    {
+                        div(class="card-body")
+                        {
+                            form(id="frm_oportunidad")
+                            {
+                                label{"Pipeline:"}
+                                select(class="form-select form-select-sm induxsoft-corners" required="true" id="mdl_cbPipeline" "ctrl-name"="lead_pipeline"){$""}
+                            
+                                label{"Stage:"}
+                                select(class="form-select form-select-sm induxsoft-corners" required="true" id="mdl_cbStages" "ctrl-name"="lead_stage"){$""}
+                            }
+                        }
+                    }
+                }
+                div(class="modal-footer" )
+                {
+                    button(type="button" class="btn btn-sm border-secondary induxsoft-corners v12-context-act-0 list-action" onclick="model.GanadaPerdidaOP(false)"){ "Aceptar"}
+                    button(type="button" class="btn btn-sm border-secondary induxsoft-corners v12-context-act-0 list-action" "data-bs-dismiss"="modal"){ "Cerrar"}
+                }
+            }
+        }       
+    }
 }

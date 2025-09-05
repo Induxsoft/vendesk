@@ -47,10 +47,16 @@ module "detail"
 		return protocol+"://"+path.concat(host,path)
 	}
 	filter=ifstr(@("parameters/text_filter")!="","&text_filter="+@("parameters/text_filter"),"")
-
+	
+	ref @_context_cliente=record.copyex(@("&."),@null,"sys_pk,codigo,nombre,rfc,email,notas,telefonos",",","sys_pk:cliente",":")
 	buttons::
 	{
+		_context=url_encode(to.json(@_context_cliente))
 		#$
+		a(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" href="#<@VDK_PROSPECTO_NEW>?_context=#<_context>&url=#<url_encode(current_url(@true))>" style="margin-left:10px;" title="Buscar otro cliente")
+		{
+			"Crear oportunidad"
+		}
 		a(class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print" href="#<@VDK_CLIENTE>" style="margin-left:10px;" title="Buscar otro cliente")
 		{
 			svg(xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16")
