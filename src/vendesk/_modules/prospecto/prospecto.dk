@@ -15,6 +15,7 @@ module "condif lead"
     {
         member "session" { member "resource" { member "properties" { member  "web_meta_tags" {@"title":"Notas" }  } } }
     }
+	ref agente=@("&./agente")
 	ref bitacora=ifnull(@("&./bitacora"),list.create())
 	#include "website.dkl"
 
@@ -91,8 +92,8 @@ module "condif lead"
 					else if show_btns_oprt
 					{
 						#$
-						button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" onclick="model." title="Retroceder"){"Retroceder"}
-						button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" onclick="model." title="Avanzar"){"Avanzar"}
+						button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" onclick="model.SetStageLead(#<@('#./sys_pk')>,event,'previus')" title="Retroceder etapa"){"<<"}
+						button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" onclick="model.SetStageLead(#<@('#./sys_pk')>,event)" title="Avanzar etapa"){">>"}
 						button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" onclick="model.GanadaPerdidaOP(true,4)" title="Ganada"){"Ganada"}
 						button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" onclick="model.GanadaPerdidaOP(true,5)" title="Perdida"){"Perdida"}
 						#!
@@ -104,8 +105,17 @@ module "condif lead"
 					#!
 					if edit_proc
 					{
+						if trim(@('$./prox_contact'))!=""
+						{
+							#$
+							div(class="d-flex justify-items-center ms-2 me-2")
+							{
+								small{"Próx. contacto: #<@('$./prox_contact')>"}
+							}
+						}
 						#$
-						
+							
+							
 							button(class="btn btn-sm border-secondary induxsoft-corners btn-disabled" title="Próximo contacto" onclick="model.showModal('#modal_notas_recordatorio','record')")
 							{
 								$'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-clock" viewBox="0 0 16 16">
@@ -254,7 +264,7 @@ module "condif lead"
 							}
 							div(class="col-lg-3 col-md-3")
 							{
-								label{"Probabilidad de éxito:"}
+								label{"Probabilidad de éxito (%):"}
 								input(class="form-control form-control-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="txtProbabilidad" placeholder="%" maxlength="12")
 							}
 							div(class="col-lg-3 col-md-3")
@@ -308,6 +318,8 @@ module "condif lead"
 				model.sourceId="#<idtienda>";
 				model.sys_pk="#<sys_pk_lead>";
 				model.isform=true;
+				model.agente=#<to.json(agente)>;
+				
 				$(document).ready(function()
 				{
 					model.LoadFields();

@@ -12,6 +12,49 @@ module "Actualizaciones masivas"
     #include "dbr.vars.dkl"
 	#include "dbr.apps.dkl"
 
+    do errordet(@false)
+    
+    SetStageLead::&db,&params,&item,&ndata
+    {
+        if not(field.exist(params,"next")) && not(field.exist(params,"previus")){return}
+
+        pipeline=@@(params,"#pipeline")
+        if pipeline < 1{pipeline=dbr.num(db,"select ifnull(uf_pipeline,0) from ut_icontact where sys_pk=@sys_pk",item)}
+        if pipeline < 1{do rise_error(500,"No ha indicado un `pipeline`")}
+        
+        params<"pipeline">:pipeline
+        params<"cstage_lead">:dbr.num(db,"select ifnull(uf_stage,-1) from ut_icontact where sys_pk=@sys_pk",item)
+        params<"csecuence">:dbr.num(db,"SELECT IFNULL(sequence,-1) FROM sales_pipeline_stage WHERE sys_pk=@cstage_lead",params)
+
+        conditionals=""
+        order_by="s.sequence ASC"
+        sql="SELECT s.sys_pk FROM sales_pipeline_stage s 
+        WHERE s.ref_pipeline=@pipeline
+        #<conditionals>
+        ORDER BY #<order_by> LIMIT 1"
+        
+        message=""
+        if parse.bool(@@(params,"$next"))
+        {
+            message="El prospecto ya se encuentra en su última etapa"
+            conditionals="AND s.sequence > @csecuence"
+        }
+        else if parse.bool(@@(params,"$previus"))
+        {
+            message="El prospecto ya se encuentra en su primera etapa"
+            conditionals="AND s.sequence < @csecuence"
+            order_by="s.sequence DESC"
+        }
+        else{do rise_error(500,"No ha indicado una acción `next` o `previus`")}
+
+        stage=dbr.str(db,ftext(sql),params)
+        
+        if trim(stage)==""{do rise_error(99,message)}
+        
+        if parse.num(stage) < 1{return}
+
+        ndata<"uf_stage">:parse.num(stage)
+    }
     do cors_xhr()
     if @@(@http_context,"request/headers/REQUEST_METHOD")=="OPTIONS"{return}
     
@@ -56,11 +99,6 @@ module "Actualizaciones masivas"
             if max>max_rows {max=max_rows}
             new ndata{}
             log=""
-
-            if field.exist(params,"next") || field.exist(params,"previus")
-            {
-                
-            }
 
             if field.exist(params, "lead_owner") 
             { 
@@ -114,8 +152,10 @@ module "Actualizaciones masivas"
             {
                 for i=0;i<max
                 {
-                    do dbr.update(db,"ut_icontact",ndata,"sys_pk=@sys_pk",@item(leads,i))
-                    do agregar_log(db,@@(@item(leads,i),"#sys_pk"),log,@@(user,"$name"))
+                    ref item=@item(leads,i)
+                    do SetStageLead(db,params,item,ndata)
+                    do dbr.update(db,"ut_icontact",ndata,"sys_pk=@sys_pk",item)
+                    do agregar_log(db,@@(item,"#sys_pk"),log,@@(user,"$name"))
                 }
             }
            

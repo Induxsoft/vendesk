@@ -11,7 +11,7 @@ module ""
             {
                 div(class="modal-header")
                 {
-                    h6(class="modal-title" id=""){$"Tranferir Prospecto"}
+                    h6(class="modal-title" id=""){$"Transferir Prospecto"}
                     button(type="button" class="close border-0" "data-bs-dismiss"="modal" "aria-bs-label"="Close")
                     {
                         span ("aria-hidden"="true") {$"&times;"}

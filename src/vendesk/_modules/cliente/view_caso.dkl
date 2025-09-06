@@ -43,7 +43,7 @@ module "view.caso"
 	exist_ilinktype=@("#./exist_ilinktype")
 
 	url=replace(@URL_INLINK_CASO,"@trace",@('$./caso/sys_pk'))
-	url=replace(url,"@key",@('$./sys_pk'))
+	url=replace(url,"@key",@('$./caso/sys_pk'))
 
 	ref lkeys=list.create_from_fields(@("&parameters"))
 	for i = 0; i < @count(lkeys)

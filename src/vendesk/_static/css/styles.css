@@ -32,6 +32,7 @@ body
     --bs-table-hover-color: #212529;
     --bs-table-hover-bg: rgba(0, 0, 0, 0.075);
 }
+.w-row-stage-all{width: 18rem !important;}
 .grid-container
 {
 	display: grid;

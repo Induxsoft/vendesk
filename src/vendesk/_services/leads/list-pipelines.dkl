@@ -30,7 +30,7 @@ module "listar-pipelines"
     for i=0;i<@count(l)
     {
         ref pipe=@item(l,i)
-        pipe<"stages*">:dbr.list(db,"select sys_pk, sys_guid, name, probability, stuck_in_days from sales_pipeline_stage where ref_pipeline=@sys_pk order by sequence;",pipe)
+        pipe<"stages*">:dbr.list(db,"select sys_pk, sys_guid, name, probability, stuck_in_days from sales_pipeline_stage where ref_pipeline=@sys_pk order by sequence ASC;",pipe)
     }
 
     response<"data*">:l

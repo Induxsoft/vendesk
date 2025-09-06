@@ -413,14 +413,13 @@ var model =
         model.alert(error.message);
       }, "POST", false);
   },
-  load_status: function (data = null, async = true,selected="") 
+  load_status: function (data = null, async = true,selected="999") //aqui se define el estado por default
   {
     if (data == null) data = model.getParameters();
 
     model.invoke_service(model.url_vendesk + "leads/list-lead-status.dkl", data, function (data) {
       model.data_status = data;
       model.load_cb(data, "key", "caption", "#cbStatus","",selected);
-      console.log(model.cbStatus)
       model.trigger(model.cbStatus, "change");
       if(this.mdl_status)model.load_cb(data, "key", "caption", "#"+this.mdl_status.id);
     },
@@ -507,34 +506,87 @@ var model =
     }
     return false;
   },
-  LoadDataAllStages()
+  LoadDataAllStages(idtable)
   {
-    let element=document.querySelector("prospectos");
+    let element=document.querySelector(idtable);
     if(!element)return false;
-
-    if(model.cbStages.value!="all")
+    
+    element.classList.add("grid-container");
+    
+    if(this.DataArray.length<1)
     {
-      element.classList.add("grid-container");
-      return false;
+      element.classList.remove("grid-container");
+      let html=`<div class="d-flex justify-content-center"><h3> No hay datos </h3></div>`;
+      element.innerHTML=html;
     }
+    if(!model.cbStages)return false;
+    if(model.cbStages.value!="all")return false;
+
+    if(model.div_pipeline.classList.contains("d-none"))return false
+
+    let current_pipeline=Number(model.cmpipelines.value??0);
+    if(current_pipeline<1 || model.cmpipelines.value=="all")return false;
+    
+    let data_cpipeline=model.pipelines_stages.find((r)=>r.sys_pk==current_pipeline);
+    if(!data_cpipeline)return false;
+
+    let stages=data_cpipeline.stages;
+    if(!stages || stages.length < 1)return false;
+
+    this.IsLoadRow=true;
     element.classList.remove("grid-container");
+
+    let headers_row=`<div class="d-flex gx-1 h-auto gap-2"> @body </div>`;
+    let body="";
+    for (let i = 0; i < stages.length; i++) 
+    {
+      const stage = stages[i];
+      
+      body+=`<div id="row_${stage.sys_pk}">
+                  <div class="card h-100">
+                    <div class="card-header"><h3>${stage.name}</h3></div>
+                    <div class="card-body pt-0" id="card_body_${stage.sys_pk}"><h5 id="sin_prcs" class="w-row-stage-all">Sin prospectos</h5></div>
+                  </div>
+                </div>`
+    }
+    headers_row=headers_row.replaceAll("@body",body)
+    element.innerHTML=headers_row;
+
+    for (let i = 0; i < this.DataArray.length; i++) 
+    {
+      const row = this.DataArray[i];
+      let card_body=document.getElementById(`card_body_${row.stage}`);
+      if(!card_body) continue;
+
+      if(card_body.querySelectorAll("#sin_prcs").length > 0)card_body.innerHTML="";
+
+      let html=`<div class="pt-2 w-row-stage-all">${this.CreateItem(row)}</div>`
+      card_body.insertAdjacentHTML("afterbegin",html);
+    }
+    return true;
   },
   DataArray:[],
   OnlyRows:false,
   IsFreezer:false,
+  IsLoadRow:false,
   load_table: function (data, idtable) 
   {
+    this.IsLoadRow=false;
     var table = document.querySelector(idtable);
     var body = "";
+    table.innerHTML = body;
 
     model.filter_search = ["sys_dtcreated", "next_contact", "subject", "name", "phone", "email", "organization", "position", "remarks", "leadstatus_text", "agent_name"];
     this.DataArray=data;
+    if(this.LoadDataAllStages(idtable))return;
+    if(this.IsLoadRow)return;
+    
     for (var i = 0; i < data.length; i++) 
     {
       var itm = data[i];
       body += this.CreateItem(itm);
     }
-    if (table) table.innerHTML = body;
+    if (table && body.trim()!="") table.innerHTML = body;
   },
   CreateItem(itm)
   {
@@ -686,6 +738,13 @@ var model =
       this.ActionLead(model.sys_pk,data);
     }
   },
+  SetStageLead(sys_pk,event=null,act="next")
+  {
+    if(event)event.stopPropagation();
+    var data={loaddata:true}
+    data[act]=true;
+    this.ActionLead(sys_pk,data,event);
+  },
   ActionLead(sys_pk,data=null,event=null,leads=null)
   {
     if(!data || Object.keys(data).length<1)
@@ -703,11 +762,13 @@ var model =
       model.alert("Debe indicar un prospecto");
       return;
     }
+    let loaddata=(data.loaddata??false);
     data["leads"]=leads;
     data["action"]="update";
     model.invoke_service(model.url_vendesk + "leads/update-many.dkl", data, function (data) 
     {
-      if(model.sys_pk>0)window.location.reload();
+      if(tools.ParseBool(loaddata) && model.sys_pk >0)model.get_prospecto(model.sys_pk,true);
+      else if(model.sys_pk>0)window.location.reload();
       else window.location.href="..";
     },
     function (error) 
@@ -904,8 +965,7 @@ var model =
   {
     if (element) 
     {
-      element.style.cssText = `min-height: 40%;position: relative;`;
-      element.innerHTML = `<div class="d-flex placeholder-glow w-100" style=" position: absolute;width: 100% !important;height: 100% !important;">
+      element.innerHTML = `<div class="d-flex placeholder-glow w-100" style=" position: absolute;width: 100% !important;height: 50% !important;">
                               <div class="placeholder" style="width: 100%;height: 100%;display: flex;align-items: center;justify-content: center;background-color: lightgray;">
                               <div class="spinner-border text-primary" role="status">
                       <span class="sr-only">Loading...</span>
@@ -1318,7 +1378,6 @@ var model =
         color: cbColor.value,
         leadstatus: cbStatus.value,
         agent_id: cbPropietario.value,
-
       }
     }
     data["sys_pk"] = Number(model.sys_pk);
@@ -1361,7 +1420,8 @@ var model =
     }
     model.invoke_service(model.url_vendesk + "leads/post-lead.dkl", data, function (data) 
     {
-      window.location.href = model.url ?model.url:"..";
+      if(model.agente && cbPropietario.value.trim()==model.agente?.codigo)window.location.href=`../${data.sys_pk}/`;
+      else window.location.href = model.url ?model.url:"..";
     },
     function (error) {
       model.alert(error.message);
@@ -1389,7 +1449,7 @@ var model =
     {
       model.load_cb(stages, "sys_pk", "name", idstage);
     }
-    else model.load_cb(stages, "sys_pk", "name", idstage,"","","all","(Todos)");
+    else model.load_cb(stages, "sys_pk", "name", idstage,"","","all","(Todas las etapas)");
   },
   load_pipelines_: function () 
   {
@@ -1403,7 +1463,7 @@ var model =
       }
       else 
       {
-        model.load_cb(model.pipelines_stages, "sys_pk", "name", "#cbPipeline","","","all","(Todos)");
+        model.load_cb(model.pipelines_stages, "sys_pk", "name", "#cbPipeline","","","all","(Todos los pipelines)");
         this.LoadStagesPipeline([]);
       }
     }

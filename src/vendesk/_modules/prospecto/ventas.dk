@@ -55,131 +55,130 @@ module "ventas"
 		#!
 		#include "modals.dkl"
 		#$
+		script(src="#<@JS_MODEL>"){""}
+		script
+		{
+			$'
+				model.url="#<@url_service_workspace>";
+				model.url_vendesk="#<@url_service_vendesk>";
+				model.ids="#<@@(@http_context,"session/user/ids")>";
+				model.ws="#<@@(@http_context,"request/get/ws")>";
+			'
+		}
 		section(id="top_area")
 		{
 			#! 
             do uie.printV12FormBar(nav_config)
             #$
-		}
-		div(class="p-4 bg-white border-bottom" id="container-card")
-		{			
-			#$ 
-			script(src="#<@JS_MODEL>"){""}
-			script
+			div(style="cursor: pointer;" "data-bs-toggle"="collapse" "data-bs-target"=".module-filter" class="d-flex h-100")
 			{
-				$'
-					model.url="#<@url_service_workspace>";
-					model.url_vendesk="#<@url_service_vendesk>";
-					model.ids="#<@@(@http_context,"session/user/ids")>";
-					model.ws="#<@@(@http_context,"request/get/ws")>";
-				'
-			}
-			div(class="mb-4 mt-1  align-items-center")
-			{
-				div(class="#<ifstr(@@(data,'message')!='','alert alert-danger','')>"){"#<@@(data,'message')>"}
+				span(class="toggle-icon")
+				{
+					$'<svg class="down" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
+						<path d="M1.5 5.5l6.5 6.5 6.5-6.5"/>
+					</svg>'
 
-				nav(class="d-none" )
-	  			{
-	  				div(class="nav nav-tabs" id="nav-tab" role="tablist")
-	  				{
-	  					a(class="nav-item nav-link active d-none" id="nav-ventas-tab" "data-bs-toggle"="tab" href="#nav-ventas" role="tab" "aria-controls"="nav-ventas" "aria-selected"="false"){"Ventas"}
-	  				}
-	  			}
-	  			div(class="tab-content " id="nav-tabContent" style="")
-	  			{
-	  				div(class="tab-pane fade show active" id="nav-ventas" role="tabpanel" "aria-labelledby"="nav-ventas-tab")
-		  			{$""
-	  					div(class="")
-	  					{
-							
-							div(class="module-filter")
-							{
-								div(class="row gx-1")
-								{
-									div(class="col-lg-2 mb-1")
-									{
-										label{"Agente:"}
-										select(class="form-select form-select-sm induxsoft-corners no-shadow" id="cbAgentes"){$""}
-									}
-									div(class="col-lg-2 mb-1")
-									{
-										label{"Estado:"}
-										select(class="form-select form-select-sm induxsoft-corners no-shadow" id="cbStatus"){$""}
-									}
-									div(class="col-lg-2 mb-1")
-									{
-										label{"Color:"}
-										select(class="form-select form-select-sm induxsoft-corners no-shadow" id="cbColors"){$""}
-									}
-									div(class="col-lg-2 mb-1")
-									{
-										label{"Ordenar por:"}
-										select(class="form-select form-select-sm induxsoft-corners no-shadow" id="sOrderBy"){$""}
-									}
-									div(class="col-lg-4 mb-1")
-									{
-										label(class="" "for"="txtFilter"){"Filtrar:"}
-										input(type="text" class="form-control form-control-sm induxsoft-corners no-shadow" "aria-label"="Small" "aria-describedby"="inputGroup-sizing-sm" id="txtFilter" placeholder="Filtrar..."  onkeyup="model.filter_table_text();")
-									}
-									div(class="col-lg-2 mb-1")
-									{
-										label(class="d-flex gap-2")
-										{
-											input(type="checkbox" id="checked_all" name="checked_all" class="form-check-input" style="transform: scale(1.2);")
-											"Seleccionar todos"
-										}
-									}
-									div(class="col-lg-4 mb-1 d-flex gap-1 d-none" id="div_pipeline" style="height: max-content;")
-									{
-										select(class="form-select form-select-sm induxsoft-corners" id="cbPipeline"){$""}
-										select(class="form-select form-select-sm induxsoft-corners" id="cbStages"){$""}
-									}
-									div(class="col-lg-4 mb-1 d-flex gap-1")
-									{
-										button(class="btn btn-sm border-secondary induxsoft-corners no-print v12-context-act-0 list-action" onclick="model.Transferir()"){"Transferir prospecto"}
-										button(class="btn btn-sm border-secondary induxsoft-corners no-print v12-context-act-0 list-action" onclick="model.ChangeStatus()"){"Cambiar estado"}
-										button(class="btn btn-sm border-secondary induxsoft-corners no-print v12-context-act-0 list-action" onclick="model.DeleteSelecteds()")
-										{
-											$'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
-												<path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
-												<path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
-												</svg>'
-											""
-										}
-										a(href="./freezer/" class="btn btn-sm border-secondary induxsoft-corners no-print v12-context-act-0 list-action" title="Explorar la 'Congeladora'")
-										{
-											$'<img src="/$/vendesk/img/icons/freezer2.png" style="width: 20px;height: 25px;" /> '
-										}
-										button(class="btn btn-sm border-secondary induxsoft-corners no-print v12-context-act-0 list-action" onclick="model.DeleteSelecteds()")
-										{
-											$'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-recycle" viewBox="0 0 16 16">
-											<path d="M9.302 1.256a1.5 1.5 0 0 0-2.604 0l-1.704 2.98a.5.5 0 0 0 .869.497l1.703-2.981a.5.5 0 0 1 .868 0l2.54 4.444-1.256-.337a.5.5 0 1 0-.26.966l2.415.647a.5.5 0 0 0 .613-.353l.647-2.415a.5.5 0 1 0-.966-.259l-.333 1.242zM2.973 7.773l-1.255.337a.5.5 0 1 1-.26-.966l2.416-.647a.5.5 0 0 1 .612.353l.647 2.415a.5.5 0 0 1-.966.259l-.333-1.242-2.545 4.454a.5.5 0 0 0 .434.748H5a.5.5 0 0 1 0 1H1.723A1.5 1.5 0 0 1 .421 12.24zm10.89 1.463a.5.5 0 1 0-.868.496l1.716 3.004a.5.5 0 0 1-.434.748h-5.57l.647-.646a.5.5 0 1 0-.708-.707l-1.5 1.5a.5.5 0 0 0 0 .707l1.5 1.5a.5.5 0 1 0 .708-.707l-.647-.647h5.57a1.5 1.5 0 0 0 1.302-2.244z"/>
-											</svg>'
-											""
-										}
-									}
-									
-								}
-								
-								hr{}
-								div(class="table-responsive" style="max-height:72vh")
-								{
-									div(class="grid-container" id="prospectos")
-									{
-										$""
-										div(class="d-flex placeholder-glow")
-										{
-											div(class="placeholder"){$""}
-										}
-									}
-								}
-							}
-	  					}
-		  			}
-	  			}
+					$'<svg class="up" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 16 16">
+						<path d="M1.5 10.5l6.5-6.5 6.5 6.5"/>
+					</svg>'
+				}
+				hr(class="w-100"){""}
+			}
+			
+			div(class="collapse module-filter show" id="module-filter")
+			{
+				div(class="row gx-1")
+				{
+					div(class="col-lg-2 mb-1")
+					{
+						label{"Agente:"}
+						select(class="form-select form-select-sm induxsoft-corners no-shadow" id="cbAgentes"){$""}
+					}
+					div(class="col-lg-2 mb-1")
+					{
+						label{"Estado:"}
+						select(class="form-select form-select-sm induxsoft-corners no-shadow" id="cbStatus"){$""}
+					}
+					div(class="col-lg-2 mb-1")
+					{
+						label{"Color:"}
+						select(class="form-select form-select-sm induxsoft-corners no-shadow" id="cbColors"){$""}
+					}
+					div(class="col-lg-2 mb-1")
+					{
+						label{"Ordenar por:"}
+						select(class="form-select form-select-sm induxsoft-corners no-shadow" id="sOrderBy"){$""}
+					}
+					div(class="col-lg-4 mb-1")
+					{
+						label(class="" "for"="txtFilter"){"Filtrar:"}
+						input(type="text" class="form-control form-control-sm induxsoft-corners no-shadow" "aria-label"="Small" "aria-describedby"="inputGroup-sizing-sm" id="txtFilter" placeholder="Filtrar..."  onkeyup="model.filter_table_text();")
+					}
+					div(class="col-lg-2 mb-1")
+					{
+						$""
+					}
+					div(class="col-lg-4 mb-1 " )
+					{
+						div(class="d-flex gap-1 d-none" id="div_pipeline" style="height: max-content;")
+						{
+							select(class="form-select form-select-sm induxsoft-corners" id="cbPipeline"){$""}
+							select(class="form-select form-select-sm induxsoft-corners" id="cbStages"){$""}
+						}
+					}
+					
+					div(class="col-lg-6 mb-1 d-flex gap-1 justify-content-end")
+					{
+						label(class="d-flex gap-2 mt-2 ms-2")
+						{
+							input(type="checkbox" id="checked_all" name="checked_all" class="form-check-input" style="transform: scale(1.2);")
+							"Seleccionar todos"
+						}
+						button(class="btn btn-sm border-secondary induxsoft-corners no-print v12-context-act-0 list-action" onclick="model.Transferir()"){"Transferir prospectos"}
+						button(class="btn btn-sm border-secondary induxsoft-corners no-print v12-context-act-0 list-action" onclick="model.ChangeStatus()"){"Cambiar estado"}
+						button(class="btn btn-sm border-secondary induxsoft-corners no-print v12-context-act-0 list-action" onclick="model.DeleteSelecteds()")
+						{
+							$'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+								<path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+								<path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+								</svg>'
+						}
+						a(href="./freezer/" class="btn btn-sm border-secondary induxsoft-corners no-print v12-context-act-0 list-action" title="Explorar la 'Congeladora'")
+						{
+							$'<img src="/$/vendesk/img/icons/freezer2.png" style="width: 20px;height: 25px;" /> '
+						}
+						a(class="btn btn-sm border-secondary induxsoft-corners no-print v12-context-act-0 list-action" href="#<@URL_PAPELERA_RECBIN_PROSP>")
+						{
+							$'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-recycle" viewBox="0 0 16 16">
+							<path d="M9.302 1.256a1.5 1.5 0 0 0-2.604 0l-1.704 2.98a.5.5 0 0 0 .869.497l1.703-2.981a.5.5 0 0 1 .868 0l2.54 4.444-1.256-.337a.5.5 0 1 0-.26.966l2.415.647a.5.5 0 0 0 .613-.353l.647-2.415a.5.5 0 1 0-.966-.259l-.333 1.242zM2.973 7.773l-1.255.337a.5.5 0 1 1-.26-.966l2.416-.647a.5.5 0 0 1 .612.353l.647 2.415a.5.5 0 0 1-.966.259l-.333-1.242-2.545 4.454a.5.5 0 0 0 .434.748H5a.5.5 0 0 1 0 1H1.723A1.5 1.5 0 0 1 .421 12.24zm10.89 1.463a.5.5 0 1 0-.868.496l1.716 3.004a.5.5 0 0 1-.434.748h-5.57l.647-.646a.5.5 0 1 0-.708-.707l-1.5 1.5a.5.5 0 0 0 0 .707l1.5 1.5a.5.5 0 1 0 .708-.707l-.647-.647h5.57a1.5 1.5 0 0 0 1.302-2.244z"/>
+							</svg>'
+						}
+						
+					}
+					
+				}
+				hr{}	
+			}			
+		}
+		section(id="work_area" class="bg-white")
+		{	
+			div( style="max-height:100%;overflow: auto;")
+			{
+				div(class="grid-container" id="prospectos"){$""}
 			}
 		}
 		#$
+		style
+		{
+			$'
+			.toggle-icon svg 
+			{
+				width: 25px;
+				height: 25px;
+			}
+			.toggle-icon .up { display: none; } /* ocultar el icono arriba al inicio */
+			'
+		}
 		script
 		{
 			$'
@@ -190,6 +189,26 @@ module "ventas"
 					model.sourceId="#<idtienda>";
 					model.Init();
 					model.fieldsOrder();
+
+					const collapseEl = document.getElementById("module-filter");
+					const iconDown = document.querySelector(".toggle-icon .down");
+					const iconUp = document.querySelector(".toggle-icon .up");
+
+					if(collapseEl)collapseEl.addEventListener("show.bs.collapse", () => 
+					{
+						if(iconDown)iconDown.style.display = "none";
+						if(iconUp)iconUp.style.display = "inline";
+
+						setTimeout(()=>{v12_on_resize();},300);
+					});
+
+					collapseEl.addEventListener("hide.bs.collapse", () => 
+					{
+						if(iconDown)iconDown.style.display = "inline";
+						if(iconUp)iconUp.style.display = "none";
+						setTimeout(()=>{v12_on_resize();},300);
+						
+					});
 				});
 				
 			'

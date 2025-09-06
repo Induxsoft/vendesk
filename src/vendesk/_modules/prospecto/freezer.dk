@@ -36,11 +36,7 @@ module ""
 			#! 
             do uie.printV12FormBar(nav_config)
             #$
-		}
-        div(class="p-4 bg-white border-bottom" id="container-card")
-		{			
-			#$ 
-			script(src="#<@JS_MODEL>"){""}
+            script(src="#<@JS_MODEL>"){""}
 			script
 			{
 				$'
@@ -52,7 +48,7 @@ module ""
 			}
             div(class="module-filter")
             {
-                div(class="row gy-1")
+                div(class="row gy-0")
                 {
                     div(class="col-md-8")
                     {
@@ -71,56 +67,47 @@ module ""
                     }
                     div(class="col-md-4")
                     {
-                        label
+                        label(class="d-flex gap-2 mt-2")
                         {
-                            input(type="checkbox" class="input-form-check" id="myleads" name="myleads" "#<ifstr(@('#./hash_privg'),'checked','')>"="true" "#<ifstr(@('#./hash_privg'),'disabled','')>"="true")
+                            input(type="checkbox" class="form-check-input" id="myleads" name="myleads" style="transform: scale(1.2);" "#<ifstr(@('#./hash_privg'),'checked','')>"="true" "#<ifstr(@('#./hash_privg'),'disabled','')>"="true")
                             "Mis prospectos"
+                        }
+                    }
+                    
+                    div(class="col-lg-8 mb-1 d-flex gap-2 pt-2")
+                    {
+                        div(class="w-100")
+                        {
+                            select(class="form-select induxsoft-corners no-shadow" id="frezr_cbAgentes"){$""}
+                        }
+                        
+                        div(class="")
+                        {
+                            button(onclick="model.UnFreezer()" class="btn btn-sm border-secondary induxsoft-corners no-print v12-context-act-0 list-action" title="Descongelar")
+                            {
+                                $'<img src="/$/vendesk/img/icons/restore-freezer.png" style="width: 20px;height: 25px;" /> '
+                            }
                         }
                     }
                     div(class="col-lg-2")
                     {
-                        label(class="d-flex gap-2")
+                        label(class="d-flex gap-2 mt-2")
                         {
                             input(type="checkbox" id="checked_all" name="checked_all" class="form-check-input" style="transform: scale(1.2);")
                             "Seleccionar todos"
                         }
                     }
-                    div(class="col-lg-6 mb-1 p-1" style="border: 1px solid lightgray;")
-                    {
-                        div(class="d-flex gap-2 w-100")
-                        {
-                            div(class="w-50 w-100-md")
-                            {
-                                label{"Agente:"}
-                                select(class="form-select induxsoft-corners no-shadow" id="frezr_cbAgentes"){$""}
-                            }
-                            
-                            div(class="mt-4")
-                            {
-                                button(onclick="model.UnFreezer()" class="btn btn-sm border-secondary induxsoft-corners no-print v12-context-act-0 list-action" title="Descongelar")
-                                {
-                                    $'<img src="/$/vendesk/img/icons/restore-freezer.png" style="width: 20px;height: 25px;" /> '
-                                }
-                            }
-                            
-                        }
-                        
-                    }
                 }
             }
             hr{}
-            div(class="table-responsive" style="max-height:72vh")
-            {
-                div(class="grid-container" id="prospectos")
-                {
-                    $""
-                    div(class="d-flex placeholder-glow")
-                    {
-                        div(class="placeholder"){$""}
-                    }
-                }
-            }
-        }
+		}
+        section(id="work_area" class="bg-white")
+		{	
+			div( style="max-height:100%;overflow: auto;")
+			{
+				div(class="grid-container" id="prospectos"){$""}
+			}
+		}
         #$
 		script
 		{

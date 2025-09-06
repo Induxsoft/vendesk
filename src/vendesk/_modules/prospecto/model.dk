@@ -3,6 +3,7 @@
 module ""
 {
     @table_name="ut_icontact"
+    @read_query="select *,date_format(uf_proxcontac,'%Y-%m-%d %H:%i') prox_contact from ut_icontact where sys_pk=@_entity_id limit 1"
     existIlinkType::&db
     {
         new p{@"detilink":@ILINK_TYPE}
@@ -71,14 +72,20 @@ module ""
     {
         do dbr.apps.action.grant("VC81")
         new entity{}
-        
+        ref user=@@(@http_context,"&session/user")
         if field.exist(params,"_context")
         {
+            sql="SELECT a.codigo,a.nombre
+            from agente a
+            INNER JOIN tuser t ON a.uf_iuser=t.sys_pk
+            WHERE t.userid=@uid"
             ref entity=from.json(url_dcode(@@(params,"$_context")))
             using entity
             {
                 @"empresa":@@(entity,"$codigo")+":"+@@(entity,"$nombre")
                 @"oportunidad": 3
+                @"agente*":dbr.rec(db,sql,user)
+                @"isoportunidad":@true
             }
         }
         return entity

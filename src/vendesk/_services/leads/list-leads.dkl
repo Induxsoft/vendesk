@@ -107,7 +107,11 @@ module "listar-prospectos"
         if tolower(@@(params,"$special"))=="freezer"
         {
             sqlWhere=" where (uf_interes like '%@{text}%' or uf_nombre like '%@{text}%' or uf_email like '%@{text}%' or uf_telefono like '%@{text}%' or uf_empresa like '%@{text}%') and LOWER(uf_perfil)=LOWER(@special)"
-            if @@(params,"$agent_filter")!=""{sqlWhere =sqlWhere + " and sys_info=@agent_filter "}
+            if @@(params,"$agent_filter")!=""
+            {
+                params<"agent_filter">:cut(trim(@@(params,"$agent_filter")),32)
+                sqlWhere =sqlWhere + " and sys_info=@agent_filter "
+            }
         }
         else if tolower(@@(params,"$special"))=="deleted"
         {
