@@ -1,2 +1,3 @@
 "id","title","icon96x96","src","_blank","appid","cat"
 "VC10","Atención a clientes","/$/vendesk/img/icons/vendesk-96x96.png","/!/vendesk/cliente/","0","vendesk.cliente","0010"
+"VC80","Gestión de prospectos","/$/vendesk/img/icons/prospectos-96x96.png","/!/vendesk/prospecto/","0","vendesk.prospectos","0010"
