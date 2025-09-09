@@ -114,9 +114,13 @@ module "ventas"
 						label(class="" "for"="txtFilter"){"Filtrar:"}
 						input(type="text" class="form-control form-control-sm induxsoft-corners no-shadow" "aria-label"="Small" "aria-describedby"="inputGroup-sizing-sm" id="txtFilter" placeholder="Filtrar..."  onkeyup="model.filter_table_text();")
 					}
-					div(class="col-lg-2 mb-1")
+					div(class="col-lg-2 mb-1 d-flex align-items-end")
 					{
-						$""
+						div(class="d-flex gap-2")
+						{
+							small(class="fw-bold"){"Prospectos encontrados: "}
+							h6(id="_rows"){"0"}
+						}
 					}
 					div(class="col-lg-4 mb-1 " )
 					{

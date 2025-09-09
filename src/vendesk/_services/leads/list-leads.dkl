@@ -28,13 +28,14 @@ module "listar-prospectos"
     
     ref db=@@(@http_context,"&session/idp/database")
     ref user=@@(@http_context,"&session/user")
+
     //verifica y agrega tablas y campos, solo se necesita cuando la bd se creó con PlazaMundial
     do checkDBStruct(db)
     ///////////////////////////////////////////////////////////////////////////////////////////
 
     ref dic_agentes=record.create()
     
-    sql="select c.codigo id, c.nombre name from agente c 
+    sql="select c.codigo id,c.sys_pk, c.nombre name from agente c 
     WHERE ifnull(sys_deleted,0)=0"
     
     ref tagentes=dbr.table(db,sql,@null)
@@ -42,8 +43,8 @@ module "listar-prospectos"
     for i=0;i<@count(tagentes)
     {
         ref ra=row.get(tagentes,i)
-        
-        dic_agentes<"id_"+@@(ra,"id")>:@@(ra,"name")
+        dic_agentes<"cod_"+@@(ra,"$sys_pk")>:@@(ra,"id")
+        dic_agentes<"id_"+@@(ra,"$sys_pk")>:@@(ra,"name")
     }
     
     sqlWhere=""
@@ -58,29 +59,40 @@ module "listar-prospectos"
     }
     if not(permiso)
     {
-        yoagentes=dbr.str(db,"SELECT GROUP_CONCAT(a.codigo) FROM agente a 
+        yoagentes=dbr.str(db,"SELECT GROUP_CONCAT(a.sys_pk) FROM agente a 
                     INNER JOIN tuser t ON a.uf_iuser=t.sys_pk WHERE t.userid=@uid",user)
 
         yoagentes=to.json(split(yoagentes,","))
         yoagentes=replace(yoagentes,"[","")
         yoagentes=replace(yoagentes,"]","")
         
-        sqlWhere="ifnull(uf_perfil,'') in("+yoagentes+")"
+        sqlWhere="ifnull(uf_iejecutivo,0) in("+yoagentes+")"
     }
 
     switch field.dstr(params,"agent_filter","all")
     {
         case "unassigned"
         {
-            sqlWhere="ifnull(uf_perfil,'')='' "
+            sqlWhere=ifstr(trim(sqlWhere)!="",sqlWhere + " AND ","") + " ifnull(uf_perfil,'')='' and (ifnull(uf_iejecutivo,0)=0 and ifnull(uf_perfil,'')='') "
         }
         case "all"
         {
-            if permiso {sqlWhere="true "}
+            sqlWhere=ifstr(trim(sqlWhere)!="",sqlWhere + " AND ","") + " (ifnull(uf_iejecutivo,0)<>0 or ifnull(uf_perfil,'')<>'') "
         }
         default
         {
-            sqlWhere="uf_perfil=@agent_filter "
+            sql="SELECT a.codigo,a.sys_pk pk_agente,a.nombre,t.sys_guid
+                from agente a
+                LEFT JOIN tuser t ON a.uf_iuser=t.sys_pk
+                WHERE a.codigo=@agent_filter"
+    
+            ref _agente_usr=dbr.rec(db,sql,params)
+            
+            params<"guid_user">:trim(@@(_agente_usr,"$sys_guid"))
+            params<"pk_agente">:@@(_agente_usr,"#pk_agente")
+            
+            sqlWhere=ifstr(trim(sqlWhere)!="",sqlWhere + " AND ","") + " ((ifnull(uf_iejecutivo,0)=@pk_agente or 
+            ifnull(uf_perfil,'')=@guid_user) and (ifnull(uf_iejecutivo,0)<>0 and ifnull(uf_perfil,'')<>'')) "
         }
     }
 
@@ -123,11 +135,14 @@ module "listar-prospectos"
     }
     if @@(params,"#pipeline")> 0{sqlWhere=sqlWhere + " AND uf_pipeline=@pipeline"}
     if @@(params,"#stage")> 0{sqlWhere=sqlWhere + " AND uf_stage=@stage"}
-
-    if @@(params,"$sys_pk")!=""{sqlWhere = sqlWhere +" and sys_pk=@sys_pk "}
+    //si la sys_pk > 0 , reseteamos las condiciones
+    if @@(params,"$sys_pk")!=""{sqlWhere =" WHERE ifnull(sys_deleted,0)=0 and sys_pk=@sys_pk "}
 
     if not(field.exist(params,"limit")) { params<"limit">:max_rows }
-    ref t=dbr.table(db,"
+    
+    if trim(@@(params,"$ordeby"))!=""{sqlOrder=@@(params,"$ordeby") + ifstr(@@(params,"$ordeby")=="uf_ultimocontac"," ASC "," DESC ")}
+    
+    sql="
     select sys_pk,sys_user fuser,ifnull(sys_info,'')sys_info,
     date_format(sys_dtcreated,'%Y-%m-%dT%T') sys_dtcreated,
     date_format(sys_timestamp,'%Y-%m-%dT%T') sys_timestamp, 
@@ -150,10 +165,14 @@ module "listar-prospectos"
     uf_pipeline pipeline,
     uf_stage stage,
     uf_probability probability,
-    uf_amount amount
+    uf_amount amount,
+    uf_iejecutivo
     from ut_icontact 
-    "+sqlWhere+" order by "+sqlOrder+" limit @limit;
-    ",params)
+    "+sqlWhere+" 
+    order by "+sqlOrder+" limit @limit;
+    "
+
+    ref t=dbr.table(db,sql,params)
 
     ref l=list.create()
     
@@ -161,8 +180,9 @@ module "listar-prospectos"
     {
         ref rw=row.get(t,i)
         if tolower(@@(rw,"$agent_id"))=="freezer"{rw<"agent_id">:@@(rw,"$sys_info")}
-            
-        rw<"agent_name">:field.dstr(dic_agentes,"id_"+@@(rw,"agent_id"),"Sin asignar")
+
+        rw<"agent_id">:field.dstr(dic_agentes,"cod_"+@@(rw,"$uf_iejecutivo"),@@(rw,"$agent_id"))
+        rw<"agent_name">:field.dstr(dic_agentes,"id_"+@@(rw,"$uf_iejecutivo"),"Sin asignar")
         switch @@(rw,"#leadstatus")
         {
             case 0 { rw<"leadstatus_text">:"Recibido"}

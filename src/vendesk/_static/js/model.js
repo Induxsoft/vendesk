@@ -205,8 +205,10 @@ var model =
 
   },
 
-  getParameters: function () {
-    var data = {
+  getParameters: function () 
+  {
+    var data = 
+    {
       ids: model.ids,
       source: model.source,
       storeid: model.sourceId
@@ -218,6 +220,7 @@ var model =
     var cbAgentes = document.querySelector("#cbAgentes");
     var color = document.querySelector("#cbColors");
     var status = document.querySelector("#cbStatus");
+    var orderby = document.querySelector("#sOrderBy");
 
     if(!cbAgentes || !color || !status)return;
 
@@ -227,7 +230,8 @@ var model =
       color_filter: color.value,
       status_filter: status.value == "" ? "999" : status.value,
       pipeline:this.cmpipelines?.value??0,
-      stage:this.cbStages?.value??0
+      stage:this.cbStages?.value??0,
+      ordeby:orderby?.value??""
     }
     return params;
   },
@@ -285,7 +289,8 @@ var model =
     model.sOrder = document.querySelector("#sOrderBy");
     if (model.sOrder) model.sOrder.addEventListener("change", function () 
     {
-      model.orderBy(this.value);
+      if(this.value=="agent_name")model.orderBy(this.value);
+      else model.filters_leads(model.getDataFilters());
     });
 
     model.LoadFields();
@@ -587,6 +592,8 @@ var model =
       body += this.CreateItem(itm);
     }
     if (table && body.trim()!="") table.innerHTML = body;
+    let _rows=document.getElementById("_rows");
+    if(_rows)_rows.innerHTML=data.length;
   },
   CreateItem(itm)
   {
@@ -1574,34 +1581,43 @@ var model =
       }
     }
   },
-  fieldsOrder: function () {
+  fieldsOrder: function () 
+  {
     var fields =
     {
-      agent_name: "Agente",
-      amount: "Monto",
+      uf_ultimocontac: "Prox. contacto",
+      uf_nombre: "Nombre",
+      uf_empresa: "Empresa",
+      subject: "Asunto",
+      agent_name: "Agente"
+
+      // next_contact: "Prox. contacto",
+      // name: "Nombre",
+      // organization: "Empresa",
+      // subject: "Asunto",
+      // agent_name: "Agente"
+
+      /* amount: "Monto",
       color: "Color",
       customer_id: "",
       email: "Correo electrónico",
       last_attempt: "",
       last_contact: "",
       leadstatus: "Status",
-      name: "Nombre",
-      next_contact: "Prox. contacto",
-      organization: "Empresa",
       phone: "Teléfono",
       pipeline: "Pipeline",
       stage: "Stage",
       position: "Puesto",
       probability: "Probabilidad",
       recived: "Recibido",
-      remarks: "Mensaje",
-      subject: "Asunto",
-
+      remarks: "Mensaje", */
     }
 
-    if (model.sOrder) {
+    if (model.sOrder) 
+    {
       var options = "";
-      for (var key in fields) {
+      for (var key in fields) 
+      {
         if (fields[key] == "") continue;
 
         options += `<option value="${key}">${fields[key]}</option>`;
@@ -1613,22 +1629,30 @@ var model =
   orderBy: function (field) 
   {
     if (model.data_leads == null) return;
+     
+    var data = model.data_leads.sort((a, b) => 
+    {
+      val_a=eval("a." + field);
+      val_b=eval("b." + field);
 
-    var data = model.data_leads.sort((a, b) => {
-      if (eval("a." + field) == eval("b." + field)) return 0;
-      if (eval("a." + field) < eval("b." + field)) return -1;
-      return 1;
+      if ( val_a== val_b) return 0;
+      if (val_a < val_b) return -1;
+
+       return 1 ;
     });
 
     model.load_table(data, "#prospectos");
   },
-  filter: function (__val__) {
+  filter: function (__val__) 
+  {
     var preg = /^([0-9]+\.?[0-9]{0,6})$/;
-    if (preg.test(__val__) === true) {
+    if (preg.test(__val__) === true) 
+    {
       return true;
-    } else {
+    } 
+    else 
+    {
       return false;
     }
-
   }
 }

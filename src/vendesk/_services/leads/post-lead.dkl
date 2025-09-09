@@ -35,9 +35,8 @@ module "Actualizar o agregar prospecto"
     else{do dbr.apps.action.grant("VC81")}//agregar
     
     uuid=""
-
     log=""
-
+    
     if field.exist(params,"recived") 
     { 
         newEntry<"uf_fecha">:@@(params,"recived")
@@ -49,13 +48,24 @@ module "Actualizar o agregar prospecto"
         newEntry<"uf_proxcontac">:@@(params,"next_contact")
         log=log+" - próximo contacto\r\n"
     }
-
-    if field.exist(params,"agent_id")  && trim(@@(params,"$agent_id"))!="unassigned"
+    
+    if field.exist(params,"agent_id")
     { 
+        newEntry<"uf_iejecutivo*">:@null
         newEntry<"uf_perfil">:@@(params,"agent_id")
+
+        sql="SELECT t.sys_pk,t.sys_guid,a.sys_pk pk_agente
+        from agente a
+        LEFT JOIN tuser t ON a.uf_iuser=t.sys_pk
+        WHERE a.codigo=@agent_id"
+
+        ref _agente=dbr.rec(db,sql,params)
+
+        newEntry<"uf_iejecutivo">:@@(_agente,"#pk_agente")
+        newEntry<"uf_perfil">:@@(_agente,"$sys_guid")
+
         log=log+" - agente propietario\r\n"
     }
-    else {newEntry<"uf_perfil">:""}
 
     if field.exist(params,"leadstatus") 
     { 

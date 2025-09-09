@@ -103,9 +103,23 @@ module "Actualizaciones masivas"
             if field.exist(params, "lead_owner") 
             { 
                 ndata<"uf_perfil">:ifstr(@@(params,"$lead_owner")=="unassigned","",@@(params,"$lead_owner")) 
+                if @@(params,"$lead_owner")!="freezer"
+                {
+                    ndata<"uf_iejecutivo*">:@null
+                
+                    sql="SELECT t.sys_pk,t.sys_guid,a.sys_pk pk_agente
+                    from agente a
+                    LEFT JOIN tuser t ON a.uf_iuser=t.sys_pk
+                    WHERE a.codigo=@lead_owner"
+
+                    ref _agente=dbr.rec(db,sql,params)
+
+                    ndata<"uf_iejecutivo">:@@(_agente,"#pk_agente")
+                    ndata<"uf_perfil">:@@(_agente,"$sys_guid")
+                }
                 log=log+" Propietario: "+@@(ndata,"$uf_perfil")
             }
-
+            
             if field.exist(params, "lead_status") 
             { 
                 ndata<"uf_status">: @@(params,"lead_status")
