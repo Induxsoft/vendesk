@@ -578,8 +578,10 @@ var model =
   {
     this.IsLoadRow=false;
     var table = document.querySelector(idtable);
+    let _rows=document.getElementById("_rows");
     var body = "";
     table.innerHTML = body;
+    if(_rows)_rows.innerHTML=data.length;
 
     model.filter_search = ["sys_dtcreated", "next_contact", "subject", "name", "phone", "email", "organization", "position", "remarks", "leadstatus_text", "agent_name"];
     this.DataArray=data;
@@ -592,8 +594,7 @@ var model =
       body += this.CreateItem(itm);
     }
     if (table && body.trim()!="") table.innerHTML = body;
-    let _rows=document.getElementById("_rows");
-    if(_rows)_rows.innerHTML=data.length;
+    
   },
   CreateItem(itm)
   {
