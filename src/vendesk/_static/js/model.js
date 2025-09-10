@@ -627,7 +627,6 @@ var model =
                         <smal>${email}</smal>${email == "" ? "" : "<br>"}
                         <smal>${org}</smal>${org == "" ? "" : "<br>"}
                         <smal>${pos}</smal>${pos == "" ? "" : "<br>"}
-                        <smal style="font-size: 12px;">${itm.user_name}</smal><br>
                         ${ps}
                       </div>
 
@@ -639,6 +638,7 @@ var model =
                              <path d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5z"></path>
                            </svg><smal style="${style}">` + itm.next_contact}</smal>
                           </div>
+                          <smal style="font-size: 12px;">${itm.user_name}</smal><br>
                           <div class="d-flex justify-content-end">
                               <b><smal>${itm.agent_name}</smal></b><br>
                           </div>
