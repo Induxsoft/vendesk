@@ -35,8 +35,10 @@ module "listar-prospectos"
 
     ref dic_agentes=record.create()
     
-    sql="select c.codigo id,c.sys_pk, c.nombre name from agente c 
-    WHERE ifnull(sys_deleted,0)=0"
+    sql="select c.codigo id,c.sys_pk, c.nombre `name`,t.username `nameusr` 
+    from agente c 
+    left join tuser t on c.uf_iuser=t.sys_pk
+        where ifnull(c.sys_deleted,0)=0"
     
     ref tagentes=dbr.table(db,sql,@null)
 
@@ -44,7 +46,8 @@ module "listar-prospectos"
     {
         ref ra=row.get(tagentes,i)
         dic_agentes<"cod_"+@@(ra,"$sys_pk")>:@@(ra,"id")
-        dic_agentes<"id_"+@@(ra,"$sys_pk")>:@@(ra,"name")
+        dic_agentes<"usr_"+@@(ra,"$sys_pk")>:trim(@@(ra,"$nameusr"))
+        dic_agentes<"id_"+@@(ra,"$sys_pk")>:@@(ra,"$name")
     }
     
     sqlWhere=""
@@ -183,6 +186,7 @@ module "listar-prospectos"
 
         rw<"agent_id">:field.dstr(dic_agentes,"cod_"+@@(rw,"$uf_iejecutivo"),@@(rw,"$agent_id"))
         rw<"agent_name">:field.dstr(dic_agentes,"id_"+@@(rw,"$uf_iejecutivo"),"Sin asignar")
+        rw<"user_name">:field.dstr(dic_agentes,"usr_"+@@(rw,"$uf_iejecutivo"),"")
         switch @@(rw,"#leadstatus")
         {
             case 0 { rw<"leadstatus_text">:"Recibido"}

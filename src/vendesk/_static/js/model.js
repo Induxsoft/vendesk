@@ -627,7 +627,7 @@ var model =
                         <smal>${email}</smal>${email == "" ? "" : "<br>"}
                         <smal>${org}</smal>${org == "" ? "" : "<br>"}
                         <smal>${pos}</smal>${pos == "" ? "" : "<br>"}
-                        <smal>${itm.agent_name}</smal><br>
+                        <smal style="font-size: 12px;">${itm.user_name}</smal><br>
                         ${ps}
                       </div>
 
