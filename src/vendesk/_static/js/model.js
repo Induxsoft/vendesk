@@ -1586,7 +1586,7 @@ var model =
   {
     var fields =
     {
-      uf_ultimocontac: "Prox. contacto",
+      uf_proxcontac: "Prox. contacto",
       uf_nombre: "Nombre",
       uf_empresa: "Empresa",
       subject: "Asunto",

@@ -41,14 +41,14 @@ module "list"
 	            {
 	                @"caption":"Nombre"
 	            }
-				member @"rfc"
+				member @"telefonos"
 	            {
-	                @"caption":"RFC"
+	                @"caption":"Teléfono"
 	            }
-				 member @"curp"
-	            {
-	                @"caption":"Curp"
-	            }
+				//  member @"curp"
+	            // {
+	            //     @"caption":"Curp"
+	            // }
 	            member @"email"
 	            {
 	                @"caption":"Email"

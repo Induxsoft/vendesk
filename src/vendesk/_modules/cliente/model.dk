@@ -3,7 +3,8 @@
 module "cliente.dk"
 {
     @list_query = "SELECT c.sys_pk, c.sys_guid, c.sys_recver, c.sys_timestamp, c.sys_dtcreated, c.sys_deleted,
-    c.codigo, c.nombre, c.rfc, c.email, c.saldo,c.curp,ifnull(d1.Sys_PK,0) AS sys_pkd1,ifnull(d2.Sys_PK,0) AS sys_pkd2,ifnull(d3.Sys_PK,0) AS sys_pkd3
+    c.codigo, c.nombre, c.rfc, c.email, c.saldo,c.curp,ifnull(d1.Sys_PK,0) AS sys_pkd1,ifnull(d2.Sys_PK,0) AS sys_pkd2,
+    ifnull(d3.Sys_PK,0) AS sys_pkd3,c.telefonos
     FROM cliente c
     LEFT JOIN domicilio d1 ON c.Domicilio1=d1.Sys_PK
     LEFT JOIN domicilio d2 ON c.Domicilio2=d2.Sys_PK
@@ -13,6 +14,7 @@ module "cliente.dk"
     or rfc like '%@{text_filter}%' 
     or curp like '%@{text_filter}%' 
     or email like '%@{text_filter}%' 
+    or c.telefonos like '%@{text_filter}%' 
     order by 
     nombre asc 
     limit #<@MAX_ROWS_LIMIT>"

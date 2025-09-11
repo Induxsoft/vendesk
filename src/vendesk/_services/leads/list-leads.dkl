@@ -95,7 +95,7 @@ module "listar-prospectos"
             params<"pk_agente">:@@(_agente_usr,"#pk_agente")
             
             sqlWhere=ifstr(trim(sqlWhere)!="",sqlWhere + " AND ","") + " ((ifnull(uf_iejecutivo,0)=@pk_agente or 
-            ifnull(uf_perfil,'')=@guid_user) and (ifnull(uf_iejecutivo,0)<>0 and ifnull(uf_perfil,'')<>'')) "
+            ifnull(uf_perfil,'')=@guid_user) and not (ifnull(uf_iejecutivo,0)=0 and ifnull(uf_perfil,'')='')) "
         }
     }
 

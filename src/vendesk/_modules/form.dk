@@ -47,7 +47,7 @@ module "forms"
 						{
 							div(class="flex-grow-1")
 							{
-								input(type="search" id="search_client" name="text_filter" value="#<@('parameters/text_filter')>" placeholder="Código, Nombre, Email" class="induxsoft-form-control induxsoft-form-control-sm")
+								input(type="search" id="search_client" name="text_filter" value="#<@('parameters/text_filter')>" placeholder="Código, Nombre, Email, Teléfono o RFC" class="induxsoft-form-control induxsoft-form-control-sm")
 							}
 							div
 							{
