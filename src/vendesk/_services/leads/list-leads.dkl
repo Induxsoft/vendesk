@@ -136,8 +136,11 @@ module "listar-prospectos"
         else{sqlWhere=sqlWhere+" and (uf_interes like '%@{text}%' or uf_nombre like '%@{text}%' or uf_email like '%@{text}%' or uf_telefono like '%@{text}%' or uf_empresa like '%@{text}%') "}
         
     }
-    if @@(params,"#pipeline")> 0{sqlWhere=sqlWhere + " AND uf_pipeline=@pipeline"}
-    if @@(params,"#stage")> 0{sqlWhere=sqlWhere + " AND uf_stage=@stage"}
+    if @@(params,"#status_filter") == 3
+    {
+        if @@(params,"#pipeline")> 0{sqlWhere=sqlWhere + " AND uf_pipeline=@pipeline"}
+        if @@(params,"#stage")> 0{sqlWhere=sqlWhere + " AND uf_stage=@stage"}
+    }
     //si la sys_pk > 0 , reseteamos las condiciones
     if @@(params,"$sys_pk")!=""{sqlWhere =" WHERE ifnull(sys_deleted,0)=0 and sys_pk=@sys_pk "}
 
