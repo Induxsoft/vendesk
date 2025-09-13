@@ -414,7 +414,8 @@ var model =
       if(model.agente)model.filters_leads(model.getDataFilters());
       if(this.mdl_cbAgentes)model.load_cb(data, "id", "name", "#"+this.mdl_cbAgentes.id);
     },
-      function (error) {
+      function (error) 
+      {
         model.alert(error.message);
       }, "POST", false);
   },
@@ -422,13 +423,15 @@ var model =
   {
     if (data == null) data = model.getParameters();
 
-    model.invoke_service(model.url_vendesk + "leads/list-lead-status.dkl", data, function (data) {
+    model.invoke_service(model.url_vendesk + "leads/list-lead-status.dkl", data, function (data) 
+    {
       model.data_status = data;
       model.load_cb(data, "key", "caption", "#cbStatus","",selected);
-      model.trigger(model.cbStatus, "change");
+      if(model.sys_pk<1)model.trigger(model.cbStatus, "change");
       if(this.mdl_status)model.load_cb(data, "key", "caption", "#"+this.mdl_status.id);
     },
-      function (error) {
+      function (error) 
+      {
         model.alert(error.message);
       }, "POST", false, async);
   },
@@ -438,12 +441,13 @@ var model =
       model.trigger(model.cbStatus, "change");
     }
   },
-  load_pipelines: function () {
+  load_pipelines: function (optselected="") 
+  {
     var data = model.getParameters();
     model.invoke_service(model.url_vendesk + "leads/list-pipelines.dkl", data, function (data) 
     {
       model.pipelines_stages = data;
-      model.load_pipelines_();
+      model.load_pipelines_(optselected);
     },
       function (error) {
         model.alert(error.message);
@@ -946,7 +950,7 @@ var model =
       options += `<option ${attributes} ${optselected==eval("itm." + key) ? "selected":""} value="${eval("itm." + key)}" ${slected}>${eval("itm." + value)}</option>`;
     }
     select.innerHTML = options;
-
+    select.setAttribute("loaded",true);
     let btn_edit_proc=document.getElementById("btn_edit_proc");
     let ctrl_disabled=(btn_edit_proc && btn_edit_proc.classList.contains("d-none"));
     if(Number(model.sys_pk)>0 && !ctrl_disabled && this.FindControl(idselect))select.disabled=true;
@@ -1069,8 +1073,10 @@ var model =
 
       model.data_leads = data;
 
-      if (prospecto) {
-        model.load_pipelines_();
+      if (prospecto) 
+      {
+        let loaded_pipeline=model.cbPipeline?.hasAttribute("loaded")??false;
+        if(!loaded_pipeline)model.load_pipelines_();
         model.load_data_lead();
         return;
       }
@@ -1451,23 +1457,28 @@ var model =
       }
     }
   },
+  _stage_selected:0,
   LoadStagesPipeline(stages,idstage="#cbStages")
   {
     if(!this.div_pipeline)
     {
-      model.load_cb(stages, "sys_pk", "name", idstage);
+      let vaue_selected=model._stage_selected > 0?model._stage_selected:(this.cbStages?this.cbStages.value:"")
+      model.load_cb(stages, "sys_pk", "name", idstage,"",vaue_selected);
     }
     else model.load_cb(stages, "sys_pk", "name", idstage,"","","all","(Todas las etapas)");
   },
-  load_pipelines_: function () 
+  load_pipelines_: function (optselected="") 
   {
     if (model.pipelines_stages != null) 
     {
       if(!this.div_pipeline)
       {
-        model.load_cb(model.pipelines_stages, "sys_pk", "name", "#cbPipeline","",(this.cbPipeline?this.cbPipeline.value:""));
-        if (model.cmpipelines) model.cmpipelines.value = 0;
+        let opts=optselected.trim()!=""? optselected:(this.cbPipeline?this.cbPipeline.value:"");
+        model.load_cb(model.pipelines_stages, "sys_pk", "name", "#cbPipeline","",opts);
         if(this.mdl_cbPipeline)model.load_cb(model.pipelines_stages, "sys_pk", "name", "#"+this.mdl_cbPipeline.id);
+        
+        if (model.cmpipelines && !opts) model.cmpipelines.value = 0;
+        this.trigger(this.cbPipeline,"change");//despachar el evento change del elemento pipeline
       }
       else 
       {

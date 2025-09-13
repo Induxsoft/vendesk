@@ -3,7 +3,9 @@
 module ""
 {
     @table_name="ut_icontact"
-    @read_query="select *,date_format(uf_proxcontac,'%Y-%m-%d %H:%i') prox_contact from ut_icontact where sys_pk=@_entity_id limit 1"
+    @read_query="select *,date_format(uf_proxcontac,'%Y-%m-%d %H:%i') prox_contact,uf_pipeline pipeline, 
+        uf_stage as stage,uf_status oportunidad
+    from ut_icontact where sys_pk=@_entity_id limit 1"
     existIlinkType::&db
     {
         new p{@"detilink":@ILINK_TYPE}
@@ -65,6 +67,7 @@ module ""
                         FROM xt_biticontact WHERE uf_iicontact=@_entity_id
                         ORDER BY sys_pk DESC LIMIT 250",params)
             @"exist_ilinktype":existIlinkType(db)
+            @"agente*":dbr.rec(db,"SELECT a.codigo,a.nombre from agente a where sys_pk=@uf_iejecutivo",entity)
         }
         return entity
     }

@@ -108,7 +108,7 @@ module "condif lead"
 						if trim(@('$./prox_contact'))!=""
 						{
 							#$
-							div(class="d-flex justify-items-center ms-2 me-2")
+							div(class="d-flex align-items-center ms-2 me-2")
 							{
 								small{"Próx. contacto: #<@('$./prox_contact')>"}
 							}
@@ -255,12 +255,12 @@ module "condif lead"
 							div(class="col-lg-3 col-md-3")
 							{
 								label{"Pipeline:"}
-								select(class="form-select form-select-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbPipeline"){$""}
+								select(class="form-select form-select-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbPipeline" value="#<@('$./pipeline')>"){$""}
 							}
 							div(class="col-lg-3 col-md-3")
 							{
 								label{"Stage:"}
-								select(class="form-select form-select-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbStages"){$""}
+								select(class="form-select form-select-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbStages" value="#<@('$./stage')>"){$""}
 							}
 							div(class="col-lg-3 col-md-3")
 							{
@@ -327,11 +327,13 @@ module "condif lead"
 					model.SetEvents();
 					
 					if(Number(model.sys_pk)<1)model.load_module_prospecto();
-
+					if(model.cbPipeline)model.cbPipeline.value="#<@("$./pipeline")>";
+					
 					model.load_agents(null,"#cbPropietario");
 					model.load_status(null,false,"#<@("$./oportunidad")>");
-					model.load_pipelines();
-
+					model.load_pipelines("#<@("$./pipeline")>");
+					model._stage_selected=#<@("#./stage")>;
+					
 					if(Number(model.sys_pk)>0)
 					{
 						model.get_prospecto("#<sys_pk_lead>",true);
