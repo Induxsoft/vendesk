@@ -113,7 +113,7 @@ module ""
                 }
                 div(class="modal-footer" )
                 {
-                    button(type="button" class="btn btn-sm border-secondary induxsoft-corners v12-context-act-0 list-action" onclick="model.GanadaPerdida(false)"){ "Aceptar"}
+                    button(type="button" class="btn btn-sm border-secondary induxsoft-corners v12-context-act-0 list-action" onclick="model.GanadaPerdidaOP(false)"){ "Aceptar"}
                     button(type="button" class="btn btn-sm border-secondary induxsoft-corners v12-context-act-0 list-action" "data-bs-dismiss"="modal"){ "Cerrar"}
                 }
             }

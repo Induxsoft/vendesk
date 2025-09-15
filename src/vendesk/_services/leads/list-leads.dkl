@@ -196,6 +196,8 @@ module "listar-prospectos"
             case 1 { rw<"leadstatus_text">:"Atendido"}
             case 2 { rw<"leadstatus_text">:"Descartado"}
             case 3 { rw<"leadstatus_text">:"Oportunidad"}
+            case 4 { rw<"leadstatus_text">:"Ganado :)"}
+            case 5 { rw<"leadstatus_text">:"Perdido :("}
             default { rw<"leadstatus_text">:"Otro"}
         }
         // ref log=dbr.rec(db,"SELECT date_format(n.uf_tiempo,'%Y-%m-%dT%T') last_log_update, n.uf_usuario last_log_user_update, n.uf_mensaje last_log from xt_biticontact n WHERE n.uf_Iicontact=@sys_pk ORDER BY n.Sys_PK DESC LIMIT 1;",rw)
