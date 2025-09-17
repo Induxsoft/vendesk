@@ -9,6 +9,18 @@ module "ventas"
 	do @context.begin(@crud_context)
 	ref @http_context = @("&http")
 	ref agente=@("&./agente")
+	ref filter=@("&./filters")
+
+	if trim(@("$parameters/_filter"))!="" && isnull(filter)
+	{
+		ref filter=from.json(url_dcode(@("$parameters/_filter")))
+		if trim(@@(filter,"$cbAgentes"))!="" && trim(@@(filter,"$cbAgentes"))!="unassigned"
+		{
+			ref agente=ifnull(agente,record.create())
+			agente<"codigo">:@@(filter,"$cbAgentes")
+		}
+	}
+	
 	PATH_TRANSLATED = field.dstr(@http_context,'request/headers/PATH_TRANSLATED','')
 	PATH_TRANSLATED = path.concat(dir.name(PATH_TRANSLATED),"_modules/ventas.dk")
 	
@@ -23,7 +35,6 @@ module "ventas"
 
 	showModule=@true
 	idtienda=""
-
 
 	buttons::
 	{
@@ -92,27 +103,27 @@ module "ventas"
 					div(class="col-lg-2 col-md-3 mb-1")
 					{
 						label{"Agente:"}
-						select(class="form-select form-select-sm induxsoft-corners no-shadow" id="cbAgentes"){$""}
+						select(class="form-select form-select-sm induxsoft-corners no-shadow" id="cbAgentes" name="cbAgentes" value="#<@@(filter,'$cbAgentes')>"){$""}
 					}
 					div(class="col-lg-2 col-md-3 mb-1")
 					{
 						label{"Estado:"}
-						select(class="form-select form-select-sm induxsoft-corners no-shadow" id="cbStatus"){$""}
+						select(class="form-select form-select-sm induxsoft-corners no-shadow" id="cbStatus" name="cbStatus" value="#<@@(filter,'$cbStatus')>"){$""}
 					}
 					div(class="col-lg-2 col-md-3 mb-1")
 					{
 						label{"Color:"}
-						select(class="form-select form-select-sm induxsoft-corners no-shadow" id="cbColors"){$""}
+						select(class="form-select form-select-sm induxsoft-corners no-shadow" id="cbColors" name="cbColors" value="#<@@(filter,'$cbColors')>"){$""}
 					}
 					div(class="col-lg-2 col-md-3 mb-1")
 					{
 						label{"Ordenar por:"}
-						select(class="form-select form-select-sm induxsoft-corners no-shadow" id="sOrderBy"){$""}
+						select(class="form-select form-select-sm induxsoft-corners no-shadow" id="sOrderBy" name="sOrderBy" value="#<@@(filter,'$sOrderBy')>"){$""}
 					}
 					div(class="col-lg-4 col-md-8 mb-1")
 					{
 						label(class="" "for"="txtFilter"){"Filtrar:"}
-						input(type="text" class="form-control form-control-sm induxsoft-corners no-shadow" "aria-label"="Small" "aria-describedby"="inputGroup-sizing-sm" id="txtFilter" placeholder="Filtrar..."  onkeyup="model.filter_table_text();")
+						input(type="text" class="form-control form-control-sm induxsoft-corners no-shadow" "aria-label"="Small" "aria-describedby"="inputGroup-sizing-sm" id="txtFilter" placeholder="Filtrar..."  onkeyup="model.filter_table_text();" name="txtFilter")
 					}
 					div(class="col-lg-2 col-md-4 mb-1 d-flex align-items-end")
 					{
@@ -124,10 +135,10 @@ module "ventas"
 					}
 					div(class="col-lg-4 mb-1 " )
 					{
-						div(class="d-flex gap-1 d-none" id="div_pipeline" style="height: max-content;")
+						div(class="d-flex gap-1 #<ifstr(@@(filter,'$cbPipeline')=='','d-none','')>" id="div_pipeline" style="height: max-content;")
 						{
-							select(class="form-select form-select-sm induxsoft-corners" id="cbPipeline"){$""}
-							select(class="form-select form-select-sm induxsoft-corners" id="cbStages"){$""}
+							select(class="form-select form-select-sm induxsoft-corners" id="cbPipeline" name="cbPipeline" value="#<@@(filter,'$cbPipeline')>"){$""}
+							select(class="form-select form-select-sm induxsoft-corners" id="cbStages" name="cbStages" value="#<@@(filter,'$cbStages')>"){$""}
 						}
 					}
 					
@@ -201,9 +212,10 @@ module "ventas"
 					model.agente=#<to.json(agente)>;
 					model.source="#<idtienda>";
 					model.sourceId="#<idtienda>";
+					model._filter=#<to.json(filter)>;
 					model.Init();
-					model.fieldsOrder();
-
+					model.fieldsOrder((model._filter?.sOrderBy??""));
+					
 					const collapseEl = document.getElementById("module-filter");
 					const iconDown = document.querySelector(".toggle-icon .down");
 					const iconUp = document.querySelector(".toggle-icon .up");

@@ -227,7 +227,7 @@ var model =
     var params = 
     {
       agent_filter: cbAgentes.value == "" ? "unassigned" : cbAgentes.value,
-      color_filter: color.value,
+      color_filter: Number(color.value??0),
       status_filter: status.value == "" ? "999" : status.value,
       pipeline:this.cmpipelines?.value??0,
       stage:this.cbStages?.value??0,
@@ -269,6 +269,7 @@ var model =
 
     return params;
   },
+  _filter:null,
   Init: function () 
   {
     var data =
@@ -277,14 +278,11 @@ var model =
       source: model.source,
       storeid: model.sourceId
     }
-
+    model.load_status(data,false,(this._filter?.cbStatus??"999"));
+    model.load_pipelines((this._filter?.cbPipeline??""));
+    model.load_colors(true,(this._filter?.cbColors??""));
+    //cargar despues los agente ya es es el que dispara a la lista de prospectos
     model.load_agents();
-
-    model.load_status(data);
-
-    model.load_pipelines();
-
-    model.load_colors();
 
     model.sOrder = document.querySelector("#sOrderBy");
     if (model.sOrder) model.sOrder.addEventListener("change", function () 
@@ -349,7 +347,21 @@ var model =
       model.load_stages(this.mdl_cbPipeline.value,"#"+(this.mdl_cbStages.id??"otro"));
     });
   },
+  GetFieldsFilter()
+  {
+    let mod_filter=document.getElementById("module-filter");
+    if(!mod_filter)return {};
 
+    let fields=mod_filter.querySelectorAll("input,select,textarea");
+    let _filter={};
+    for (let i = 0; i < fields.length; i++) 
+    {
+      const element = fields[i];
+      let id=element.name??element.id;
+      _filter[id]=element.type=="checkbox"?element.checked:element.value;
+    }
+    return _filter;
+  },
   CheckedAll(checked=false)
   {
     if(!this.prospectos)return;
@@ -515,6 +527,27 @@ var model =
     }
     return false;
   },
+  SetTotalByStage(current_pipeline)
+  {
+    let data_cpipeline=model.pipelines_stages.find((r)=>r.sys_pk==current_pipeline);
+    if(!data_cpipeline)return false;
+
+    let stages=data_cpipeline.stages;
+    if(!stages || stages.length < 1)return false;
+
+    for (let i = 0; i < stages.length; i++) 
+    {
+      const stage = stages[i];
+      let card_body=document.getElementById(`card_body_${stage.sys_pk}`);
+      if(!card_body) continue;
+
+      let tagtotal_prc=document.getElementById(`total_prc_${stage.sys_pk}`);
+      if(!tagtotal_prc)continue;
+
+      let cant_prosp=card_body.querySelectorAll(`div.stage_parent_${stage.sys_pk}`);
+      tagtotal_prc.textContent=cant_prosp.length;
+    }
+  },
   LoadDataAllStages(idtable)
   {
     let element=document.querySelector(idtable);
@@ -553,7 +586,10 @@ var model =
       
       body+=`<div id="row_${stage.sys_pk}">
                   <div class="card h-100">
-                    <div class="card-header"><h3>${stage.name}</h3></div>
+                    <div class="card-header">
+                      <h3>${stage.name}</h3>
+                      <small class="fw-bold d-flex gap-2">Prospectos:<b id="total_prc_${stage.sys_pk}">0</b></small>
+                    </div>
                     <div class="card-body pt-0" id="card_body_${stage.sys_pk}"><h5 id="sin_prcs" class="w-row-stage-all">Sin prospectos</h5></div>
                   </div>
                 </div>`
@@ -569,9 +605,19 @@ var model =
 
       if(card_body.querySelectorAll("#sin_prcs").length > 0)card_body.innerHTML="";
 
-      let html=`<div class="pt-2 w-row-stage-all">${this.CreateItem(row)}</div>`
+      let html=`
+      <div id="parent_${row.sys_pk}" ondragstart='model.Drag.onDragStart(event,"parent_${row.sys_pk}")' 
+            ondragover='model.Drag.onDragOver(event,"parent_${row.sys_pk}")' 
+            ondrop='model.Drag.onDrop(event,"parent_${row.sys_pk}")'>
+
+            <div class="pt-2 w-row-stage-all stage_parent_${row.stage}" draggable="true"  >
+              ${this.CreateItem(row)}
+            </div>
+
+        </div>`
       card_body.insertAdjacentHTML("afterbegin",html);
     }
+    this.SetTotalByStage(current_pipeline);
     return true;
   },
   DataArray:[],
@@ -625,7 +671,7 @@ var model =
                 </div>
               </div>
                 <hr style="margin: 0;"></hr>
-                    <div class="card-body ${this.IsFreezer?"":"pointer"}" style="overflow:auto;display: flex;flex-direction: column;" onclick="${this.IsFreezer?"":`model.redirec('./${itm.sys_pk}/')`}">
+                    <div class="card-body ${this.IsFreezer?"":"pointer"}" style="overflow:auto;display: flex;flex-direction: column;" onclick="${this.IsFreezer?"":`model.redirec('./${itm.sys_pk}/?_filter=${tools.url_encode(JSON.stringify(model.GetFieldsFilter()))}')`}">
                       <div class="justify-items-center ${this.IsFreezer?"":"pointer"} flex-grow-1" >
                         <b><smal>${itm.name}</smal> </b><br>
                         <smal>${itm.phone}</smal>${itm.phone == "" ? "" : "<br>"}
@@ -659,7 +705,7 @@ var model =
                               <button type="button" onclick="model.setColor(${itm.sys_pk},4,event);" style="background-color:#6f42c1;" title="Morado" class="color border"></button>
                               <button type="button" onclick="model.setColor(${itm.sys_pk},5,event);" style="background-color:#ffc107;" title="Amarillo" class="color border"></button>
                             </div>
-                            <a class="" href="./${itm.sys_pk}/" style="margin-right:5px;margin-left:5px">
+                            <a class="" href="./${itm.sys_pk}/?_filter=${tools.url_encode(JSON.stringify(model.GetFieldsFilter()))}" style="margin-right:5px;margin-left:5px">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
                                   <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"></path>
                                 </svg>
@@ -935,7 +981,7 @@ var model =
 
     if (idselect == "#cbAgentes") 
     {
-      options += `<option value="all">(Todos los agentes)</option>`;
+      options += `<option value="all" ${optselected=="all"?"selected":""}>(Todos los agentes)</option>`;
     }
     var slected = "";
 
@@ -955,17 +1001,17 @@ var model =
     let ctrl_disabled=(btn_edit_proc && btn_edit_proc.classList.contains("d-none"));
     if(Number(model.sys_pk)>0 && !ctrl_disabled && this.FindControl(idselect))select.disabled=true;
   },
-  load_colors: function (all = true) 
+  load_colors: function (all = true,selected="") 
   {
     var al = "";
-    if (all) al = `<option value="-1">(Todos)</option>`;
+    if (all) al = `<option value="-1" ${selected=="-1" || selected==""?"selected":""}>(Todos)</option>`;
     var cols = `${al}
-      	<option value="0">Blanco</option>
-      	<option value="1">${model.text_color_n}</option>
-      	<option value="2">Verde</option>
-      	<option value="3">Azul</option>
-      	<option value="4">Morado</option>
-      	<option value="5">Amarillo</option>`;
+      	<option value="0" ${selected=="0"?"selected":""}>Blanco</option>
+      	<option value="1" ${selected=="1"?"selected":""}>${model.text_color_n}</option>
+      	<option value="2" ${selected=="2"?"selected":""}>Verde</option>
+      	<option value="3" ${selected=="3"?"selected":""}>Azul</option>
+      	<option value="4" ${selected=="4"?"selected":""}>Morado</option>
+      	<option value="5" ${selected=="5"?"selected":""}>Amarillo</option>`;
 
     var s = document.querySelector("#cbColors");
     if (s) s.innerHTML = cols;
@@ -1442,8 +1488,13 @@ var model =
     }, "POST", false);
 
   },
-  load_stages: function (sys_pk,idstage="#cbStages") 
+  load_stages: function (sys_pk,idstage="#cbStages",selected="") 
   {
+    if(sys_pk=="all")
+    {
+      this.LoadStagesPipeline([]);
+      return;
+    }
     if (model.pipelines_stages != null) 
     {
       for (var i = 0; i < model.pipelines_stages.length; i++) 
@@ -1451,21 +1502,21 @@ var model =
         var itm = model.pipelines_stages[i];
         if (itm.sys_pk == sys_pk) 
         {
-          this.LoadStagesPipeline(itm.stages,idstage);
+          this.LoadStagesPipeline(itm.stages,idstage,selected);
           break;
         }
       }
     }
   },
   _stage_selected:0,
-  LoadStagesPipeline(stages,idstage="#cbStages")
+  LoadStagesPipeline(stages,idstage="#cbStages",selected="")
   {
     if(!this.div_pipeline)
     {
       let vaue_selected=model._stage_selected > 0?model._stage_selected:(this.cbStages?this.cbStages.value:"")
       model.load_cb(stages, "sys_pk", "name", idstage,"",vaue_selected);
     }
-    else model.load_cb(stages, "sys_pk", "name", idstage,"","","all","(Todas las etapas)");
+    else model.load_cb(stages, "sys_pk", "name", idstage,"",selected,"all","(Todas las etapas)");
   },
   load_pipelines_: function (optselected="") 
   {
@@ -1482,8 +1533,9 @@ var model =
       }
       else 
       {
-        model.load_cb(model.pipelines_stages, "sys_pk", "name", "#cbPipeline","","","all","(Todos los pipelines)");
-        this.LoadStagesPipeline([]);
+        model.load_cb(model.pipelines_stages, "sys_pk", "name", "#cbPipeline","",optselected,"all","(Todos los pipelines)");
+        if(Number(this._filter?.cbPipeline??0)>0)model.load_stages(Number(this._filter?.cbPipeline??0),"#cbStages",(this._filter?.cbStages??""));
+        else this.LoadStagesPipeline([]);
       }
     }
     
@@ -1593,7 +1645,7 @@ var model =
       }
     }
   },
-  fieldsOrder: function () 
+  fieldsOrder: function (selected="") 
   {
     var fields =
     {
@@ -1632,7 +1684,7 @@ var model =
       {
         if (fields[key] == "") continue;
 
-        options += `<option value="${key}">${fields[key]}</option>`;
+        options += `<option value="${key}" ${selected==key?"selected":""}>${fields[key]}</option>`;
       }
       model.sOrder.innerHTML = options;
     }
@@ -1665,6 +1717,67 @@ var model =
     else 
     {
       return false;
+    }
+  },
+  Drag:
+  {
+    onDrop(event, iddest) 
+    {
+      // event.preventDefault();
+
+        const id = event
+            .dataTransfer
+            .getData('text/plain');
+
+        const draggableElement = document.getElementById(id);
+        console.log(id,draggableElement)
+        if(!draggableElement)return;
+        var Elementohtml = draggableElement.outerHTML;
+        const dropzone = document.getElementById(iddest);
+
+        //dropzone.appendChild(draggableElement);
+        dropzone.style.border_left = "2px solid green";
+        dropzone.insertAdjacentHTML(positionEvent, Elementohtml);
+
+        event
+            .dataTransfer
+            .clearData();
+
+        draggableElement.remove();
+    },
+    onDragStart(event, id) 
+    {
+      console.log("start")
+      event
+          .dataTransfer
+          .setData('text/plain', id);
+    },
+    onDragOver(event, iddest) 
+    {
+      // event.preventDefault();
+
+      const obj = document.getElementById(iddest);
+      const rec = obj.getBoundingClientRect();
+      const limit = rec.x + (rec.width / 2);
+
+      var head = document.querySelector(`#${iddest} #head`);
+      var container = document.querySelector(`#${iddest} .container1`);
+      var controls = document.querySelector(`#${iddest} .botn-delete`);
+
+      // if (event.clientX < limit) 
+      // {
+      //     head.classList.add("border-left");
+      //     container.classList.add("border-left");
+      //     controls.classList.add("border-left");
+      //     positionEvent = "beforebegin";
+      // }
+      // else 
+      // {
+      //     head.classList.add("border-right");
+      //     container.classList.add("border-right");
+      //     controls.classList.add("border-right");
+      //     positionEvent = "afterend";
+      // }
     }
   }
 }
