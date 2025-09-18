@@ -165,4 +165,24 @@ module ""
 		exception{}
 		return url
 	}
+
+    function base_url(withPort)
+    {
+        prot = ifstr(parse.bool(@@(@http_context,"$request/headers/HTTPS")),"https","http")
+        host = @@(@http_context, "$request/headers/HTTP_HOST")
+        port = @@(@http_context, "$request/headers/SERVER_PORT")
+
+        if parse.bool(withPort) { return prot+"://"+host+":"+port }
+        return prot+"://"+host
+    }
+
+    function PackExist(&db,packId)
+    {
+        new p { @"id": packId }
+
+        installed_apps = dbr.num(db,"SELECT COUNT(*) FROM sys_app_catalog WHERE pack_id = @id;",p)
+        return installed_apps > 0
+
+        exception{ return @false }
+    }
 }

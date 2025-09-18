@@ -168,6 +168,7 @@ module "config.dkl"
 	//* ======================================== [ _STATIC RESOURCES ]
 	@CSS_STYLES = "/$/vendesk/css/styles.css"
 	@JS_MODEL = "/$/vendesk/js/model.js"
+	@JS_PROSPECTO = "/$/vendesk/js/prospecto.js"
 
 	@CSS_SALES_PIPELINE = "/$/vendesk/css/sales_pipeline.css"
 	@JS_SP_CONTROLLER = "/$/vendesk/js/sales_pipeline/controller.js"

@@ -5,6 +5,8 @@ module "condif lead"
 {
 	#include "functions.dkh"
 	#include "serialize.dkh"
+	#include "dbr.dkh"
+	#include "webcl.dkh"
 	#include "../../config.dkl"
 	#include "../lib.dk"
 	#include "vendesk/_lib/lib.dk"
@@ -65,6 +67,7 @@ module "condif lead"
 	div(class="container-fluid pt-1 ps-3 pe-3" style="background-color:#F5F5F5; min-height:94%;" id="container-clientes")
 	{
 		script(src="#<@JS_MODEL>"){""}
+		script(src="#<@JS_PROSPECTO>"){""}
 		#!
 		#include "vendesk/_modules/modalsVendesk.dkl"
 		#include "modals.dkl"
@@ -75,48 +78,98 @@ module "condif lead"
             do uie.printV12FormBar(nav_config)
             #$
 		}
-		div(class="p-2 bg-white border-bottom" id="div_controls")
+		section(id="work_area")
 		{
-			div(class="d-flex justify-content-end mb-2 gap-2 d-block-media" )
+			#!
+			if edit_proc
 			{
-				div(class="d-flex gap-2 div_btns_lead" )
-				{$""
-					#!
-					if show_btns_recibido
+				ref calendars = list.create()
+				implemented_pim = PackExist(@("&database"),"pim")
+				allowed_calendar = @false
+				//Consultar calendarios del usuario logeado
+				if implemented_pim
+				{
+					response = http.get(path.concat(base_url(@false),"/!/pim/calendar/?ids="+@@(@http_context,"$session/user/ids")))
+					ref resp = from.json(response)
+
+					ref calendars = @@(resp,"&data")
+					allowed_calendar = @true
+
+					exception
 					{
-						#$
-						button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" title="Atendido" onclick="model.ActionLead(#<@('#./sys_pk')>,{lead_status:1},event)"){"Atendido"}
-						button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" title="Descartar" onclick="model.ActionLead(#<@('#./sys_pk')>,{lead_status:2},event)"){"Descartado"}
-						button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" title="Crear oportunidad" onclick="model.GanadaPerdidaOP(true,3)"){"Oportunidad"}
-						#!
+						allowed_calendar = (last_error_code() == 598)
 					}
-					else if show_btns_oprt
+				}
+				new sel_calendar
+				{
+					@"id": "calendar"
+					@"value_field": "sys_pk"
+					@"text_field": "nombre"
+					@"datatable*": calendars
+					member "attributes"
 					{
-						#$
-						button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" onclick="model.SetStageLead(#<@('#./sys_pk')>,event,'previus')" title="Retroceder etapa"){"<<"}
-						button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" onclick="model.SetStageLead(#<@('#./sys_pk')>,event)" title="Avanzar etapa"){">>"}
-						button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" onclick="model.GanadaPerdidaOP(true,4)" title="Ganada"){"Ganada"}
-						button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" onclick="model.GanadaPerdidaOP(true,5)" title="Perdida"){"Perdida"}
-						#!
+						@"class": "form-select form-select-sm rounded-0"
+						@"implemented-pim": implemented_pim
+						@"allowed-calendar": allowed_calendar
 					}
 				}
 				#$
-				div(class="d-flex gap-2 w-100 mt-md div_btns_lead")
-				{$""
-					#!
-					if edit_proc
+				dialog(class="border p-3 mx-auto" id="dlg-choose-calendar" style="z-index:100;")
+				{
+					label(class="h5" "for"="calendar"){"Elige uno de tus calendarios"}
+					##
+					do uie.dbSelect(sel_calendar)
+					##
+
+					div(class="d-flex align-items-center justify-content-end gap-1 pt-2")
 					{
-						if trim(@('$./prox_contact'))!=""
+						button(class="btn btn-primary btn-sm rounded-0" type="button" onclick="prospecto.scheduleEvent();"){"Aceptar"}
+						button(class="btn btn-light btn-sm rounded-0 border" type="button" onclick="prospecto.closeCalendarsDialog();"){"Cancelar"}
+					}
+				}
+			}
+			#$
+			div(class="p-2 bg-white border-bottom" id="div_controls")
+			{
+				div(class="d-flex justify-content-end mb-2 gap-2 d-block-media")
+				{
+					div(class="d-flex gap-2 div_btns_lead" )
+					{$""
+						#!
+						if show_btns_recibido
 						{
 							#$
-							div(class="d-flex align-items-center ms-2 me-2")
-							{
-								small{"Próx. contacto: #<@('$./prox_contact')>"}
-							}
+							button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" title="Atendido" onclick="model.ActionLead(#<@('#./sys_pk')>,{lead_status:1},event)"){"Atendido"}
+							button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" title="Descartar" onclick="model.ActionLead(#<@('#./sys_pk')>,{lead_status:2},event)"){"Descartado"}
+							button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" title="Crear oportunidad" onclick="model.GanadaPerdidaOP(true,3)"){"Oportunidad"}
+							#!
 						}
-						#$
-							
-							
+						else if show_btns_oprt
+						{
+							#$
+							button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" onclick="model.SetStageLead(#<@('#./sys_pk')>,event,'previus')" title="Retroceder etapa"){"<<"}
+							button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" onclick="model.SetStageLead(#<@('#./sys_pk')>,event)" title="Avanzar etapa"){">>"}
+							button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" onclick="model.GanadaPerdidaOP(true,4)" title="Ganada"){"Ganada"}
+							button(class="btn btn-sm border-secondary induxsoft-corners btn-w-50 btn-disabled" onclick="model.GanadaPerdidaOP(true,5)" title="Perdida"){"Perdida"}
+							#!
+						}
+					}
+					#$
+					div(class="d-flex gap-2 w-100 mt-md div_btns_lead")
+					{$""
+						#!
+						if edit_proc
+						{
+							if trim(@('$./prox_contact'))!=""
+							{
+								#$
+								div(class="d-flex align-items-center ms-2 me-2")
+								{
+									small{"Próx. contacto: #<@('$./prox_contact')>"}
+								}
+							}
+							#$
+
 							button(class="btn btn-sm border-secondary induxsoft-corners btn-disabled" title="Próximo contacto" onclick="model.showModal('#modal_notas_recordatorio','record')")
 							{
 								$'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-clock" viewBox="0 0 16 16">
@@ -124,7 +177,7 @@ module "condif lead"
 									<path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0"/>
 									</svg>'
 							}
-							button(class="btn btn-sm border-secondary induxsoft-corners btn-disabled" title="Agendar evento")
+							button(class="btn btn-sm border-secondary induxsoft-corners btn-disabled" title="Agendar evento" onclick="prospecto.showCalendarsDialog();")
 							{
 								$'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-calendar3-event" viewBox="0 0 16 16">
 								<path d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2M1 3.857C1 3.384 1.448 3 2 3h12c.552 0 1 .384 1 .857v10.286c0 .473-.448.857-1 .857H2c-.552 0-1-.384-1-.857z"/>
@@ -135,169 +188,167 @@ module "condif lead"
 							{
 								$'<img src="/$/vendesk/img/icons/freezer.png" style="width: 25px;height: 25px;" /> '
 							}
-							
-						
-					}
-				
+						}
 
-					span(class="flex-grow-1"){""}
-					button(class="btn btn-sm border-secondary induxsoft-corners #<ifstr(edit_proc,'d-none','')>" onclick="model.save_prospecto();" id="btn_save_proc")
-					{
-						$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-floppy2-fill" viewBox="0 0 16 16">
-							<path d="M12 2h-2v3h2z"></path>
-							<path d="M1.5 0A1.5 1.5 0 0 0 0 1.5v13A1.5 1.5 0 0 0 1.5 16h13a1.5 1.5 0 0 0 1.5-1.5V2.914a1.5 1.5 0 0 0-.44-1.06L14.147.439A1.5 1.5 0 0 0 13.086 0zM4 6a1 1 0 0 1-1-1V1h10v4a1 1 0 0 1-1 1zM3 9h10a1 1 0 0 1 1 1v5H2v-5a1 1 0 0 1 1-1"></path>
-						</svg>'
-					}
-
-					#!
-					if edit_proc
-					{
-						#$
-						button(class="btn btn-sm border-secondary induxsoft-corners " onclick="model.EditProspecto(false);" id="btn_edit_proc")
+						span(class="flex-grow-1"){""}
+						button(class="btn btn-sm border-secondary induxsoft-corners #<ifstr(edit_proc,'d-none','')>" onclick="model.save_prospecto();" id="btn_save_proc")
 						{
-							$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
-							<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/>
+							$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-floppy2-fill" viewBox="0 0 16 16">
+								<path d="M12 2h-2v3h2z"></path>
+								<path d="M1.5 0A1.5 1.5 0 0 0 0 1.5v13A1.5 1.5 0 0 0 1.5 16h13a1.5 1.5 0 0 0 1.5-1.5V2.914a1.5 1.5 0 0 0-.44-1.06L14.147.439A1.5 1.5 0 0 0 13.086 0zM4 6a1 1 0 0 1-1-1V1h10v4a1 1 0 0 1-1 1zM3 9h10a1 1 0 0 1 1 1v5H2v-5a1 1 0 0 1 1-1"></path>
 							</svg>'
-						}
-						button(class="btn btn-sm border-secondary induxsoft-corners d-none" onclick="model.CancelEdit(false);" id="btn_cancel_proc" title="Cancelar edición")
-						{
-							$'<svg height="16" viewBox="0 0 48 48" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h48v48H0z" fill="none"></path><path d="M25 16c-5.29 0-10.11 1.97-13.8 5.2L4 14v18h18l-7.23-7.23C17.54 22.44 21.09 21 25 21c7.09 0 13.09 4.61 15.19 11l4.73-1.56C42.17 22.06 34.3 16 25 16z"></path></svg>'
-						}
-						button(class="btn btn-sm border-secondary induxsoft-corners btn-disabled" onclick="model.deleteLead(#<@('#./sys_pk')>,event)" title="Eliminar")
-						{
-							$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
-														<path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
-														<path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
-														</svg>'
-						}
-					}
-				}
-			}
-			div(class="d-flex justify-content-end " style="justify-items: center;align-items: center;")
-			{
-				div(class="w-100" style="height: 8px;background-color: #FCFCFC;" id="dv-color"){""}
-			}
-
-			form(onsubmit="return false" id="form_prospecto")
-			{
-				div(class="card")
-				{
-					div(class="card-body")
-					{
-						div(class="row gx-1")
-						{
-							div(class="col-lg-6 col-md-5")
-							{
-								label(class="fw-bold"){"Nombre:"}
-								input(class="form-control form-control-sm induxsoft-corners" id="txtname"  maxlength="150" value="#<@('$./nombre')>")
-							}
-							div(class="col-lg-2 col-md-3")
-							{
-								label{"Teléfono:"}
-								input(class="form-control form-control-sm induxsoft-corners" id="txtphone" maxlength="100" value="#<@('$./telefonos')>")
-							}
-							div(class="col-lg-4 col-md-4")
-							{
-								label{"Correo electrónico:"}
-								input(type="email" class="form-control form-control-sm induxsoft-corners" id="txtemail" maxlength="255" value="#<@('$./email')>")
-							}
-							div(class="col-lg-6 col-md-6")
-							{
-								label(class="fw-bold"){"Empresa:"}
-								div(class="input-group ")
-								{
-									input(class="form-control form-control-sm induxsoft-corners" id="txtempresa" maxlength="100" value="#<@('$./empresa')>")
-									div(class="input-group-prepend d-flex")
-									{
-										button(class="input-group-text" id="btn_link_client" "#<ifstr(edit_proc,'disabled','')>"="")
-										{
-											$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-link-45deg" viewBox="0 0 16 16">
-											<path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1 1 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4 4 0 0 1-.128-1.287z"/>
-											<path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/>
-											</svg>'
-										}
-										button(class="input-group-text" id="btn_clear_cliente" onclick="model.SetClient(true)" "#<ifstr(edit_proc,'disabled','')>"="")
-										{
-											$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">
-											<path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
-											</svg>'
-										}
-									}
-								}
-								InputKey(name="inputkye_cliente" id="inputkye_cliente" "data-key"="sys_pk" "data-search"="codigo" "data-text"="nombre" "data-source"="#<@URL_BUSCAR_CLIENTE>" "data-value"="{}" columns="codigo,nombre" colcaptions="Código,Nombre" "control-styles"="#container{display:none !important;}"){$""}
-								
-							}
-							div(class="col-lg-6 col-md-6")
-							{
-								label{"Puesto:"}
-								input(class="form-control form-control-sm induxsoft-corners" id="txtpuesto" maxlength="100")
-							}
-							div(class="col-lg-12")
-							{
-								label(class="fw-bold"){"Asunto:"}
-								input(class="form-control form-control-sm induxsoft-corners" id="txtasunto" maxlength="150")
-							}
-							
-							div(class="col-lg-12")
-							{
-								label{"Comentarios:"}
-								textarea(class="form-control form-control-sm induxsoft-corners" rows="2" id="txtcomentarios" maxlength="1024" value="#<@('$./notas')>") {""}
-							}
-							div(class="col-lg-3 col-md-5")
-							{
-								label(class="fw-bold"){"Propietario:"}
-								select(class="form-select form-select-sm induxsoft-corners" id="cbPropietario"){$""}
-							}
-							div(class="col-lg-3 col-md-3")
-							{
-								label{"Status:"}
-								select(class="form-select form-select-sm induxsoft-corners" id="cbStatus" value="#<@('$./oportunidad')>"){$""}
-							}
-							div(class="col-lg-3 col-md-3")
-							{
-								label{"Pipeline:"}
-								select(class="form-select form-select-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbPipeline" value="#<@('$./pipeline')>"){$""}
-							}
-							div(class="col-lg-3 col-md-3")
-							{
-								label{"Stage:"}
-								select(class="form-select form-select-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbStages" value="#<@('$./stage')>"){$""}
-							}
-							div(class="col-lg-3 col-md-3")
-							{
-								label{"Probabilidad de éxito (%):"}
-								input(class="form-control form-control-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="txtProbabilidad" placeholder="%" maxlength="12")
-							}
-							div(class="col-lg-3 col-md-3")
-							{
-								label{"Importe del trato:"}
-								input(class="form-control form-control-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" onkeyup="model.filterFloat(event,this)" id="txtImporteTrato" maxlength="12")
-							}
-							div(class="col-lg-3 col-md-3")
-							{
-								label{"Color:"}
-								select(class="form-select form-select-sm induxsoft-corners" id="cbColors"){$""}
-							}
 						}
 
 						#!
-						if @count(bitacora) > 0
+						if edit_proc
 						{
 							#$
-							hr{}
-
-							div(class="table-responsive mt-2" style="height: 28vh;")
+							button(class="btn btn-sm border-secondary induxsoft-corners " onclick="model.EditProspecto(false);" id="btn_edit_proc")
 							{
-								#!
-								for i = 0; i < @count(bitacora)
+								$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
+								<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/>
+								</svg>'
+							}
+							button(class="btn btn-sm border-secondary induxsoft-corners d-none" onclick="model.CancelEdit(false);" id="btn_cancel_proc" title="Cancelar edición")
+							{
+								$'<svg height="16" viewBox="0 0 48 48" width="16" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h48v48H0z" fill="none"></path><path d="M25 16c-5.29 0-10.11 1.97-13.8 5.2L4 14v18h18l-7.23-7.23C17.54 22.44 21.09 21 25 21c7.09 0 13.09 4.61 15.19 11l4.73-1.56C42.17 22.06 34.3 16 25 16z"></path></svg>'
+							}
+							button(class="btn btn-sm border-secondary induxsoft-corners btn-disabled" onclick="model.deleteLead(#<@('#./sys_pk')>,event)" title="Eliminar")
+							{
+								$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
+															<path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+															<path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+															</svg>'
+							}
+						}
+					}
+				}
+				div(class="d-flex justify-content-end " style="justify-items: center;align-items: center;")
+				{
+					div(class="w-100" style="height: 8px;background-color: #FCFCFC;" id="dv-color"){""}
+				}
+
+				form(onsubmit="return false" id="form_prospecto")
+				{
+					div(class="card")
+					{
+						div(class="card-body")
+						{
+							div(class="row gx-1")
+							{
+								div(class="col-lg-6 col-md-5")
 								{
-									ref bit=@item(bitacora,i)
-									#$
-									div(class="mb-2 p-2 bg-white" style="display: grid;")
+									label(class="fw-bold"){"Nombre:"}
+									input(class="form-control form-control-sm induxsoft-corners" id="txtname"  maxlength="150" value="#<@('$./nombre')>")
+								}
+								div(class="col-lg-2 col-md-3")
+								{
+									label{"Teléfono:"}
+									input(class="form-control form-control-sm induxsoft-corners" id="txtphone" maxlength="100" value="#<@('$./telefonos')>")
+								}
+								div(class="col-lg-4 col-md-4")
+								{
+									label{"Correo electrónico:"}
+									input(type="email" class="form-control form-control-sm induxsoft-corners" id="txtemail" maxlength="255" value="#<@('$./email')>")
+								}
+								div(class="col-lg-6 col-md-6")
+								{
+									label(class="fw-bold"){"Empresa:"}
+									div(class="input-group ")
 									{
-										small{"#<@@(bit,'$uf_mensaje')>"}
-										small(style="font-size: 11px;"){"#<@@(bit,'$uf_usuario')>"}
-										small(style="font-size: 10px;"){"#<@@(bit,'$tiempo')>"}
+										input(class="form-control form-control-sm induxsoft-corners" id="txtempresa" maxlength="100" value="#<@('$./empresa')>")
+										div(class="input-group-prepend d-flex")
+										{
+											button(class="input-group-text" id="btn_link_client" "#<ifstr(edit_proc,'disabled','')>"="")
+											{
+												$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-link-45deg" viewBox="0 0 16 16">
+												<path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1 1 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4 4 0 0 1-.128-1.287z"/>
+												<path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/>
+												</svg>'
+											}
+											button(class="input-group-text" id="btn_clear_cliente" onclick="model.SetClient(true)" "#<ifstr(edit_proc,'disabled','')>"="")
+											{
+												$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">
+												<path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+												</svg>'
+											}
+										}
+									}
+									InputKey(name="inputkye_cliente" id="inputkye_cliente" "data-key"="sys_pk" "data-search"="codigo" "data-text"="nombre" "data-source"="#<@URL_BUSCAR_CLIENTE>" "data-value"="{}" columns="codigo,nombre" colcaptions="Código,Nombre" "control-styles"="#container{display:none !important;}"){$""}
+									
+								}
+								div(class="col-lg-6 col-md-6")
+								{
+									label{"Puesto:"}
+									input(class="form-control form-control-sm induxsoft-corners" id="txtpuesto" maxlength="100")
+								}
+								div(class="col-lg-12")
+								{
+									label(class="fw-bold"){"Asunto:"}
+									input(class="form-control form-control-sm induxsoft-corners" id="txtasunto" maxlength="150")
+								}
+								
+								div(class="col-lg-12")
+								{
+									label{"Comentarios:"}
+									textarea(class="form-control form-control-sm induxsoft-corners" rows="2" id="txtcomentarios" maxlength="1024" value="#<@('$./notas')>") {""}
+								}
+								div(class="col-lg-3 col-md-5")
+								{
+									label(class="fw-bold"){"Propietario:"}
+									select(class="form-select form-select-sm induxsoft-corners" id="cbPropietario"){$""}
+								}
+								div(class="col-lg-3 col-md-3")
+								{
+									label{"Status:"}
+									select(class="form-select form-select-sm induxsoft-corners" id="cbStatus" value="#<@('$./oportunidad')>"){$""}
+								}
+								div(class="col-lg-3 col-md-3")
+								{
+									label{"Pipeline:"}
+									select(class="form-select form-select-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbPipeline" value="#<@('$./pipeline')>"){$""}
+								}
+								div(class="col-lg-3 col-md-3")
+								{
+									label{"Stage:"}
+									select(class="form-select form-select-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbStages" value="#<@('$./stage')>"){$""}
+								}
+								div(class="col-lg-3 col-md-3")
+								{
+									label{"Probabilidad de éxito (%):"}
+									input(class="form-control form-control-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="txtProbabilidad" placeholder="%" maxlength="12")
+								}
+								div(class="col-lg-3 col-md-3")
+								{
+									label{"Importe del trato:"}
+									input(class="form-control form-control-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" onkeyup="model.filterFloat(event,this)" id="txtImporteTrato" maxlength="12")
+								}
+								div(class="col-lg-3 col-md-3")
+								{
+									label{"Color:"}
+									select(class="form-select form-select-sm induxsoft-corners" id="cbColors"){$""}
+								}
+							}
+
+							#!
+							if @count(bitacora) > 0
+							{
+								#$
+								hr{}
+
+								div(class="table-responsive mt-2" style="height: 28vh;")
+								{
+									#!
+									for i = 0; i < @count(bitacora)
+									{
+										ref bit=@item(bitacora,i)
+										#$
+										div(class="mb-2 p-2 bg-white" style="display: grid;")
+										{
+											small{"#<@@(bit,'$uf_mensaje')>"}
+											small(style="font-size: 11px;"){"#<@@(bit,'$uf_usuario')>"}
+											small(style="font-size: 10px;"){"#<@@(bit,'$tiempo')>"}
+										}
 									}
 								}
 							}
