@@ -37,12 +37,19 @@ var prospecto =
         const formProspecto = document.getElementById('form_prospecto');
         const fields = formProspecto.elements;
 
-        let url = "/!/pim/events/_new/"
-        url += "?calendar=" + selectCalendar.value
-        url += "&description=" + fields['txtasunto'].value
-        url += "&detsrc=DET0AF"
-        url += "&srcid=" + model.sys_pk
+        let description = fields['txtasunto'].value + "\r\n\r\n";
+        description += fields['txtname'].value + "\r\n";
+        description += fields['txtphone'].value + "\r\n";
+        description += fields['txtemail'].value;
+        
+        let context = {
+            calendar: selectCalendar.value,
+            caption: description.trim(),
+            detsrc: "DET0AF",
+            srcid: model.sys_pk
+        };
 
-        window.location.href = url
+        let url = "/!/pim/events/_new/?_context=" + tools.url_encode(JSON.stringify(context));
+        window.location.href = url;
     }
 }
