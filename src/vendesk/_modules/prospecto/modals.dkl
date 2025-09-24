@@ -68,6 +68,15 @@ module ""
                                 small(class="text-secondary"){$"Estado:"}
                                 select(class="form-select form-select-sm induxsoft-corners no-shadow" id="mdl_status" "ctrl-name"="lead_status" required="true"){$""}
                                 
+                                div(id="container_pipeline" class="d-none")
+                                {
+                                    label{"Pipeline:"}
+                                    select(class="form-select form-select-sm induxsoft-corners" id="mdl_chg_cbPipeline" "ctrl-name"="lead_pipeline"){$""}
+                            
+                                    label{"Stage:"}
+                                    select(class="form-select form-select-sm induxsoft-corners" id="mdl_chg_cbStages" "ctrl-name"="lead_stage"){$""}
+                                }
+
                                 small(class="text-secondary"){$"Mensaje:"}
                                 textarea(class="form-control induxsoft-corners no-shadow" rows="3" id="mdl_mensaje" "ctrl-name"="note"){""}
                             }

@@ -5,11 +5,14 @@ module "list"
 	#include "functions.dkh"
 	#include "serialize.dkh"
 	#include "../config.dkl"
+	#include "dbr.dkh"
+	#include "dbr.vars.dkl"
 	#include "uielements.v12.dkl"
 	#include "form.dk"
 	include @path_common
 
 	do @context.begin(@crud_context)
+	ref db=@("&database")
 
 	list.default::
 	{
@@ -78,7 +81,9 @@ module "list"
         @"urlexit": "/"
         @"jscurrentcontext": ""
     }
-
+	//cargar variable
+	@url_var_config=str(dbr.vars.getd(db,"vendesk_url_form_client",""))
+	
 	#$
     div(class="container-fluid v12-list-view" id="view")
     {

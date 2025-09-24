@@ -169,7 +169,6 @@ module "config.dkl"
 	@CSS_STYLES = "/$/vendesk/css/styles.css"
 	@JS_MODEL = "/$/vendesk/js/model.js"
 	@JS_PROSPECTO = "/$/vendesk/js/prospecto.js"
-
 	@CSS_SALES_PIPELINE = "/$/vendesk/css/sales_pipeline.css"
 	@JS_SP_CONTROLLER = "/$/vendesk/js/sales_pipeline/controller.js"
 	@JS_SP_DESIGNER = "/$/vendesk/js/sales_pipeline/designer.js"
@@ -213,6 +212,8 @@ module "config.dkl"
 	@URL_INLINK_CASO="/!/webshell/inlink/?inlink_type="+@ILINK_TYPE+"&trace=@trace&det="+@ILINK_TYPE+"&key=@key"
 	@URL_PAPELERA_RECBIN="/!/dbext/recbin/"
 	@URL_PAPELERA_RECBIN_PROSP=@URL_PAPELERA_RECBIN+"?det=DET0AF"
+	@URL_FORM_NEW_CXC="/!/cxc/clientes/_new/?url_exit=@url"
+	@URL_FORM_CXC="/!/cxc/clientes/@id/?url_exit=@url"
 	//Eventos que por el momento generarán notificaciones:
 	@EVENTS_ACTIVE_NOTIF="VC13,VC21,VC22,VC23,VC24,VC26,VC27"
 

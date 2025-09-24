@@ -99,7 +99,7 @@ module "Actualizaciones masivas"
             if max>max_rows {max=max_rows}
             new ndata{}
             log=""
-
+            
             if field.exist(params, "lead_owner") 
             { 
                 ndata<"uf_perfil">:ifstr(@@(params,"$lead_owner")=="unassigned","",@@(params,"$lead_owner")) 
@@ -119,12 +119,13 @@ module "Actualizaciones masivas"
                 }
                 log=log+" Propietario: "+@@(ndata,"$uf_perfil")
             }
-            
+            set_pipeline=@true
             if field.exist(params, "lead_status") 
             { 
                 ndata<"uf_status">: @@(params,"lead_status")
                 ndata<"uf_fechastatus*">: dbr.sql("NOW()")
                 log=log+" Estado "
+                set_pipeline=@@(params,"#lead_status") == 3
             }
 
             if field.exist(params, "lead_color") 
@@ -133,13 +134,13 @@ module "Actualizaciones masivas"
                 log=log+" Color "
             }
 
-            if field.exist(params, "lead_pipeline") 
+            if field.exist(params, "lead_pipeline")  && set_pipeline
             { 
                 ndata<"uf_pipeline">: @@(params,"lead_pipeline")
                 log=log+" Pipeline "
             }
 
-            if field.exist(params, "lead_stage") 
+            if field.exist(params, "lead_stage") && set_pipeline
             { 
                 ndata<"uf_stage">: @@(params,"lead_stage")
                 log=log+" Stage "

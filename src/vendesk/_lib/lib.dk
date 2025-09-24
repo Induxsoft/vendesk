@@ -165,7 +165,6 @@ module ""
 		exception{}
 		return url
 	}
-
     function base_url(withPort)
     {
         prot = ifstr(parse.bool(@@(@http_context,"$request/headers/HTTPS")),"https","http")

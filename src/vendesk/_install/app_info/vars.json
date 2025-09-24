@@ -28,6 +28,18 @@
                 {
                     "control": "button"
                 }
+            },
+            {
+                "varname": "vendesk_url_form_client",
+                "vardefault": "/!/cxc/clientes/_new/?url_exit=@url",
+                "varvalue": "/!/cxc/clientes/_new/?url_exit=@url",
+                "varcaption": "URL de atención a clientes",
+                "varhelp": "URL de atención a clientes",
+                "vartype": "string",
+                "varinput": 
+                {
+                    "control": "text"
+                }
             }
         ]
     }

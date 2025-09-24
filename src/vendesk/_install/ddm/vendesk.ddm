@@ -182,6 +182,8 @@ model "erp.vendesk"
         @"uf_ultimointento" datetime 
         @"uf_res_ultimointento" int 
         @"uf_proxcontac" datetime 
+        @"uf_pipeline" int 
+        @"uf_stage" int
     }
     /* uod.xt_biticontact */
     entity "xt_biticontact"

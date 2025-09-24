@@ -112,6 +112,10 @@ body
 {
   box-shadow: none !important;
 }
+.card-drag-on-drop
+{
+  border: 2px solid deepskyblue;
+}
 /* media query lg */
 @media screen and (max-width: 1000px) 
 {

@@ -269,7 +269,6 @@ var model =
 
     return params;
   },
-  _filter:null,
   Init: function () 
   {
     var data =
@@ -278,8 +277,13 @@ var model =
       source: model.source,
       storeid: model.sourceId
     }
+
     model.load_status(data,false,(this._filter?.cbStatus??"999"));
-    model.load_pipelines((this._filter?.cbPipeline??""));
+    model.load_pipelines((this._filter?.cbPipeline??""),(data)=>
+    {
+      model.load_cb(data, "sys_pk", "name", "#"+this.mdl_chg_cbPipeline.id,"");
+      tools.trigger(this.mdl_chg_cbPipeline,"change");
+    });
     model.load_colors(true,(this._filter?.cbColors??""));
     //cargar despues los agente ya es es el que dispara a la lista de prospectos
     model.load_agents();
@@ -321,6 +325,11 @@ var model =
     this.mdl_cbPipeline=document.getElementById("mdl_cbPipeline");
     this.mdl_cbStages=document.getElementById("mdl_cbStages");
     if(!this.model_cbStatus)this.model_cbStatus=document.getElementById("cbStatus");
+    //cambiar etado masivo
+    this.mdl_chg_cbPipeline=document.getElementById("mdl_chg_cbPipeline");
+    this.mdl_chg_cbStages=document.getElementById("mdl_chg_cbStages");
+    this.container_pipeline=document.getElementById("container_pipeline");
+    
   },
   SetEvents()
   {
@@ -346,22 +355,26 @@ var model =
     {
       model.load_stages(this.mdl_cbPipeline.value,"#"+(this.mdl_cbStages.id??"otro"));
     });
-  },
-  GetFieldsFilter()
-  {
-    let mod_filter=document.getElementById("module-filter");
-    if(!mod_filter)return {};
-
-    let fields=mod_filter.querySelectorAll("input,select,textarea");
-    let _filter={};
-    for (let i = 0; i < fields.length; i++) 
+    if(this.mdl_chg_cbPipeline)this.mdl_chg_cbPipeline.addEventListener("change",()=>
+      {
+        model.load_cb(this.ArrayStages(this.mdl_chg_cbPipeline.value), "sys_pk", "name", ("#"+this.mdl_chg_cbStages.id??""));
+      });
+    
+    if(this.mdl_status)this.mdl_status.addEventListener("change",()=>
     {
-      const element = fields[i];
-      let id=element.name??element.id;
-      _filter[id]=element.type=="checkbox"?element.checked:element.value;
-    }
-    return _filter;
+      if(!this.container_pipeline)return;
+      this.container_pipeline.classList.add("d-none");
+      this.mdl_chg_cbPipeline.required=false;
+      this.mdl_chg_cbStages.required=false;
+      if(Number(this.mdl_status.value??0)==3)
+      {
+        this.container_pipeline.classList.remove("d-none");
+        this.mdl_chg_cbPipeline.required=true;
+        this.mdl_chg_cbStages.required=true;
+      }
+    });
   },
+
   CheckedAll(checked=false)
   {
     if(!this.prospectos)return;
@@ -435,15 +448,13 @@ var model =
   {
     if (data == null) data = model.getParameters();
 
-    model.invoke_service(model.url_vendesk + "leads/list-lead-status.dkl", data, function (data) 
-    {
+    model.invoke_service(model.url_vendesk + "leads/list-lead-status.dkl", data, function (data) {
       model.data_status = data;
       model.load_cb(data, "key", "caption", "#cbStatus","",selected);
-      if(model.sys_pk<1)model.trigger(model.cbStatus, "change");
+      model.trigger(model.cbStatus, "change");
       if(this.mdl_status)model.load_cb(data, "key", "caption", "#"+this.mdl_status.id);
     },
-      function (error) 
-      {
+      function (error) {
         model.alert(error.message);
       }, "POST", false, async);
   },
@@ -453,13 +464,14 @@ var model =
       model.trigger(model.cbStatus, "change");
     }
   },
-  load_pipelines: function (optselected="") 
+  load_pipelines: function (optselected="",callback=null) 
   {
     var data = model.getParameters();
     model.invoke_service(model.url_vendesk + "leads/list-pipelines.dkl", data, function (data) 
     {
       model.pipelines_stages = data;
       model.load_pipelines_(optselected);
+      if(callback)callback(data);
     },
       function (error) {
         model.alert(error.message);
@@ -546,8 +558,11 @@ var model =
 
       let cant_prosp=card_body.querySelectorAll(`div.stage_parent_${stage.sys_pk}`);
       tagtotal_prc.textContent=cant_prosp.length;
+
+      if(cant_prosp.length<1)card_body.innerHTML=this.labelSNPrcs;
     }
   },
+  labelSNPrcs:`<h5 id="sin_prcs" class="w-row-stage-all">Sin prospectos</h5>`,
   LoadDataAllStages(idtable)
   {
     let element=document.querySelector(idtable);
@@ -590,7 +605,14 @@ var model =
                       <h3>${stage.name}</h3>
                       <small class="fw-bold d-flex gap-2">Prospectos:<b id="total_prc_${stage.sys_pk}">0</b></small>
                     </div>
-                    <div class="card-body pt-0" id="card_body_${stage.sys_pk}"><h5 id="sin_prcs" class="w-row-stage-all">Sin prospectos</h5></div>
+
+                    <div class="card-body pt-0" id="card_body_${stage.sys_pk}" 
+                    ondrop='model.Drag.onDrop(event,"${stage.sys_pk}")' 
+                    ondragover='model.Drag.onDragOver(event,"${stage.sys_pk}")'
+                    ondragstart='model.Drag.onDragStart(event,"${stage.sys_pk}")' >
+                      ${this.labelSNPrcs}
+                    </div>
+
                   </div>
                 </div>`
     }
@@ -603,22 +625,24 @@ var model =
       let card_body=document.getElementById(`card_body_${row.stage}`);
       if(!card_body) continue;
 
-      if(card_body.querySelectorAll("#sin_prcs").length > 0)card_body.innerHTML="";
-
-      let html=`
-      <div id="parent_${row.sys_pk}" ondragstart='model.Drag.onDragStart(event,"parent_${row.sys_pk}")' 
-            ondragover='model.Drag.onDragOver(event,"parent_${row.sys_pk}")' 
-            ondrop='model.Drag.onDrop(event,"parent_${row.sys_pk}")'>
-
-            <div class="pt-2 w-row-stage-all stage_parent_${row.stage}" draggable="true"  >
+      this.RemoveLabelSn(row.stage);
+      
+      let id=tools.uuid();
+      let html=`<div class="pt-2 w-row-stage-all stage_parent_${row.stage}" draggable="true" id="${id}" prospecto="${row.sys_pk}" stage="${row.stage}" pipeline="${current_pipeline}">
               ${this.CreateItem(row)}
-            </div>
-
-        </div>`
+            </div>`;
+            
       card_body.insertAdjacentHTML("afterbegin",html);
     }
     this.SetTotalByStage(current_pipeline);
     return true;
+  },
+  RemoveLabelSn(stage,clean=true)
+  {
+    let card_body=document.getElementById(`card_body_${stage}`);
+    if(!card_body)return;
+    if(card_body.querySelectorAll("#sin_prcs").length > 0 && clean)card_body.innerHTML="";
+    // else if(card_body.querySelectorAll("#sin_prcs").length < 1 && !clean) 
   },
   DataArray:[],
   OnlyRows:false,
@@ -645,6 +669,21 @@ var model =
     }
     if (table && body.trim()!="") table.innerHTML = body;
     
+  },
+  GetFieldsFilter()
+  {
+    let mod_filter=document.getElementById("module-filter");
+    if(!mod_filter)return {};
+
+    let fields=mod_filter.querySelectorAll("input,select,textarea");
+    let _filter={};
+    for (let i = 0; i < fields.length; i++) 
+    {
+      const element = fields[i];
+      let id=element.name??element.id;
+      _filter[id]=element.type=="checkbox"?element.checked:element.value;
+    }
+    return _filter;
   },
   CreateItem(itm)
   {
@@ -930,10 +969,6 @@ var model =
   NextContact()
   {
   },
-  Recicle()
-  {
-
-  },
   deleteLead: function (sys_pk,event,_leads=null) 
   {
     var r = model.confirm("¿Esta seguro de realizar este proceso?");
@@ -1119,10 +1154,8 @@ var model =
 
       model.data_leads = data;
 
-      if (prospecto) 
-      {
-        let loaded_pipeline=model.cbPipeline?.hasAttribute("loaded")??false;
-        if(!loaded_pipeline)model.load_pipelines_();
+      if (prospecto) {
+        model.load_pipelines_();
         model.load_data_lead();
         return;
       }
@@ -1490,25 +1523,16 @@ var model =
   },
   load_stages: function (sys_pk,idstage="#cbStages",selected="") 
   {
-    if(sys_pk=="all")
-    {
-      this.LoadStagesPipeline([]);
-      return;
-    }
-    if (model.pipelines_stages != null) 
-    {
-      for (var i = 0; i < model.pipelines_stages.length; i++) 
-      {
-        var itm = model.pipelines_stages[i];
-        if (itm.sys_pk == sys_pk) 
-        {
-          this.LoadStagesPipeline(itm.stages,idstage,selected);
-          break;
-        }
-      }
-    }
+    this.LoadStagesPipeline(this.ArrayStages(sys_pk),idstage,selected);
   },
-  _stage_selected:0,
+  ArrayStages(pipeline)
+  {
+    if(!model.pipelines_stages)return [];
+    let data= model.pipelines_stages.find(r=>r.sys_pk==pipeline);
+    if(!data)return [];
+
+    return data.stages ?? [];
+  },
   LoadStagesPipeline(stages,idstage="#cbStages",selected="")
   {
     if(!this.div_pipeline)
@@ -1538,7 +1562,6 @@ var model =
         else this.LoadStagesPipeline([]);
       }
     }
-    
   },
   load_module_prospecto: function () 
   {
@@ -1721,63 +1744,95 @@ var model =
   },
   Drag:
   {
-    onDrop(event, iddest) 
+    last_prospecto:0,
+    onDrop(event, stage) 
     {
-      // event.preventDefault();
+      this.DeleteClass();
+      if(!event.target)return;
 
-        const id = event
-            .dataTransfer
-            .getData('text/plain');
+      const id = event
+          .dataTransfer
+          .getData('text/plain');
 
-        const draggableElement = document.getElementById(id);
-        console.log(id,draggableElement)
-        if(!draggableElement)return;
-        var Elementohtml = draggableElement.outerHTML;
-        const dropzone = document.getElementById(iddest);
+      const draggableElement = document.getElementById(id);
+      const card_body_=document.getElementById(`card_body_${stage}`);
+      if(!card_body_)return;
+      
+      if(!draggableElement)return;
 
-        //dropzone.appendChild(draggableElement);
-        dropzone.style.border_left = "2px solid green";
-        dropzone.insertAdjacentHTML(positionEvent, Elementohtml);
+      let prcs=draggableElement.getAttribute("prospecto");
+      let cstage=draggableElement.getAttribute("stage");
+      let pipeline=draggableElement.getAttribute("pipeline");
+      
+      model.Drag.last_prospecto=Number(prcs);
 
-        event
+      if(Number(stage)==Number(cstage))return;
+
+      if(model.Drag.last_prospecto<1)
+      {
+        alert("Debe indicar un prospecto");
+        return;
+      }
+      if(Number(stage)<1)
+      {
+        alert("Debe indicar una etapa");
+        return;
+      }
+      let leads=[];
+      let lead={sys_pk:model.Drag.last_prospecto};
+      leads.push(lead);
+      //actualizar leads
+      let data={};
+
+      data["leads"]=leads;
+      data["lead_stage"]=stage;
+      data["action"]="update";
+      model.invoke_service(model.url_vendesk + "leads/update-many.dkl", data, function (data) 
+      {
+        model.RemoveLabelSn(stage);
+
+        draggableElement.classList.remove(`stage_parent_${cstage}`);
+        draggableElement.classList.add(`stage_parent_${stage}`);
+        draggableElement.setAttribute("stage",stage);
+
+        card_body_.appendChild(draggableElement);
+        model.SetTotalByStage(Number(pipeline??0));
+      },
+      function (error) 
+      {
+        model.SetTotalByStage(Number(pipeline??0));
+        model.alert(error.message);
+      }, "POST", false);
+
+      event
             .dataTransfer
             .clearData();
 
-        draggableElement.remove();
     },
-    onDragStart(event, id) 
+    onDragStart(event, stage) 
     {
-      console.log("start")
+      this.DeleteClass();
       event
           .dataTransfer
-          .setData('text/plain', id);
+          .setData('text/plain', event.target.id);
     },
-    onDragOver(event, iddest) 
+    onDragOver(event, stage) 
     {
-      // event.preventDefault();
+      event.preventDefault();
+      this.DeleteClass();
+      const card_body_=document.getElementById(`card_body_${stage}`);
+      if(!card_body_)return;
 
-      const obj = document.getElementById(iddest);
-      const rec = obj.getBoundingClientRect();
-      const limit = rec.x + (rec.width / 2);
-
-      var head = document.querySelector(`#${iddest} #head`);
-      var container = document.querySelector(`#${iddest} .container1`);
-      var controls = document.querySelector(`#${iddest} .botn-delete`);
-
-      // if (event.clientX < limit) 
-      // {
-      //     head.classList.add("border-left");
-      //     container.classList.add("border-left");
-      //     controls.classList.add("border-left");
-      //     positionEvent = "beforebegin";
-      // }
-      // else 
-      // {
-      //     head.classList.add("border-right");
-      //     container.classList.add("border-right");
-      //     controls.classList.add("border-right");
-      //     positionEvent = "afterend";
-      // }
+      card_body_.classList.add("card-drag-on-drop");
+    },
+    DeleteClass(_class="card-drag-on-drop")
+    {
+      let elemets=document.querySelectorAll(`.${_class}`)
+      for (let i = 0; i < elemets.length; i++) 
+      {
+        const element = elemets[i];
+        if(element)element.classList.remove(_class);
+      }
     }
   }
 }

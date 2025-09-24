@@ -9,18 +9,19 @@ module "ventas"
 	do @context.begin(@crud_context)
 	ref @http_context = @("&http")
 	ref agente=@("&./agente")
+
 	ref filter=@("&./filters")
 
 	if trim(@("$parameters/_filter"))!="" && isnull(filter)
 	{
 		ref filter=from.json(url_dcode(@("$parameters/_filter")))
-		if trim(@@(filter,"$cbAgentes"))!="" && trim(@@(filter,"$cbAgentes"))!="unassigned"
+		if trim(@@(filter,"$cbAgentes"))!="" //&& trim(@@(filter,"$cbAgentes"))!="unassigned"
 		{
 			ref agente=ifnull(agente,record.create())
 			agente<"codigo">:@@(filter,"$cbAgentes")
 		}
 	}
-	
+
 	PATH_TRANSLATED = field.dstr(@http_context,'request/headers/PATH_TRANSLATED','')
 	PATH_TRANSLATED = path.concat(dir.name(PATH_TRANSLATED),"_modules/ventas.dk")
 	
@@ -35,6 +36,7 @@ module "ventas"
 
 	showModule=@true
 	idtienda=""
+
 
 	buttons::
 	{
@@ -215,7 +217,7 @@ module "ventas"
 					model._filter=#<to.json(filter)>;
 					model.Init();
 					model.fieldsOrder((model._filter?.sOrderBy??""));
-					
+
 					const collapseEl = document.getElementById("module-filter");
 					const iconDown = document.querySelector(".toggle-icon .down");
 					const iconUp = document.querySelector(".toggle-icon .up");
