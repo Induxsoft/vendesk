@@ -1,0 +1,5 @@
+sys_guid,sys_dtcreated,sys_timestamp,sys_recver,id,description,token,source,pack_id,disabled
+fb61199c4b14474495b545892f5de965,2025-11-13 13:26:57,2025-11-13 18:34:22,0,lead-add,Agregar contacto,lead-add,vendesk/sise/add-lead.dkl,vendesk,0
+f5c57af2d28047ef84d5db503e87ec58,2025-11-13 15:10:57,2025-11-14 09:55:39,0,open-ticket,Generar ticket,open-ticket,vendesk/sise/open-ticket.dkl,vendesk,0
+a5aeb487ff5e48faa7149123b2f191fd,2025-11-13 15:57:25,2025-11-14 10:01:15,0,list-tickets,Consultar tickets (de un cliente),list-tickets,vendesk/sise/list-tickets.dkl,vendesk,0
+c3dd8a79517947499df1d24d7eb2a7ce,2025-11-13 16:02:54,2025-11-14 10:04:36,0,info-ticket,Infromacion de un ticket,info-ticket,vendesk/sise/info-ticket.dkl,vendesk,0

@@ -18,7 +18,8 @@ program "instalador"
         "ut_crmprioridad.csv",
         "ut_crmtipocaso.csv",
         "inlink_type.csv",
-        "inlink_type_action.csv"
+        "inlink_type_action.csv",
+        "sys_rest_integration.csv"
     ]')
 
     // Lista de privilegios iniciales (arreglo de id de privilegios)
