@@ -1,0 +1,21 @@
+#include "dkli.dkh"
+#set "meta-xml-declaration" ""
+#!
+module ""
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "webcl.dkh"
+    #include "model.dk"
+    #include "vendesk/_services/lib.dk"
+
+    res= rest.EntryPoint("add-lead")
+
+    exception
+    {
+        res="Ha ocurrido un error al intentar registrar la información de contacto. Información técnica: "+last_error()
+    }
+
+    do rest.ResponseText(res)
+}

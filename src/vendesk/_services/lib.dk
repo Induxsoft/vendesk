@@ -2,6 +2,36 @@
 #!
 module ""
 {
+    function get_db()
+    {
+        @open_connection = @false
+        ref user=@@(@http_context,"&session/user")
+
+        qname = trim(@@(@http_context,"$session/idp/qname"))
+        ref db = @@(@http_context,"&session/idp/database")
+        
+        if isnull(db) && trim(@@(user,"$ids"))!=""
+        {
+            ref db=dbr.reconnect(qname,@@(user,"$ids"))
+            exception{}
+        }
+        if isnull(db) || not(dbr.is_open(db)) 
+        {
+            ref db:dbr.open(qname)
+            @open_connection = @true
+        }
+        do dbr.rec(db,"select 1 as success;",@null)
+        
+        exception
+        {
+            do pop_exception()
+            ref db:dbr.open(qname)
+            @open_connection = @true
+        }
+
+        if @open_connection { @http_context<"session/idp/database*"> : db }
+        return db
+    }
     cors_xhr::
     {
         @http_context<"response/headers/Access-Control-Allow-Origin">:"*"
@@ -198,5 +228,311 @@ module ""
                 return cut(tolower(@@(ls,"Type")),3)
             }
         }
+    }
+
+    ///leads
+    _AddLead::&db,&params,&response
+    {
+        ref user=@@(@http_context,"&session/user")
+
+        new newEntry{}
+        sys_pk=field.dnum(params,"sys_pk",0)
+
+        uuid=""
+        log=""
+        
+        if field.exist(params,"recived") 
+        { 
+            newEntry<"uf_fecha">:@@(params,"recived")
+            log=log+" - fecha de recepción\r\n"
+        }
+
+        if field.exist(params,"next_contact") 
+        { 
+            newEntry<"uf_proxcontac">:@@(params,"next_contact")
+            log=log+" - próximo contacto\r\n"
+        }
+        
+        if field.exist(params,"agent_id")
+        { 
+            newEntry<"uf_iejecutivo*">:@null
+            newEntry<"uf_perfil">:@@(params,"agent_id")
+
+            sql="SELECT t.sys_pk,t.sys_guid,a.sys_pk pk_agente
+            from agente a
+            LEFT JOIN tuser t ON a.uf_iuser=t.sys_pk
+            WHERE a.codigo=@agent_id"
+
+            ref _agente=dbr.rec(db,sql,params)
+
+            newEntry<"uf_iejecutivo">:@@(_agente,"#pk_agente")
+            newEntry<"uf_perfil">:@@(_agente,"$sys_guid")
+
+            log=log+" - agente propietario\r\n"
+        }
+
+        if field.exist(params,"leadstatus") 
+        { 
+            newEntry<"uf_status">:@@(params,"#leadstatus")
+            log=log+" - status\r\n"
+        }
+
+        if field.exist(params,"subject") 
+        { 
+            newEntry<"uf_interes">:@@(params,"subject")
+            log=log+" - asunto\r\n"
+        }
+
+        if field.exist(params,"remarks") 
+        { 
+            newEntry<"uf_comentarios">:@@(params,"remarks")
+            log=log+" - comentarios\r\n"
+        }
+
+        if field.exist(params,"color") 
+        { 
+            newEntry<"uf_color">:@@(params,"#color")
+            log=log+" - color\r\n"
+        }
+
+        if field.exist(params,"name") 
+        { 
+            newEntry<"uf_nombre">:@@(params,"name")
+            log=log+" - nombre\r\n"
+        }
+
+        if field.exist(params,"email") 
+        { 
+            newEntry<"uf_email">:@@(params,"email")
+            log=log+" - email\r\n"
+        }
+
+        if field.exist(params,"phone") 
+        { 
+            newEntry<"uf_telefono">:@@(params,"phone")
+            log=log+" - telefono\r\n"
+        }
+
+        if field.exist(params,"organization") 
+        { 
+            newEntry<"uf_empresa">:@@(params,"organization")
+            log=log+" - empresa\r\n"
+        }
+
+        if field.exist(params,"position") 
+        { 
+            newEntry<"uf_puesto">:@@(params,"position")
+            log=log+" - puesto\r\n"
+        }
+
+        if field.exist(params,"pipeline") 
+        { 
+            if @@(params,"#pipeline")>0 { newEntry<"uf_pipeline">:@@(params,"#pipeline") }
+            else {newEntry<"uf_pipeline*">:@null }
+            log=log+" - pipeline \r\n"
+        }
+
+        if field.exist(params,"stage") 
+        { 
+            if @@(params,"#stage")>0 { newEntry<"uf_stage">:@@(params,"#stage") }
+            else {newEntry<"uf_stage*">:@null }
+            log=log+" - stage \r\n"
+        }
+
+        if field.exist(params,"probability") 
+        { 
+            newEntry<"uf_probability">:@@(params,"#probability")
+            log=log+" - probability \r\n"
+        }
+
+        if field.exist(params,"amount") 
+        { 
+            newEntry<"uf_amount">:@@(params,"#amount")
+            log=log+" - amount \r\n"
+        }
+
+        if sys_pk > 0
+        {
+            //Actualizar
+            using newEntry
+            {
+                @"sys_timestamp*":dbr.sql("now()")
+            }
+
+            new p { @"sys_pk":sys_pk}
+            do dbr.update(db,"ut_icontact",newEntry,"sys_pk=@sys_pk",p)
+            log_text="Actualización de:\r\n"+log
+            if field.exist(params,"log")
+            {
+                log_text=@@(params,"$log")
+            }
+            do agregar_log(db,sys_pk,log_text,@@(user,"name"))
+
+        }
+        else
+        {
+            uuid=uuid()
+            //Insertar
+            using newEntry
+            {
+                @"sys_dtcreated*":dbr.sql("now()")
+                @"sys_timestamp*":dbr.sql("now()")
+                @"sys_guid":uuid
+            }
+
+            do dbr.insert(db,"ut_icontact",newEntry)
+            sys_pk=dbr.num(db,"SELECT LAST_INSERT_ID();",@null)
+            do agregar_log(db,sys_pk,"Nuevo prospecto",@@(user,"name"))
+
+        }
+        
+        
+        response<"data*">:dbr.rec(db,"
+        select sys_pk, 
+        date_format(sys_dtcreated,'%Y-%m-%dT%T') sys_dtcreated,
+        date_format(sys_timestamp,'%Y-%m-%dT%T') sys_timestamp, 
+        sys_guid, 
+        if(isnull(uf_fecha),date_format(sys_dtcreated,'%Y-%m-%dT%T'),date_format(uf_fecha,'%Y-%m-%dT%T')) recived,
+        if(isnull(uf_proxcontac),'',date_format(uf_proxcontac,'%Y-%m-%dT%T')) next_contact,
+        if(not ifnull(uf_contactado,0),'', if(isnull(uf_ultimocontac),'',date_format(uf_ultimocontac,'%Y-%m-%dT%T'))) last_contact,
+        if(isnull(uf_ultimointento),'',date_format(uf_ultimointento,'%Y-%m-%dT%T')) last_attempt,
+        ifnull(uf_perfil,'') agent_id, 
+        ifnull(uf_status,0) leadstatus,
+        uf_interes subject,
+        uf_color color, 
+        uf_nombre name, 
+        uf_email email, 
+        uf_telefono phone, 
+        uf_empresa organization, 
+        ifnull(uf_comentarios,'') remarks,
+        uf_puesto position,
+        uf_ref_customer customer_id,
+        uf_pipeline pipeline,
+        uf_stage stage,
+        uf_probability probability,
+        uf_amount amount
+        from ut_icontact where sys_pk="+str(sys_pk)+";
+        ",@null)
+
+        response<"data/agent_name">:@@(user,"name")
+        switch @@(response,"#data/leadstatus")
+        {
+            case 0 { response<"data/leadstatus_text">:"Recibido"}
+            case 1 { response<"data/leadstatus_text">:"Atendido"}
+            case 2 { response<"data/leadstatus_text">:"Descartado"}
+            case 3 { response<"data/leadstatus_text">:"Oportunidad"}
+            default { response<"data/leadstatus_text">:"Otro"}
+        }
+
+        do addNotes(db,@@(response,"&data"))
+    }
+    _PrepareData::&datos
+    {
+        new data
+        {
+            @"sys_timestamp*":now()
+            @"sys_guid":uuid()
+            @"sys_dtcreated*":now()
+        }
+
+        table_name=""
+        privileges=""
+
+        switch trim(@@(datos,"item"))
+        {
+            case "alert"
+            {
+                privileges="VC13" //Activar alertas
+                table_name="ut_crm_alerts"
+                using data
+                {
+                    @"activa":1
+                    @"descripcion":@@(datos,"texto")
+                    @"fk_cliente":@@(datos,"cliente")
+                    @"usuariocrea":@@(datos,"user")
+                }
+                
+                break
+            }
+            case "case"
+            {
+                privileges="VC21" // Crear caso
+                table_name="ut_crmcasos"
+                using data
+                {
+                    @"fechaapertura":@@(datos,"fechaapertura")
+                    @"horaapertura*":str2dt(@@(datos,"horaapertura"),"dd-mm-dd 00:00:00")
+                    @"usuarioabre":@@(datos,"user")
+                    @"usuarioasignado":@@(datos,"$usuarioasignado")
+                    @"asunto":@@(datos,"asunto")
+                    @"descripcion":@@(datos,"texto")
+                    @"fk_cliente":@@(datos,"cliente")
+                    @"fk_tipocaso":@@(datos,"tipocaso")
+                    @"fk_cliente":@@(datos,"cliente")
+                }
+
+                break
+            }
+            case "aten"
+            {
+                privileges="VC12" //Registrar atención
+                table_name="ut_crmnotacliente"
+                using data
+                {
+                    @"fk_cliente":@@(datos,"cliente")
+                    @"usuario":@@(datos,"user")
+                    @"notas":ifstr(@@(datos,"atencion")=="",@@(datos,"texto"),@@(datos,"atencion"))
+                }
+
+                break
+            }
+        }
+
+        using data
+        {
+            @"privileges":privileges
+            @"table_name":table_name
+        }
+
+        return data
+    }
+    _InsertData::&db,table_name,&datos,&data
+    {
+        //insertar datos en la tabla correspondiente
+        do dbr.insert(db,table_name,data)
+        
+        //si se trata de un caso, insertar nota
+        if trim(@@(datos,"item"))=="case"
+        {
+            ref d=record.copy(data,"Sys_TimeStamp,Sys_GUID,Sys_DTCreated")
+
+            d<"fk_caso">:dbr.num(db,"select max(sys_pk) from "+table_name,@null)
+            d<"usuario">:@@(data,"usuarioabre")
+
+            tipo=dbr.str(db,"select uf_descripcion from ut_crmtipocaso where sys_pk=@tipocaso",datos)
+            d<"notas">:"<< Caso de tipo: "+tipo+" >>"
+
+            data<"id_caso">:@@(d,"#fk_caso")
+            do dbr.insert(db,"ut_crmnotacaso",d)
+        }
+    }
+
+    _SendNotify::&db,&data,&datos,privileges
+    {
+        module "enviar notificación"
+        {
+            using data
+            {
+                @"client":@@(data,"#fk_cliente")
+                @"event":privileges
+                @"mensaje":@@(data,"$descripcion")
+                @"case":dbr.num(db,"select sys_pk from ut_crmcasos where sys_guid=@sys_guid",data)
+                @"_mod":trim(@@(datos,"item"))
+            }
+            
+            do send.notif(db,data)
+        }
+
+        return data
     }
 }

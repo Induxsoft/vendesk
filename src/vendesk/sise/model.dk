@@ -1,0 +1,220 @@
+#include "dkli.dkh"
+#!
+module ":rest"
+{
+    //#region utilidades
+    _params::{return @@(@http_context,"&request/get")}
+
+    GetDb::{return @@(@http_context,"&session/idp/database")}
+    GetHost::onlyhost
+    {
+        host=@@(@http_context,"request/headers/HTTP_HOST")
+        if trim(host)==""{host=@@(@http_context,"$request/headers/SERVER_NAME")}
+		protocol=ifstr(parse.bool(@@(@http_context,"request/headers/HTTPS")),"https","http")
+		path=replace(field.dstr(@http_context,"request/headers/request_uri","/"),"\\","/")
+
+		path=list.str(split(path,"?"),0)
+		
+        if onlyhost{path=""}
+
+		_h=protocol+"://"+path.concat(host,path)
+        
+        return _h
+    }
+    get_payload::
+	{
+		ref post=@@(@http_context,"&request/post")
+
+		if not(isnull(post))
+		{
+			if list.create_from_fields(post)>0
+			{
+				return post
+			}
+		}
+
+		return from.json(field.dstr(@http_context,"request/post_string","null"))
+
+		exception{}
+
+		return @null
+	}
+
+    ResponseText::text
+    {
+        // Establecer encabezado de respuesta http
+        @http_context<"response/headers/Content-Type"> : "text/plain"
+        // Indicar tipo de respuesta
+        @http_context<"response/output"> : "text"
+        // Asignar la respuesa de salida
+        @http_context<"response/text"> : text  
+    }
+    //#endregion
+    
+    //#region insetar lead(contacto)
+    AddLead::&db,&params,&data
+    {
+        // URL: /vendesk/_services/leads/post-lead.dkl
+        // {
+        //     "name": "scdcd",
+        //     "email": "dcdcdc",
+        //     "phone": "dcdc",
+        //     "organization": "vfvfvfv",
+        //     "position": "fvfvfv",
+        //     "subject": "fvfvf",
+        //     "remarks": "fvfvfv",
+        //     "color": "0",
+        //     "leadstatus": "3",
+        //     "agent_id": "000001",
+        //     "source": "",
+        //     "storeid": "",
+        //     "pipeline": "1",
+        //     "stage": "1",
+        //     "probability": "10",
+        //     "amount": "100"
+        // }
+        
+        do _AddLead(db,data,params)
+
+        return "Se ha registrado con éxito la información de contacto"
+    }
+    //#endregion
+    
+    //#region Abrir ticket(caso)
+    OpenTicket::&db,&params,&data
+    {
+        //URL: /vendesk/_services/_cliente/additem.add.dkl
+        // {
+        //     "item": "case",
+        //     "user": "ADMINISTRADOR",
+        //     "cliente": "1",
+        //     "texto": "dcsdcdscsdcsc",
+        //     "bd": "v12cande@local",
+        //     "tipocaso": "1",
+        //     "asunto": "mi ausnto",
+        //     "fechaapertura": "2025-11-13",
+        //     "horaapertura": "14:50:27"
+        // }
+
+        ref payload=record.copyex(data,@null,"*",",","description:texto,subject:asunto,date_open:fechaapertura,hour_open:horaapertura",":")
+
+        if trim(@@(payload,"$customer_id"))==""{do rise_error(500,"No ha indicado un cliente")}
+        if trim(@@(payload,"$ticket_type"))==""{do rise_error(500,"No ha indicado un el tipo de ticket")}
+
+        cliente=dbr.num(db,"select sys_pk from cliente where codigo=@customer_id",payload)
+        if cliente < 1{do rise_error(500,"No se encontró los datos del cliente indicado")}
+
+        tipocaso=dbr.num(db,"select sys_pk from ut_crmtipocaso where sys_guid=@ticket_type",payload)
+        if tipocaso < 1{do rise_error(500,"No se encontró datos del tipo de caso indicado")}
+        if trim(@@(payload,"$asunto"))==""{do rise_error(500,"No ha indicado un asunto")}
+        if trim(@@(payload,"$texto"))==""{do rise_error(500,"No ha indicado una descripción")}
+
+        if trim(@@(payload,"$user")){payload<"user">:@@(@http_context,"$session/user/uid")}
+        if trim(@@(payload,"$fechaapertura"))==""{payload<"fechaapertura">:date_str(now(),"yyyy-MM-dd")}
+        if trim(@@(payload,"$horaapertura"))==""{payload<"horaapertura">:date_str(now(),"yyyy-MM-dd HH:mm:ss")}
+
+        using payload
+        {
+            @"item":"case"
+            @"cliente":cliente
+            @"tipocaso":tipocaso
+        }
+
+        ref data=_PrepareData(payload)
+        //catpuramos las variables a utilizar
+        privileges=@@(data,"$privileges")
+        table_name=@@(data,"$table_name")
+
+        //eliminanos la propiedades innecesarias
+        do field.remove(data,"table_name")
+        do field.remove(data,"privileges")
+
+        do dbr.begin(db)
+        //insertar datos
+        do _InsertData(db,table_name,payload,data)
+        //enviar notificación
+        do _SendNotify(db,data,payload,privileges)
+
+        do dbr.commit(db)
+
+        exception
+        {
+            do errordet(@false)
+            if dbr.in_transaction(db){do dbr.rollback(db)}
+            do rise_error(500,last_error())
+        }
+
+        return "Se ha creado un nuevo caso con el id # "+@@(data,"$id_caso")
+    }
+    //#endregion
+    
+    //#region obtener tickets de un cliente o por ticket
+    @__sql_tickets="
+    SELECT 
+    c.sys_pk id_ticket,
+    c.sys_guid id_unique,
+    date_format(c.fechaapertura,'%Y-%m-%d')date_open,
+    DATE_FORMAT(c.horaapertura,'%H:%i:%s')hour_open ,
+    date_format(c.fechacierre,'%Y-%m-%d')date_close,
+    DATE_FORMAT(c.horacierre,'%H:%i:%s')hour_close ,
+    c.usuarioabre AS 'user_open',
+    c.usuariocierra AS user_close,
+    c.usuarioasignado AS user_assing,
+    c.asunto 'subject',
+    c.descripcion AS 'description',
+    t.uf_descripcion ticket_type,
+    c.duracion AS duration,
+    p.descripcion AS priority,
+    if(c.`status`=1,'Close','Open') 'status'
+    FROM ut_crmcasos c
+    INNER JOIN cliente cl ON c.fk_cliente=cl.sys_pk
+    INNER JOIN ut_crmtipocaso t ON c.fk_tipocaso=t.sys_pk
+    LEFT JOIN ut_crmprioridad p ON c.fk_prioridad=p.sys_pk
+    "
+
+    @__sql_tickets_by_client=@__sql_tickets + "WHERE cl.codigo=@customer_id"
+    @__sql_tickets_by_id=@__sql_tickets + "WHERE c.sys_pk=@ticket"
+
+    ListTickets::&db,&params,&data
+    {
+        if trim(@@(params,"$customer_id"))!=""{data<"customer_id">:@@(params,"$customer_id")}
+
+        if trim(@@(data,"$customer_id"))==""{do rise_error(500,"No ha indicado un cliente 'customer_id'")}
+
+        ref tickets=dbr.list(db,@__sql_tickets_by_client,data)
+
+        return to.json(tickets)
+    }
+
+    GetTicket::&db,&params,&data
+    {
+        if trim(@@(params,"$ticket"))!=""{data<"ticket">:@@(params,"$ticket")}
+        if trim(@@(data,"$ticket"))==""{do rise_error(500,"No ha indicado el número del ticket")}
+
+        ref ticket=dbr.rec(db,@__sql_tickets_by_id,data)
+
+        return to.json(ticket)
+    }
+    //#endregion
+    
+
+    //#region punto de entrada
+    EntryPoint::action
+    {
+        ref db=GetDb()
+        ref params=_params()
+        ref data=ifnull(get_payload(),record.create())
+        
+        switch action
+        {
+            case "add-lead"{return AddLead(db,params,data)}
+            case "open-ticket"{return OpenTicket(db,params,data)}
+            case "list-tickets"{return ListTickets(db,params,data)}
+            case "info-ticket"{return GetTicket(db,params,data)}
+            default{do rise_error(500,"Acción no identificada")}
+        }
+
+        return ""
+    }
+    //#endregion
+}

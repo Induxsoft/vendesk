@@ -1,0 +1,22 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "functions.dkh"
+    #include "dbr.dkh"
+    #include "model.dk"
+
+    do errordet(@false)
+    
+    res=str(rest.EntryPoint("info-ticket"))
+
+    exception
+    {
+        res="Ocurrió un error: "+last_error()
+    }
+
+    do rest.ResponseText(res)
+    
+}
