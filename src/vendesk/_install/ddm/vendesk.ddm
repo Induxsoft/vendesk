@@ -184,6 +184,9 @@ model "erp.vendesk"
         @"uf_proxcontac" datetime 
         @"uf_pipeline" int 
         @"uf_stage" int
+        @"uf_ref_customer" int
+        @"uf_probability" decimal(6,4)
+        @"uf_amount" decimal(12,4)
     }
     /* uod.xt_biticontact */
     entity "xt_biticontact"

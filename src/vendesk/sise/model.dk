@@ -78,13 +78,9 @@ module ":rest"
         if trim(@@(_data,"$email"))==""{do rise_error(500,"No ha indicado un 'correo'")}
         if trim(@@(_data,"$name"))==""{do rise_error(500,"No ha indicado un 'nombre'")}
 
-        using _data
-        {
-            @"leadstatus": 0
-            @"agent_id":"unassigned"
-        }
+        if trim(@@(_data,"$leadstatus"))==""{_data<"leadstatus">:0}
+        if trim(@@(_data,"$agent_id"))==""{_data<"agent_id">:"unassigned"}
 
-        
         do _AddLead(db,_data,params)
 
         return "Se ha registrado con éxito la información de contacto"
