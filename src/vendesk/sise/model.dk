@@ -73,8 +73,19 @@ module ":rest"
         //     "probability": "10",
         //     "amount": "100"
         // }
+
+        ref _data=@@(data,"&data")
+        if trim(@@(_data,"$email"))==""{do rise_error(500,"No ha indicado un 'correo'")}
+        if trim(@@(_data,"$name"))==""{do rise_error(500,"No ha indicado un 'nombre'")}
+
+        using _data
+        {
+            @"leadstatus": 0
+            @"agent_id":"unassigned"
+        }
+
         
-        do _AddLead(db,data,params)
+        do _AddLead(db,_data,params)
 
         return "Se ha registrado con éxito la información de contacto"
     }
@@ -96,7 +107,7 @@ module ":rest"
         //     "horaapertura": "14:50:27"
         // }
 
-        ref payload=record.copyex(data,@null,"*",",","description:texto,subject:asunto,date_open:fechaapertura,hour_open:horaapertura",":")
+        ref payload=record.copyex(@@(data,"&data"),@null,"*",",","description:texto,subject:asunto,date_open:fechaapertura,hour_open:horaapertura",":")
 
         if trim(@@(payload,"$customer_id"))==""{do rise_error(500,"No ha indicado un cliente")}
         if trim(@@(payload,"$ticket_type"))==""{do rise_error(500,"No ha indicado un el tipo de ticket")}

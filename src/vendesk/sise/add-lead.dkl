@@ -10,7 +10,7 @@ module ""
     #include "model.dk"
     #include "vendesk/_services/lib.dk"
 
-    res= rest.EntryPoint("add-lead")
+    res= str(rest.EntryPoint("add-lead"))
 
     exception
     {
