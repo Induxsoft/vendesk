@@ -73,8 +73,10 @@ module ":rest"
         //     "probability": "10",
         //     "amount": "100"
         // }
-
+        
         ref _data=@@(data,"&data")
+        _data<"email">:trim(@@(_data,"$email"))
+        _data<"subject">:cut(@@(_data,"$subject"),150)
         if trim(@@(_data,"$email"))==""{do rise_error(500,"No ha indicado un 'correo'")}
         if trim(@@(_data,"$name"))==""{do rise_error(500,"No ha indicado un 'nombre'")}
 
@@ -87,6 +89,21 @@ module ":rest"
     }
     //#endregion
     
+    AddFieldData::&params,fields,&data
+    {
+        ref pms=ifnull(params,record.create())
+        ref data=ifnull(data,record.create())
+
+        ref _fields=split(fields,",")
+        for i = 0; i < @count(_fields)
+        {
+            k=list.str(_fields,i)
+            if trim(@@(pms,"$"+k)) !=""
+            {
+                data<k>:@@(pms,"$"+k)
+            }
+        }
+    }
     //#region Abrir ticket(caso)
     OpenTicket::&db,&params,&data
     {
@@ -96,17 +113,23 @@ module ":rest"
         //     "user": "ADMINISTRADOR",
         //     "cliente": "1",
         //     "texto": "dcsdcdscsdcsc",
-        //     "bd": "v12cande@local",
         //     "tipocaso": "1",
         //     "asunto": "mi ausnto",
         //     "fechaapertura": "2025-11-13",
         //     "horaapertura": "14:50:27"
         // }
+        //campos indentificados
+        fields="customer_id,ticket_type,description,subject,date_open,hour_open,user"
 
+        ref params=@@(data,"&params")
+
+        do AddFieldData(params,fields,@@(data,"&data"))
+        
         ref payload=record.copyex(@@(data,"&data"),@null,"*",",","description:texto,subject:asunto,date_open:fechaapertura,hour_open:horaapertura",":")
 
         if trim(@@(payload,"$customer_id"))==""{do rise_error(500,"No ha indicado un cliente")}
         if trim(@@(payload,"$ticket_type"))==""{do rise_error(500,"No ha indicado un el tipo de ticket")}
+        if trim(@@(params,"$user"))!=""{payload<"user">:@@(params,"$user")}
 
         cliente=dbr.num(db,"select sys_pk from cliente where codigo=@customer_id",payload)
         if cliente < 1{do rise_error(500,"No se encontró los datos del cliente indicado")}
@@ -116,7 +139,7 @@ module ":rest"
         if trim(@@(payload,"$asunto"))==""{do rise_error(500,"No ha indicado un asunto")}
         if trim(@@(payload,"$texto"))==""{do rise_error(500,"No ha indicado una descripción")}
 
-        if trim(@@(payload,"$user")){payload<"user">:@@(@http_context,"$session/user/uid")}
+        if trim(@@(payload,"$user"))==""{payload<"user">:@@(@http_context,"$session/user/uid")}
         if trim(@@(payload,"$fechaapertura"))==""{payload<"fechaapertura">:date_str(now(),"yyyy-MM-dd")}
         if trim(@@(payload,"$horaapertura"))==""{payload<"horaapertura">:date_str(now(),"yyyy-MM-dd HH:mm:ss")}
 
@@ -125,6 +148,8 @@ module ":rest"
             @"item":"case"
             @"cliente":cliente
             @"tipocaso":tipocaso
+            @"asunto":cut(trim(@@(payload,"$asunto")),255)
+            @"texto":cut(trim(@@(payload,"$texto")),1024)
         }
 
         ref data=_PrepareData(payload)
@@ -172,7 +197,7 @@ module ":rest"
     t.uf_descripcion ticket_type,
     c.duracion AS duration,
     p.descripcion AS priority,
-    if(c.`status`=1,'Close','Open') 'status'
+    if(c.`status`=1,'Closed','Opened') 'status'
     FROM ut_crmcasos c
     INNER JOIN cliente cl ON c.fk_cliente=cl.sys_pk
     INNER JOIN ut_crmtipocaso t ON c.fk_tipocaso=t.sys_pk
@@ -182,24 +207,33 @@ module ":rest"
     @__sql_tickets_by_client=@__sql_tickets + "WHERE cl.codigo=@customer_id"
     @__sql_tickets_by_id=@__sql_tickets + "WHERE c.sys_pk=@ticket"
 
-    ListTickets::&db,&params,&data
+    ListTickets::&db,&params,&_data
     {
+        ref params=@@(_data,"&params")
+        ref data=@@(_data,"&data")
         if trim(@@(params,"$customer_id"))!=""{data<"customer_id">:@@(params,"$customer_id")}
 
         if trim(@@(data,"$customer_id"))==""{do rise_error(500,"No ha indicado un cliente 'customer_id'")}
 
         ref tickets=dbr.list(db,@__sql_tickets_by_client,data)
-
+        if @count(tickets) < 1{return "No hay tickets relacionados al cliente indicado"}
+        
         return to.json(tickets)
     }
 
-    GetTicket::&db,&params,&data
+    GetTicket::&db,&params,&_data
     {
+        ref params=@@(_data,"&params")
+        ref data=@@(_data,"&data")
+
         if trim(@@(params,"$ticket"))!=""{data<"ticket">:@@(params,"$ticket")}
         if trim(@@(data,"$ticket"))==""{do rise_error(500,"No ha indicado el número del ticket")}
 
         ref ticket=dbr.rec(db,@__sql_tickets_by_id,data)
+        if isnull(ticket){return "El ticket indicado no se encuentra registrado en el sistema."}
 
+        ticket<"notes*">:dbr.list(db,"SELECT sys_pk AS id,u.sys_guid AS id_unico,u.notas,u.usuario,TRIM(u.sys_dtcreated)creado FROM ut_crmnotacaso u WHERE u.fk_caso=@ticket",data)
+       
         return to.json(ticket)
     }
     //#endregion

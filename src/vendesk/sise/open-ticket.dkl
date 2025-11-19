@@ -11,7 +11,7 @@ module ""
     #include "vendesk/_services/lib.dk"
     #include "model.dk"
     
-    res= rest.EntryPoint("open-ticket")
+    res= str(rest.EntryPoint("open-ticket"))
 
     exception
     {
