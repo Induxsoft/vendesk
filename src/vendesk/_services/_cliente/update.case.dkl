@@ -18,7 +18,10 @@ program
 
     res<"sys_pk">:@@(datos,"#sys_pk")
     ref listnotas=list.create()
-    new data{}
+    new data
+    {
+        @"email_notif":trim(@@(datos,"$email_notif"))
+    }
     new nota
     {
         @"fk_caso":@@(res,"#sys_pk")

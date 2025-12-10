@@ -56,16 +56,16 @@ module ""
                 input(type="hidden" id="evento" name="evento" value="#<@('$./id')>" required="true")
                 input(type="hidden" id="sys_recver" name="sys_recver" value="#<@('$./sys_recver')>" required="true")
 
-                div(class="row")
+                div(class="row g-2")
                 {
-                    div(class="col-md-6")
+                    div(class="col-md-3")
                     {
-                        label{"Notificar a:"}
+                        label{"Notificar internamente a:"}
                         #!
                         do uie.dbSelect(destinos)
                         #$
                     }
-                    div(class="col-md-6" id="mod_id_destino")
+                    div(class="col-md-5" id="mod_id_destino")
                     {
                         label(id="lbl_id_destino"){""}
                         $'
@@ -85,6 +85,15 @@ module ""
                             control-styles="" required="true">
                         </input-key>
                         '
+                    }
+                    div(class="col-md-4 d-flex align-items-center")
+                    {
+                        label("for"="send_notif" class="")
+                        {
+                            input(type="checkbox" class="form-check-input me-2" id="send_notif" name="send_notif" "#<ifstr(parse.bool(@('$./send_notif')),'checked','')>"="")
+                            "Enviar notificación al correo asociado al caso"
+                        }
+                        
                     }
                     div(class="col-md-12")
                     {
@@ -109,9 +118,9 @@ module ""
                             small(class="fw-bold"){"Generales"}
                             ul(style="white-space: break-spaces;")
                             {
-                                li{"usuario_creo. Id del usuario que creó el caso o alerta"}
-                                li{"cliente. Nombre del cliente"}
-                                li{"cliente_codigo. Código del cliente"}
+                                li{"@usuario_creo. Id del usuario que creó el caso o alerta"}
+                                li{"@cliente. Nombre del cliente"}
+                                li{"@cliente_codigo. Código del cliente"}
                             }
                         }
                         td
@@ -119,11 +128,12 @@ module ""
                             small(class="fw-bold"){"Casos"}
                             ul(style="white-space: break-spaces;")
                             {
-                                li{"id_caso . sys_pk del caso"}
-                                li{"tipo_caso. Descripción del tipo de caso"}
-                                li{"tipo_caso_codigo. Código del tipo de caso"}
-                                li{"asunto. Asunto del caso"}
-                                li{"usuario_cerro. Id del usuario que cerró el caso"}
+                                li{"@id_caso . sys_pk del caso"}
+                                li{"@tipo_caso. Descripción del tipo de caso"}
+                                li{"@tipo_caso_codigo. Código del tipo de caso"}
+                                li{"@asunto. Asunto del caso"}
+                                li{"@contenido. Descripción del caso"}
+                                li{"@usuario_cerro. Id del usuario que cerró el caso"}
                             }
                         }
                         td
@@ -131,7 +141,7 @@ module ""
                             small(class="fw-bold"){"Alertas"}
                             ul
                             {
-                                li{"mensaje"}
+                                li{"@mensaje"}
                             }
                         }
                     }

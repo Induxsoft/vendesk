@@ -229,6 +229,7 @@ model "erp.vendesk"
         @"duracion" string(50)
         @"uf_color" int
         @"fechavencimiento" datetime
+        @"email_notif" string(255)
     }
 
     entity "ut_crmnotacaso" : "TableModel"
@@ -305,6 +306,7 @@ model "erp.vendesk"
         @"id_destino" string(50)
         @"plantilla_titulo" string(1024)
         @"plantilla" string(1024)
+        @"send_notif" bool
     }
     //* ======================================== [ ... ]
     // Información de la aplicación

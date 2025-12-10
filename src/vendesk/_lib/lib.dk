@@ -3,6 +3,8 @@
 module ""
 {
     #include "dbr.notif.dkl"
+    #include "dbr.vars.dkl"
+    #include "webcl.dkh"
 
     AddKeyValue::&org,&dest
     {
@@ -27,6 +29,8 @@ module ""
         {
             ref caso=dbr.rec(db,"SELECT c.sys_pk id_caso,
                         c.asunto,
+                        c.descripcion as contenido,
+                        c.email_notif,
                         usuariocierra usuario_cerro,
                         t.uf_descripcion tipo_caso,
                         t.sys_pk tipo_caso_codigo
@@ -61,8 +65,50 @@ module ""
         
         new params{@"id":@@(data,"$event")}
         //obtener datos del evento
-        ref data_evento=dbr.rec(db,"select * from crm_notif where evento=@id and ifnull(id_destino,'')<>'' ",params)
+        ref data_evento=dbr.rec(db,"select * from crm_notif where evento=@id",params)// and ifnull(id_destino,'')<>'' 
         if isnull(data_evento){return}
+
+        do loadDataNotif(db,data)
+
+        if parse.bool(@@(data_evento,"$send_notif")) && trim(@@(data,"$email_notif")) != ""
+        {
+            vendesk_ext_notif=parse.num(dbr.vars.get(db,"vendesk_ext_notif"))
+
+            if vendesk_ext_notif > 0
+            {
+                new p{@"channel":vendesk_ext_notif}
+                config_str=dbr.str(db,"select config from snd_channel where sys_pk=@channel",p)
+
+                config_str=ifstr(trim(config_str)!="",config_str,"{}")
+                ref config=from.json(config_str)
+
+                vendesk_addres_email_rem=trim(dbr.vars.getd(db,"vendesk_addres_email_rem","support-notif-noreply@induxsoft.net"))
+                vendesk_name_rem=trim(dbr.vars.getd(db,"vendesk_name_rem","Soporte técnico Induxsoft"))
+
+                new mail
+                {
+                    @"server":trim(@@(config,"$server"))
+                    // @"protocol":"ssl" //ssl  - Habilita el cifrado, omita si no lo requiere
+                    @"port":trim(@@(config,"$port"))   //Número de puerto
+                    @"user":trim(@@(config,"$user")) //Usuario del servidor SMTP
+                    @"password":trim(@@(config,"$password"))      //Contraseña del usuario SMTP
+                    @"from":vendesk_name_rem+"<"+vendesk_addres_email_rem+">" //Remitente del mensaje con el formato: nombre a mostrar <direccion@correo>
+                    @"to":trim(@@(data,"$email_notif")) //Destinatario de correo
+                    // @"repply":@@(postData,"$reply")//Dirección a copiar el mensaje (opcional)
+                    // @"cco":@@(postData,"$cco") //Dirección de copia oculta
+                    // @"cc":@@(postData,"$cc") //Dirección de copia oculta
+                    @"subject": replace(notif.macro(@@(data_evento,"$plantilla"),data),"\n","<br>")
+                    @"body": replace(notif.macro(@@(data_evento,"$plantilla_titulo"),data),"\n","<br>")
+                }
+                
+                if trim(@@(config,"$protocol"))!=""{mail<"protocol">:@@(config,"$protocol")}
+
+                do smtp.send(mail)
+                exception{}
+            }
+            
+        }
+        if trim(@@(data_evento,"$id_destino"))==""{return}
         //obtener el usuario si el id destino se trata de un usuario
         destino=dbr.str(db,"select userid from tuser where sys_guid=@id_destino",data_evento)
         if trim(destino)==""
@@ -74,8 +120,6 @@ module ""
         else {new rec_to{@"user":destino}}
 
         if trim(destino)==""{return}
-
-        do loadDataNotif(db,data)
 
         url=@@(data,"$url")
         if trim(url)==""{url=@VDK_CLIENTE}
@@ -114,7 +158,7 @@ module ""
         lmacro="usuario_creo,cliente,cliente_codigo"
         text=replaceMacro(text,lmacro,data)
 
-        lmacro="id_caso,tipo_caso,tipo_caso_codigo,asunto,usuario_cerro,mensaje"
+        lmacro="id_caso,tipo_caso,tipo_caso_codigo,asunto,usuario_cerro,mensaje,contenido"
         return replaceMacro(text,lmacro,data)
     }
     @preserve_querystr_params="_filter"

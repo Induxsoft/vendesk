@@ -233,7 +233,7 @@ module "cliente.dk"
             u.usuarioasignado,u.horaapertura,u.fk_tipocaso,date(IFNULL(u.fechavencimiento,NOW())) AS fechavencimiento,
             TIME(ifnull(u.fechavencimiento,NOW())) AS horavencimiento,u.fk_prioridad,u.uf_color,
             SUBSTRING_INDEX(SUBSTRING_INDEX(u.duracion, '-', 1), '-', -1) AS dayduration,
-            SUBSTRING_INDEX(SUBSTRING_INDEX(u.duracion, '-', 2), '-', -1)AS selectduration
+            SUBSTRING_INDEX(SUBSTRING_INDEX(u.duracion, '-', 2), '-', -1)AS selectduration,u.email_notif
             FROM ut_crmcasos u WHERE u.Sys_PK=@_case order BY u.Sys_TimeStamp desc;",params)
 
             cliente<"casonota*">:dbr.list(db,"SELECT u.Sys_PK,date_format(u.Sys_TimeStamp,'%Y-%m-%d') AS fecha,date_format(u.Sys_TimeStamp,'%H:%i %p') as hora,u.notas,u.usuario FROM ut_crmnotacaso u WHERE u.fk_caso=@_case order BY u.Sys_TimeStamp desc",params)

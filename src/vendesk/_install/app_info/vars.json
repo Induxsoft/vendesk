@@ -40,6 +40,48 @@
                 {
                     "control": "text"
                 }
+            },
+            {
+                "varname": "vendesk_addres_email_rem",
+                "vardefault": "",
+                "varvalue": "",
+                "varcaption": "Dirección de correo del remitente:",
+                "varhelp": "Correo electrónico del remitente.",
+                "vartype": "string",
+                "varinput": 
+                {
+                    "control": "text"
+                }
+            },
+            {
+                "varname": "vendesk_name_rem",
+                "vardefault": "",
+                "varvalue": "",
+                "varcaption": "Nombre del remitente:",
+                "varhelp": "",
+                "vartype": "string",
+                "varinput": 
+                {
+                    "control": "text"
+                }
+            },
+            {
+                "varname": "vendesk_ext_notif",
+                "vardefault": "",
+                "varvalue": "",
+                "varcaption": "Canal de notificaciones externas:",
+                "vartype": "string",
+                "varinput": 
+                {
+                    "control": "select",
+                    "source":
+                    {
+                        "type":"query",
+                        "query":"SELECT 0 sys_pk,'(Ninguno)' name union SELECT c.sys_pk, c.name FROM snd_channel c  INNER JOIN snd_provider p ON c.prov=p.sys_pk INNER JOIN snd_provider_tpy pt ON p.tpy = pt.id WHERE pt.id=0",
+                        "keyfield":"sys_pk",
+                        "showfield":"name"
+                    }
+                }
             }
         ]
     }

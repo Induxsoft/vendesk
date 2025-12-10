@@ -469,8 +469,8 @@ module ""
                     @"fk_cliente":@@(datos,"cliente")
                     @"fk_tipocaso":@@(datos,"tipocaso")
                     @"fk_cliente":@@(datos,"cliente")
+                    @"email_notif":@@(datos,"$email_notif")
                 }
-
                 break
             }
             case "aten"

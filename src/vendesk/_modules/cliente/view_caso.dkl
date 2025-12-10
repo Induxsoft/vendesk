@@ -288,6 +288,11 @@ module "view.caso"
 								}
 									
 							}
+							div(class="col-md-12")
+							{
+								label{"Correo electrónico:"}
+								input(type="email" class="induxsoft-form-control" id="_email_notif" name="_email_notif" value="#<@('$./caso/email_notif')>" readonly="true" )
+							}
 							// div(class="col-lg-6")
 							// {
 							// 	div(class="p-2 m-0 d-flex align-items-center")

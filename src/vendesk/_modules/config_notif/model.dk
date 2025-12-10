@@ -58,6 +58,7 @@ module ""
         ref entity=@null
         do dbr.apps.action.pre("VC61")
 
+        data<"send_notif">:if(parse.bool(@@(data,"$send_notif")),1,0)
         if @@(params,"$_entity_id")!="_new"{ref entity= entity.update(db,params,data)} 
         else{ref entity=entity.create(db,params,data)}
     

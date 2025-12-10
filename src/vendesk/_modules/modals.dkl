@@ -63,7 +63,9 @@ module
                         }
                         label(id="lbldescripcion" "for"="txtadd"){small(class="text-secondary"){$"Descripción:"}}
                         textarea(class="form-control form-control-sm mb-2" id="txtadd" style="resize:none;height:10rem" placeholder=""){""}
-					    $""
+					    
+                        label{"Correo electrónico: "}
+                        input(type="email" class="induxsoft-form-control" id="email_notif" name="email_notif")
                     }
                     div(class="modal-footer" id="ftrAddClt")
                     {

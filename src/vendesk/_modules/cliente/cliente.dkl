@@ -521,6 +521,11 @@ function cancelModal() {
     $('#modalglobal').modal('hide');
     $('#txtadd').val('');
 }
+function validarCorreo(email) 
+{
+  const patron = new RegExp('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$');
+  return patron.test(email);
+}
 function addItemBd(i = '') {
     var descripcion = $('#txtadd');
     if (descripcion.val() == '') {
@@ -539,7 +544,8 @@ function addItemBd(i = '') {
     {
         client =\"#<@('$./sys_pk')>\";
     }
-    var data = {
+    var data = 
+    {
         item: itm,
         user: \"#<@('http/session/user/name')>\",
             cliente: client,
@@ -550,6 +556,15 @@ function addItemBd(i = '') {
         horaapertura: $('#horaapertura').val(),
         atencion: $('#inp_atencion').val()
     }
+    let email_notif=$('#email_notif').val();
+    if(email_notif.trim()!='' && !validarCorreo(email_notif))
+    {
+        alert('El formato del correo es inválido');
+        $('#email_notif').focus()
+        return;
+    }
+    data['email_notif']=email_notif;
+
     showLoading();
     // /additem.add
     definitive.rest('#<@SVC_CLIENTE>additem.add.dkl', 'POST', data,
@@ -750,7 +765,8 @@ function updateItemBd(i = '', sys_pk, active = true) {
                 else btn_reopen_case.removeAttribute('disabled');
             }
         }
-        function updateCaso(sys_pk) {
+        function updateCaso(sys_pk) 
+        {
 
             if (Number(numdura) > 0 && (tipodu == '@')) {
                 alert('Debe establecer la duración del caso.');
@@ -764,7 +780,8 @@ function updateItemBd(i = '', sys_pk, active = true) {
                 return;
             }
 
-            var data = {
+            var data = 
+            {
                 userassign: userassign,          //$('#selectasignado').val()
                 sys_pk: sys_pk,
                 tipocaso: tipocase,
@@ -776,9 +793,17 @@ function updateItemBd(i = '', sys_pk, active = true) {
                 cliente: cliente,
                 nameclient: $('#cliente').val(),
                 user: \"#<@('http/session/user/name')>\",
-            bd: '#<@('$database')>'
-        }
-            
+                bd: '#<@('$database')>'
+            }
+            let email_notif=$('#_email_notif').val();
+            if(email_notif.trim()!='' && !validarCorreo(email_notif))
+            {
+                alert('El formato del correo es inválido');
+                $('#email_notif').focus()
+                return;
+            }
+            data['email_notif']=email_notif;
+
             showLoading();
             // /update.case
             definitive.rest('#<@SVC_CLIENTE>update.case.dkl', 'POST', data,
