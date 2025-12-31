@@ -523,8 +523,8 @@ function cancelModal() {
 }
 function validarCorreo(email) 
 {
-  const patron = new RegExp('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$');
-  return patron.test(email);
+  let patron = new RegExp('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$');
+  return patron.test(email.trim());
 }
 function addItemBd(i = '') {
     var descripcion = $('#txtadd');
@@ -557,10 +557,11 @@ function addItemBd(i = '') {
         atencion: $('#inp_atencion').val()
     }
     let email_notif=$('#email_notif').val();
-    if(email_notif.trim()!='' && !validarCorreo(email_notif))
+    let emn=document.getElementById('email_notif');
+    if(email_notif.trim()!='' && !emn.checkValidity())
     {
         alert('El formato del correo es inválido');
-        $('#email_notif').focus()
+        $('#email_notif').focus();
         return;
     }
     data['email_notif']=email_notif;
@@ -796,10 +797,11 @@ function updateItemBd(i = '', sys_pk, active = true) {
                 bd: '#<@('$database')>'
             }
             let email_notif=$('#_email_notif').val();
-            if(email_notif.trim()!='' && !validarCorreo(email_notif))
+            let emn=document.getElementById('_email_notif');
+            if(email_notif.trim()!='' && !emn.checkValidity())
             {
                 alert('El formato del correo es inválido');
-                $('#email_notif').focus()
+                $('#email_notif').focus();
                 return;
             }
             data['email_notif']=email_notif;
