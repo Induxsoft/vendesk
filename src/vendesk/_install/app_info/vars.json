@@ -82,6 +82,30 @@
                         "showfield":"name"
                     }
                 }
+            },
+            {
+                "varname": "vendesk_sise_opntkt",
+                "vardefault": "0",
+                "varvalue": "0",
+                "varcaption": "Apertura máxima por SISE.",
+                "varhelp": "Apertura máxima de tickes(casos) pro SISE.",
+                "vartype": "integer",
+                "varinput": 
+                {
+                    "control": "select",
+                    "source":
+                    {
+                        "type":"list",
+                        "values":
+                        [
+                            {"val":"0", "text":"Sin límite"},
+                            {"val":"1", "text":"Uno a la vez"},
+                            {"val":"2", "text":"Uno por tipo"}
+                        ],
+                        "showfield":"text",
+                        "keyfield":"val"
+                    }
+                }
             }
         ]
     }

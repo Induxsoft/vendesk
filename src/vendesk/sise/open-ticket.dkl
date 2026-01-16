@@ -15,7 +15,8 @@ module ""
 
     exception
     {
-        res="Ha ocurrido un error al intentar registrar la información del ticket. Información técnica: "+last_error()
+        // res="Ha ocurrido un error al intentar registrar la información del ticket. Información técnica: "+last_error()
+        res=last_error()
     }
 
     do rest.ResponseText(res)

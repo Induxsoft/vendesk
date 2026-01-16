@@ -2,6 +2,7 @@
 #!
 module ":rest"
 {
+    #include "dbr.vars.dkl"
     //#region utilidades
     _params::{return @@(@http_context,"&request/get")}
 
@@ -121,7 +122,7 @@ module ":rest"
         //campos indentificados
         fields="customer_id,ticket_type,description,subject,date_open,hour_open,user"
 
-        ref params=@@(data,"&params")
+        ref params=ifnull(@@(data,"&params"),record.create())
 
         do AddFieldData(params,fields,@@(data,"&data"))
         
@@ -136,6 +137,30 @@ module ":rest"
 
         tipocaso=dbr.num(db,"select sys_pk from ut_crmtipocaso where sys_guid=@ticket_type",payload)
         if tipocaso < 1{do rise_error(500,"No se encontró datos del tipo de caso indicado")}
+
+        //validar variable vendesk_sise_opntkt
+        params<"pk_cliente">:cliente
+        params<"pk_tipo">:tipocaso
+        switch parse.num(dbr.vars.get(db,"vendesk_sise_opntkt"))
+        {
+            case 1 //1-Uno a la vez
+            {
+                if dbr.num(db,"SELECT COUNT(*) FROM ut_crmcasos u WHERE u.fk_cliente=@pk_cliente AND ifnull(u.`status`,0)=0;",params) > 0
+                {
+                    do rise_error(500,"No se puede abrir un nuevo caso porque ya hay otro abierto")
+                }
+                break
+            }
+            case 2 //2-Uno por tipo
+            {
+                if dbr.num(db,"SELECT COUNT(*) FROM ut_crmcasos u WHERE u.fk_cliente=@pk_cliente AND u.fk_tipocaso=@pk_tipo AND ifnull(u.`status`,0)=0;",params) > 0
+                {
+                    do rise_error(500,"No se puede abrir un nuevo caso porque ya hay otro abierto")
+                }
+                break
+            }
+        }
+
         if trim(@@(payload,"$asunto"))==""{do rise_error(500,"No ha indicado un asunto")}
         if trim(@@(payload,"$texto"))==""{do rise_error(500,"No ha indicado una descripción")}
 
