@@ -8,6 +8,7 @@ program
     #include "dbr.apps.dkl"  
     #include "dbr.events.dkl"
     #include "dbr.security.dkl"
+    #include "website.dkl"
     
     new res{}
     ref datos=from.json(field.dstr(@http_context,"request/POST_STRING","{}"))
@@ -42,7 +43,8 @@ program
         case "del_cat_prioridad"
         {
             do dbr.apps.action.grant("VC50")
-            do dbr.delete(bd,"ut_crmprioridad","sys_pk=@sys_pk",datos)
+            // do dbr.delete(bd,"ut_crmprioridad","sys_pk=@sys_pk",datos)
+            do delete_entity(bd,"ut_crmprioridad","sys_pk=@sys_pk","descripcion","LEFT(descripcion,32)",datos)
             ref resp=@null
         }
         case "insert_catalog"
@@ -79,8 +81,8 @@ program
         case "del_tipocaso"
         {
             do dbr.apps.action.grant("VC40")
-
-            do dbr.delete(bd,"ut_crmtipocaso","sys_pk=@sys_pk",datos)
+            // do dbr.delete(bd,"ut_crmtipocaso","sys_pk=@sys_pk",datos)
+            do delete_entity(bd,"ut_crmtipocaso","sys_pk=@sys_pk","uf_descripcion","LEFT(uf_descripcion,32)",datos)
             ref resp=@null
         }
     }

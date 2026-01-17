@@ -1,0 +1,200 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    createHTML::&definition,&row,&column,k
+    {
+        caption=ftext(@@(column,"$caption"))
+        element=field.dstr(column,"element","div")
+        element_value=field.dstr(column,"element_value","div")
+
+        ref before_cell=@@(definition,"&before_cell")
+        ref attributes=@@(column,"&attributes")
+        ref attributes_value=@@(column,"&attributes_value")
+        ref attributes_container=@@(column,"&attributes_container")
+
+        if field.exist(column,"value"){value=@@(column,"$value")}
+        else{value=@@(row,k)}
+        
+        if not(isnull(before_cell))
+        {
+            do field.remove(column,"text")
+            column<"column">:k
+            column<"cell_type">:"data"
+            that before_cell(definition,row,column)
+            if field.exist(column,"text"){value=@@(column,"$text")}
+        }
+
+        #$
+        div("#<htmlAttributesFromRec(attributes_container)>"="")
+        {
+            "#<element>"("#<htmlAttributesFromRec(attributes)>"=""){$"#<caption>"}
+            "#<element_value>"("#<htmlAttributesFromRec(attributes_value)>"=""){$"#<ftext(value)>"}
+        }
+        #!
+    }
+    CreateCard::&row,&definition
+    {
+        ref columns=ifnull(@@(definition,"&columns"),record.create())
+        ref keys=list.create_from_fields(columns)
+        title=@@(definition,"$title")
+        title=ftext(ifstr(contains(title,"#"),title,@@(row,title)))
+        element_title=field.dstr(definition,"element","h5")
+        ref attributes=@@(definition,"&attributes")
+        ref attributes_title=@@(definition,"&attributes_title")
+        ref attributes_header=@@(definition,"&attributes_header")
+        ref attributes_body=@@(definition,"&attributes_body")
+        ref attributes_footer=@@(definition,"&attributes_footer")
+        ref actions=@@(definition,"&_actions")
+
+        class_header=@@(attributes_header,"$class")
+        class_body=@@(attributes_body,"$class")
+        #$
+        div("#<htmlAttributesFromRec(attributes)>"="")
+        {
+            div(class="card pricing-card h-100 position-relative")
+            {
+                div(class="card-header #<ftext(class_header)> " "#<htmlAttributesFromRec(attributes_header)>"="")
+                {
+                    "#<element_title>"("#<htmlAttributesFromRec(attributes_title)>"=""){$"#<title>"}
+                }
+                div(class="card-body d-flex flex-column #<ftext(class_body)>" "#<htmlAttributesFromRec(attributes_body)>"="")
+                {$""
+                    #!
+                    for i = 0; i < @count(keys)
+                    {
+                        k=list.str(keys,i)
+                        ref column=@@(columns,"&"+k)
+                        do createHTML(definition,row,column,k)
+                    }
+                   
+                    #$
+                }
+                 #!
+                if not(isnull(actions))
+                {
+                    class_footer=@@(attributes_footer,"$class")
+                    #$
+                    div(class="card-footer card-footer-fixed #<ftext(class_footer)>" "#<htmlAttributesFromRec(attributes_footer)>"="")
+                    {$""
+                        #!
+                        do createHTML(definition,row,actions,"_actions")
+                    }
+                }
+            }
+            #$
+            style
+            {
+                $'#<@@(definition,"$style")>'
+            }
+        }
+        #!
+    }
+    uie.dbcard::&definition
+    {
+        ref array=@@(definition,"&datatable")
+        if @count(array) < 1
+        {
+            #$
+            h6{"SIN DATOS"}
+            #!
+            return
+        }
+        height_card_container=field.dstr(definition,"height","100%")
+        #$
+        div(class="row")
+        {
+            #!
+            for i = 0; i < @count(array)
+            {
+                ref item=@item(array,i)
+                do CreateCard(item,definition)
+            }
+        }
+        #$
+        style
+        {
+            $'body { background: #f8fafc; }
+            .pricing-card { /*border-radius: .75rem;*/ transition: transform .18s ease, box-shadow .18s ease; }
+            .pricing-card:hover { transform: translateY(-6px); box-shadow: 0 10px 30px rgba(15,23,42,.12); }
+            .badge-popular { position: absolute; top: -10px; right: -10px; transform: rotate(10deg); }
+            .price { font-size: 1.5rem; font-weight: 700; }
+            .small-muted { font-size: .85rem; color: #6b7280; }
+            .feature-list li { margin-bottom: .5rem; }
+            
+            html, body 
+            {
+                margin-top: 0rem !important;
+                height: 100%;
+            // margin: 0;
+                overflow: hidden; /* evita el scroll del body */
+            }
+
+            /* Header y footer tamaño natural */
+            header,
+            footer {
+            flex-shrink: 0;
+            }
+
+            /* Área central ocupa el espacio restante */
+            .layout {
+            flex: 1;
+            overflow: hidden;
+            }
+
+            /* SOLO este contenedor scrollea */
+            .cards-container 
+            {
+                height: #<height_card_container>;
+                overflow-y: auto;
+                padding: 1rem;
+                box-sizing: border-box;
+            }
+            .card-footer-fixed 
+            {
+                min-height: 48px; /* altura base del footer */
+                // display: flex;
+                // align-items: center;
+                // justify-content: center;
+            }
+            /*  EL FIX REAL */
+            .cards-container > .row {
+            margin-bottom: 0;        /* elimina espacio fantasma */
+            padding-bottom: 0;
+            }
+
+            '
+        }
+
+        script(type="text/javascript")
+        {$'
+            function ajustarPaddingFooter() 
+            {
+                let footer = document.querySelector("footer");
+                if(!footer)footer=window.top.document.getElementById("nav_footer");
+                
+                const cards = document.querySelector(".cards-container");
+
+                if (!footer || !cards) return;
+                
+                cards.style.paddingBottom = (footer.offsetHeight + 150)+ "px";
+                cards.style.marginBottom = (footer.offsetHeight + 150)+ "px";
+            }
+
+            
+            // Ejecutar al cargar
+            window.addEventListener("load", ajustarPaddingFooter);
+
+            // Ejecutar al redimensionar
+            window.addEventListener("resize", ajustarPaddingFooter);
+
+            // Si el footer cambia de tamaño dinámicamente
+            const footer = document.querySelector("footer");
+            if (footer) {
+                new ResizeObserver(ajustarPaddingFooter).observe(footer);
+            }
+
+        '}
+        #!
+    }
+}

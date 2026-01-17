@@ -9,7 +9,7 @@ module "administracion"
 	#include "uielements.dbtable.dkl"
 	#include "../../config.dkl"
 	#include "uielements.v12.dkl"
-
+	#include "./lib.dk"
 	do @context.begin(@crud_context)
 	
 	filter=ifstr(@('parameters/text_filter')!="","?text_filter="+@('parameters/text_filter'),"")
@@ -63,7 +63,7 @@ module "administracion"
 						{
 							li(class="nav-item" style="list-style:none;cursor:pointer")
 							{
-								a(class="nav-link" "data-bs-toggle"="collapse" "data-bs-target"=".multi-collapse-filter")
+								a(class="nav-link" "data-bs-toggle"="collapse" "data-bs-target"=".multi-collapse-filter" id="toggleFilter")
 								{
 									div(class="d-flex text-secondary gap-2 gray-hover" id="div-seccion-filter" onclick="Filtroresize(event)")
 									{
@@ -82,65 +82,68 @@ module "administracion"
 								{
 									div(class="d-flex")
 									{
-										label(class="flex-grow-1"){""}
-										button(class="btn btn-sm btn-light border-secondary" id="btn-edit" onclick="module.filter_enabled(this)"){"Editar"}
+										h6(class="flex-grow-1 text-secondary"){"Filtrar:"}
+										button(class="btn btn-sm btn-light border-secondary" onclick="document.getElementById('toggleFilter').click()" id="btn-contraer" title="Ocultar barra de filtro")
+										{
+											$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-up" viewBox="0 0 16 16">
+											<path fill-rule="evenodd" d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5"/>
+											</svg>'
+											""
+										}
+										button(class="btn btn-sm btn-light border-secondary ms-2" id="btn-edit" onclick="module.filter_enabled(this)"){"Editar"}
 										button(class="btn btn-sm btn-primary hidden" id="btn-apply" onclick="module.filter_apply()"){"Aplicar"}
 										button(class="btn btn-sm btn-light border-secondary hidden" style="margin-left:2px" id="btn-cancel" onclick="module.filter_cancel()"){"Cancelar"}
 									}
 									div(class="module-filter")
 									{
-										h6(class="text-secondary m-0"){$"Rango de fechas:"}
 										div(class="row")
 										{
-											div(class="col col-lg-4 col-sm-12")
+											div(class="col-md-3 col-lg-3 col-sm-12")
 											{
 												label{small(class="text-secondary"){$"Ver:"}}
 												#! do select.rango_fechas()
 												#$
 											} 
-											div(class="col col-lg-4 col-sm-12")
+											div(class="col-md-3 col-lg-3 col-sm-12")
 											{
 												label{small(class="text-secondary"){$"De:"}}
 												#! de=ifstr(@('parameters/seccion_filter/de')=="",date_str(now(),'yyyy-MM-dd'),@('parameters/seccion_filter/de'))
 												#$ input(type="date" id="fecha_de" value="#<de>" class="form-control form-control-sm")
 											}
-											div(class="col col-lg-4 col-sm-12")
+											div(class="col-md-3 col-lg-3 col-sm-12")
 											{
 												label{small(class="text-secondary"){$"A:"}}
 												#! a=ifstr(@('parameters/seccion_filter/a')=="",date_str(now(),'yyyy-MM-dd'),@('parameters/seccion_filter/a'))
 												#$ input(type="date" id="fecha_a" value="#<a>" class="form-control form-control-sm")		
 											}
-										}
-
-										h6(class="text-secondary m-0 mt-3"){"Filtrar por:"}
-										div(class="row")
-										{
-											div(class="col col-lg-4 col-sm-12")
+											div(class="col-md-3 col-lg-3 col-sm-12")
 											{
 												label{small(class="text-secondary"){$"Tipo:"}}
 												#! do select.tipocaso_admin()
 												#$
 											} 
-											div(class="col col-lg-4 col-sm-12")
+											div(class="col-md-3 col-lg-3 col-sm-12")
 											{
 												label{small(class="text-secondary"){$"Asignado a:"}}
 												#! do select.userassign_admin(@false)
 												#$ 
 											}
-											div(class="col col-lg-4 col-sm-12")
+											div(class="col-md-3 col-lg-3 col-sm-12")
 											{
 												label{small(class="text-secondary"){$"Por vencimiento:"}}
 												#! do select.por_vencimiento()
 												#$		
 											}
-										}
-										
-										#!
-										check=@('parameters/seccion_filter/showclosed')
-										#$
-										label(class="d-flex align-items-center gap-2 mt-2"){
-											input(type="checkbox" "#<ifstr(parse.bool(check),'checked','')>"="true" id="check_show_cancelados")
-											small(class="text-secondary"){$"Mostrar casos cerrados"}
+											div(class="col-md-6 col-lg-3 col-sm-12 mt-4")
+											{
+												#!
+												check=@('parameters/seccion_filter/showclosed')
+												#$
+												label(class="d-flex align-items-center gap-2 mt-2"){
+													input(type="checkbox" "#<ifstr(parse.bool(check),'checked','')>"="true" id="check_show_cancelados")
+													small(class="text-secondary"){$"Mostrar casos cerrados"}
+												}
+											}
 										}
 									}
 									
@@ -185,12 +188,132 @@ module "administracion"
 				#$
 			}
 		}
-		section(id="work_area" )
+		section(id="work_area")
 		{
-			input(type="hidden" id="cliente" class="cliente_admin" trigger="addCasos();")
-			div(style="max-height:45vh; height:100%; overflow:auto;" id="table-cases" class="bg-white")
+			
+			// div(style="max-height:45vh; height:100%; overflow:auto;" id="table-cases" class="bg-white")
+			div(class="div-overflow w-100 cards-container" id="table-cases" style="max-height:65vh;")
 			{
-				#! do table.casos()
+				input(type="hidden" id="cliente" class="cliente_admin" trigger="addCasos();")
+				#! 
+				point cell_link to cell_link_func
+				new card_general
+				{
+					@"datatable*":@("&./tablecasos")
+					@"value_field":"sys_pk"
+					@"before_cell*":cell_link
+					@"title":"Caso # #<@@(row,'$sys_pk')>"
+					@"height":"100vh"
+					member @"attributes"
+					{
+						@"class":"table table-hover"
+						@"style":"font-size:.9rem; th{border-bottom:1px solid #888;}"
+					}
+					member @"columns"
+					{
+						member @"completado"
+						{
+							@"caption":"Status:"
+							member @"attributes"{@"class":"fw-bold"}
+                			member @"attributes_container"{@"class":"d-flex gap-2"}
+						}
+						member @"tipo"
+						{
+							@"caption":"Tipo:"
+							member @"attributes"{@"class":"fw-bold"}
+                			member @"attributes_container"{@"class":"d-flex gap-2"}
+						}
+						member @"prioridad"
+						{
+							@"caption":"Prioridad:"
+							member @"attributes"{@"class":"fw-bold"}
+                			member @"attributes_container"{@"class":"d-flex gap-2"}
+						}
+						member @"asunto"
+						{
+							@"caption":"Asunto:"
+							member @"attributes"{@"class":"fw-bold"}
+                			member @"attributes_container"{@"class":"d-flex gap-2"}
+						}
+						member @"fecha"
+						{
+							@"caption":"Apertura:"
+							member @"attributes"{@"class":"fw-bold"}
+                			member @"attributes_container"{@"class":"d-flex gap-2"}
+						}
+						member @"usuarioabre"
+						{
+							@"caption":"Creó:"
+							member @"attributes"{@"class":"fw-bold"}
+                			member @"attributes_container"{@"class":"d-flex gap-2"}
+						}
+						member @"usuarioasignado"
+						{
+							@"caption":"Asignado:"
+							member @"attributes"{@"class":"fw-bold"}
+                			member @"attributes_container"{@"class":"d-flex gap-2"}
+						}
+						member @"usuariocierra"
+						{
+							@"caption":"Cerró:"
+							member @"attributes"{@"class":"fw-bold"}
+                			member @"attributes_container"{@"class":"d-flex gap-2"}
+						}
+						member @"fechavencimiento"
+						{
+							@"caption":"Vencimiento:"
+							member @"attributes"{@"class":"fw-bold"}
+                			member @"attributes_container"{@"class":"d-flex gap-2"}
+						}
+						member @"nombre"
+						{
+							@"caption":"Cliente:"
+							@"value":"#<@@(row,'$codigo')> - #<@@(row,'$nombre')>"
+							member @"attributes"{@"class":"fw-bold"}
+                			member @"attributes_container"{@"class":"d-flex gap-2"}
+						}
+						member @"color"
+						{
+							@"caption":""
+							member @"attributes"
+							{
+								@"style":"min-width:8rem !important;"
+							}
+						}
+					}
+					member @"_actions" 
+					{ 
+						@"caption":""
+						// @""
+						member @"attributes_value"
+						{
+							@"class":"d-flex justify-content-end"
+						}
+					}
+					member @"rows_attributes"
+					{
+						member @"detail"
+						{
+							@"class":"row_tr_#<@@(row,'sys_pk')> row_case"
+							@"style":"#<row.color(@@(row,'#uf_color'))>"
+							@"onclick":"EditCase('#<@@(row,'#sys_pk')>','#<@@(row,'cliente')>')"
+						}
+					}
+					member @"attributes"
+					{
+						@"class":"col-md-6 col-lg-6 mt-2"
+					}
+        			member @"attributes_header"
+					{
+						@"class":"row_tr_#<@@(row,'sys_pk')> row_case"
+						@"style":"#<row.color(@@(row,'#uf_color'))>"
+						@"onclick":"EditCase('#<@@(row,'#sys_pk')>','#<@@(row,'cliente')>')"
+					}
+				}
+
+				do uie.dbcard(card_general)
+				
+				// do table.casos()
 			}
 		}
 	}

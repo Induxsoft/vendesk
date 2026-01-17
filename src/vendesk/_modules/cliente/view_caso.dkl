@@ -212,19 +212,38 @@ module "view.caso"
 						div(class="row mb-2")
 						{
 							
-							div(class="col-lg-6")
+							div(class="col-lg-12")
 							{
 								div{
-									label{small(class="text-secondary"){$"Usuario que creó el caso:"}}
+									label{small(class="text-secondary"){$"Creó:"}}
 									input(value="#<@('$./caso/usuarioabre')>" id="usercrea" type="text" readonly="true" class="form-control form-control-sm")
 								}
 							}
-							div(class="col-lg-6")
+							div(class="col-lg-12")
 							{
 								div{
-									label{small(class="text-secondary"){$"Usuario asignado:"}}
-									#! do select.userassign(@true)
+									label{small(class="text-secondary"){$"Asignado:"}}
+									#! 
+									// do select.userassign(@true)
 									#$
+									$'
+										<input-key 
+											id="selectasignado"
+											name="tipo"
+											data-key="sys_guid"
+											data-search="codigo"
+											data-text="name"
+											data-source="/!/vendesk/notif/_new/?view=users&search=@search"
+											box-title-text="Seleccione un usuario"
+											box-placeholder-text="Buscar datos..."
+											box-nodata-text="No se encontraron datos"
+											data-value=\'#<to.json(ifnull(get.user(@("$./caso/usuarioasignado")),record.create()))>\'
+											columns="codigo,name"
+											colcaptions="Código,Nombre"
+											disabled="true"
+											control-styles="">
+										</input-key>
+										'
 									// input(value="#<@('$./caso/usuarioasignado')>" type="text" readonly="true" class="form-control"){}
 								}
 							}
@@ -236,14 +255,14 @@ module "view.caso"
 							div(class="col-lg-6")
 							{
 								div{
-									label{small(class="text-secondary"){$"Fecha y hora de apertura:"}}
+									label{small(class="text-secondary"){$"Apertura:"}}
 									input(value="#<@('$./caso/horaapertura')>" id="fechaapertura" type="datetime" readonly="true" class="form-control form-control-sm"){}
 								}
 							}
 							div(class="col-lg-6")
 							{
 								div{
-									label{small(class="text-secondary"){$"Tipo de caso:"}}
+									label{small(class="text-secondary"){$"Tipo:"}}
 									#! do select.tipocaso()
 									#$
 								
@@ -280,7 +299,7 @@ module "view.caso"
 							div(class="col-lg-6")
 							{
 								div{
-									label{small(class="text-secondary"){$"Fecha de vencimiento:"}}
+									label{small(class="text-secondary"){$"Vencimiento:"}}
 									div(class="d-flex gap-2"){
 										input(type="date" id="fechavencimiento" readonly="true" data="#<date_str(@('&./caso/fechavencimiento'),'yyyy-MM-dd')>" value="#<date_str(@('&./caso/fechavencimiento'),'yyyy-MM-dd')>" class="form-control form-control-sm")
 										input(type="time" id="horavencimiento" readonly="true" data="#<@('$./caso/horavencimiento')>" value="#<@('$./caso/horavencimiento')>" class="form-control form-control-sm")

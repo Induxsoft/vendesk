@@ -381,7 +381,7 @@ module
         //*******************************************************tipos de casos***************************************
         div(class="modal fade" style="pointer-events: none;" id="modal_tipos_casos" tabindex="-1" role="dialog" "aria-labelledby"="modalforms" "aria-hidden"="true" "data-keyboard"="false" "data-bs-backdrop"="false")
         {
-            div(class= "modal-dialog modal-md modal-dialog-centered" role ="document")
+            div(class= "modal-dialog modal-lg modal-dialog-centered" role ="document")
             {
                 div(class="modal-content border-0 rounded-0 shadow")
                 {

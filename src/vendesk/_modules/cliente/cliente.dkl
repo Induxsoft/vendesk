@@ -28,8 +28,8 @@ script
             {
                 var mod_filter=document.getElementById('collapse-filter');
 
-                if(mod_filter && !mod_filter.classList.contains('show'))mod_table.style.maxHeight='65vh';
-                else{mod_table.style.maxHeight='45vh';}
+                if(mod_filter && !mod_filter.classList.contains('show'))mod_table.style.maxHeight='80vh';
+                else{mod_table.style.maxHeight='55vh';}
             }
         },400);
     }
@@ -268,8 +268,11 @@ script
         }, '#domicilio_pais', '#estado');
     }
 
-    $('#selectasignado').change(function () {
-        userassign = $(this).val();
+    let selectasignado=document.getElementById('selectasignado');
+    if(selectasignado)selectasignado.addEventListener('change',(e)=>
+    {
+        let value=selectasignado.getValue();
+        userassign = (value ? value?.codigo??'@':'@');
     });
 
     $('.selectTipocaso').change(function () {
@@ -418,7 +421,7 @@ function EditCase(sys_pk, cliente = '') {
         icliente = '#<@('./sys_pk')>';
     window.location.href = './?_case=' + sys_pk + '&_key=' + icliente;
 }
-function selectColor(sys_pk, colorbd, color, e) 
+function selectColor(sys_pk, colorbd, color, e,bg='') 
 {
     e.stopPropagation();
     var data = { color: colorbd, sys_pk: sys_pk, bd: '#<@('$database')>'}
@@ -433,7 +436,7 @@ function selectColor(sys_pk, colorbd, color, e)
                 alert(entity.message);
                 return;
             }
-            $('.row_tr_' + sys_pk).attr('style', 'border-bottom:3px solid ' + color + '; border-left:6px solid ' + color);
+            $('.row_tr_' + sys_pk).attr('style', 'border-bottom:3px solid ' + color + '; border-left:6px solid ' + color+'; background:'+bg);
             $('#div-row_' + sys_pk).attr('style', 'width: 75%!important;height:8px;background:' + color);
             $('#show_color').attr('style','background-color:'+color+' !important');
             hideLoading();
@@ -695,6 +698,9 @@ function updateItemBd(i = '', sys_pk, active = true) {
         function disabledElement(id, bool, e, obj) 
         {
             var d = 'usercrea,fechaapertura,asunto,descripcion,cliente,modalfiles,addnotacaso,nota';
+            let selectasignado=document.getElementById('selectasignado');
+            if(selectasignado)selectasignado.setAttribute('disabled',bool);
+
             if ($(e).prop('disabled')) { $(e).prop('disabled', false); }
             else { $(e).prop('disabled', true); }
 

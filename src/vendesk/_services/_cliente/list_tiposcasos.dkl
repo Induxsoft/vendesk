@@ -19,7 +19,7 @@ module "mdhd"
     
     if isnull(bd){do rise_error(99,"Falta la conexión hacia la base de datos")}
 
-	query="select ut.sys_pk,ut.sys_timestamp,ut.sys_guid,ut.uf_descripcion,ut.`status`,ut.sys_dtcreated from ut_crmtipocaso ut;"
+	query="select ut.sys_pk,ut.sys_timestamp,ut.sys_guid,ut.uf_descripcion,ut.`status`,ut.sys_dtcreated from ut_crmtipocaso ut WHERE ifnull(sys_deleted,0)=0;"
     ref lista=dbr.list(bd,query,datos)
     
     new table_general
@@ -33,9 +33,13 @@ module "mdhd"
         }
         member @"columns"
         {
+            member @"sys_guid"
+            {
+                @"caption":"ID"
+            }
             member @"uf_descripcion"
             {
-                @"caption":"Descripcón"
+                @"caption":"Descripción"
             }
             member @"_actions"
             {

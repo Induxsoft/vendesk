@@ -102,7 +102,7 @@ module "cliente.dk"
             params<"text_filter">:"%"
             remove_f=@true
         }
-
+        
         @MAX_ROWS_LIMIT= 100
         ref entity=entity.list(db,params)
         
@@ -127,13 +127,27 @@ module "cliente.dk"
     }
     cliente.read::&db,&params
     {
-        query="SELECT u.Sys_PK,u.`status` AS completado,ut.uf_descripcion as tipo,ut.`status` ,ifnull(up.descripcion,'') AS prioridad,
-                 u.asunto,u.fechaapertura AS fecha,u.horaapertura,COALESCE(u.usuarioabre,'')usuarioabre,COALESCE(u.usuarioasignado,'')usuarioasignado,
-                      COALESCE(u.usuariocierra,'')usuariocierra,uf_color,u.fk_cliente AS cliente,
-                 COALESCE(u.fechavencimiento,NOW())fechavencimiento,c.codigo,c.nombre
-                 FROM ut_crmcasos u INNER JOIN ut_crmtipocaso ut ON u.fk_tipocaso=ut.Sys_PK
-                 left JOIN ut_crmprioridad up ON u.fk_prioridad=up.Sys_PK
-                 inner JOIN cliente c ON u.fk_cliente=c.sys_pk where "
+        query="SELECT u.Sys_PK,
+                u.`status` AS completado,
+                ut.uf_descripcion as tipo,
+                ut.`status`,
+                ifnull(up.descripcion, '') AS prioridad,
+                u.asunto,
+                CONCAT_WS(' ',DATE_FORMAT(u.fechaapertura,'%Y-%m-%d'),DATE_FORMAT(u.horaapertura,'%H:%i:%s')) AS fecha,
+                u.horaapertura,
+                COALESCE(u.usuarioabre, '') usuarioabre,
+                COALESCE(u.usuarioasignado, '') usuarioasignado,
+                COALESCE(u.usuariocierra, '') usuariocierra,
+                uf_color,
+                u.fk_cliente AS cliente,
+                COALESCE(u.fechavencimiento, '') fechavencimiento,
+                c.codigo,
+                c.nombre
+            FROM ut_crmcasos u
+                INNER JOIN ut_crmtipocaso ut ON u.fk_tipocaso = ut.Sys_PK
+                left JOIN ut_crmprioridad up ON u.fk_prioridad = up.Sys_PK
+                inner JOIN cliente c ON u.fk_cliente = c.sys_pk
+            where "
 
         // ********************código de administración***********
         

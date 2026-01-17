@@ -20,7 +20,7 @@ program
     query="SELECT c.sys_pk, c.sys_guid, c.sys_recver, c.sys_timestamp, c.sys_dtcreated, c.sys_deleted,
     ifnull(c.codigo,'')codigo, ifnull(c.nombre,'')nombre, ifnull(c.rfc,'')rfc, ifnull(c.email,'')email, 
     ifnull(c.saldo,'')saldo,ifnull(c.curp,'')curp
-    FROM cliente c where codigo like '%@{text_filter}%' or nombre like '%@{text_filter}%' or rfc like '%@{text_filter}%' or curp like '%@{text_filter}%' or email like '%@{text_filter}%' limit 500"
+    FROM cliente c where ifnull(c.sys_deleted,0)=0 AND (codigo like '%@{text_filter}%' or nombre like '%@{text_filter}%' or rfc like '%@{text_filter}%' or curp like '%@{text_filter}%' or email like '%@{text_filter}%') limit 500"
     ref lista=dbr.list(bd,query,datos)
     
     using res 

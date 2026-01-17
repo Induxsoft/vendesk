@@ -535,4 +535,41 @@ module ""
 
         return data
     }
+
+    function delete_entity(&db,table_name,conditionals,field,value_info,&params)
+    {
+        @use_transaction = @false
+        @just_read_entity = @true
+
+        // Privilegios sobre entidades: XX00:DET000:0
+        // do dbr.apps.action.pre(@@(params,"$privilege"))
+
+        ref entity = @null
+        deleted = @false
+
+        codeblock "Intentar eliminación física"
+        {
+            // Eliminar registros relacionados aqui...
+            do dbr.delete(db,table_name,conditionals,params)
+            deleted = @true
+            exception{}
+        }
+        if not(deleted)
+        {
+            params<"lastuser"> : @@(@http_context,"$session/user/uid")
+            sql = ftext("
+            UPDATE #<table_name> SET
+                sys_timestamp = NOW(),
+                sys_lastuser = @lastuser,
+                sys_deleted = 1,
+                sys_info = #<value_info>,
+                #<field> = CONCAT('~',sys_pk)
+            WHERE #<conditionals>
+            ")
+            do dbr.execute(db,sql,params)
+        }
+
+        return entity
+
+    }
 }

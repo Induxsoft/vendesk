@@ -276,10 +276,10 @@ module "view-detail"
         if @@(cell,"column")=="color"
         {
             cell<"text">:ftext('<div class="d-flex flex-wrap" id="group-colors">
-            	<button type="button" onclick=\'selectColor("#<@@(row,"sys_pk")>","255","#dc3545",event);\' style="background-color:#dc3545;" title="Rojo" class="color border-0 sinBorde"></button>
-            	<button type="button" onclick=\'selectColor("#<@@(row,"sys_pk")>","16711680","#007bff",event);\' style="background-color:#007bff;" title="Azul" class="color border-0 conBorde"></button>
-            	<button type="button" onclick=\'selectColor("#<@@(row,"sys_pk")>","65535","#ffc107",event);\' style="background-color:#ffc107;" title="Amarillo" class="color border-0 sinBorde"></button>
-            	<button type="button" onclick=\'selectColor("#<@@(row,"sys_pk")>","49152","#28a745",event);\' style="background-color:#28a745;" title="Verde" class="color border-0 sinBorde"></button>
+            	<button type="button" onclick=\'selectColor("#<@@(row,"sys_pk")>","255","#dc3545",event,"#eba3a3");\' style="background-color:#dc3545;" title="Rojo" class="color border-0 sinBorde"></button>
+            	<button type="button" onclick=\'selectColor("#<@@(row,"sys_pk")>","16711680","#007bff",event,"lightskyblue");\' style="background-color:#007bff;" title="Azul" class="color border-0 conBorde"></button>
+            	<button type="button" onclick=\'selectColor("#<@@(row,"sys_pk")>","65535","#ffc107",event,"lightgoldenrodyellow");\' style="background-color:#ffc107;" title="Amarillo" class="color border-0 sinBorde"></button>
+            	<button type="button" onclick=\'selectColor("#<@@(row,"sys_pk")>","49152","#28a745",event,"lightgreen");\' style="background-color:#28a745;" title="Verde" class="color border-0 sinBorde"></button>
             	<button type="button" onclick=\'selectColor("#<@@(row,"sys_pk")>","16777215","#FCFCFC",event);\' style="border:1px solid #DFDFDF !important;background-color:#FFFFFF;border-color: #DFDFDF !important; " title="Sin color" class="color border-0 sinBorde"></button>
             	</div>')
 
@@ -287,8 +287,9 @@ module "view-detail"
         }
         if @@(cell,"column")=="completado"
         {
-        	check=ifstr(@@(row,"#completado"),"checked","")
-        	cell<"text">:ftext('<input type="checkbox" style="pointer-events: none;opacity: .5;" #<check>="true">')
+        	// check=ifstr(@@(row,"#completado"),"checked","")
+        	// cell<"text">:ftext('<input type="checkbox" style="pointer-events: none;opacity: .5;" #<check>="true">')
+			cell<"text">:ifstr(@@(row,"#completado"),"Cerrado","Abierto")
         } 
         if @@(cell,"column")=="_actions"
         {
@@ -331,10 +332,10 @@ module "view-detail"
     {
     	switch color
     	{
-    		case 255{return "border-left:6px solid #dc3545;border-bottom:3px solid #dc3545"} //rojo
-    		case 16711680{return "border-left:6px solid #007bff;border-bottom:3px solid #007bff"}//azul
-    		case 65535{return "border-left:6px solid #ffc107;border-bottom:3px solid #ffc107"}//amarillo
-    		case 49152{return "border-left:6px solid #28a745;border-bottom:3px solid #28a745"}//verde
+    		case 255{return "border-left:6px solid #dc3545;border-bottom:3px solid #dc3545;background:#eba3a3"} //rojo
+    		case 16711680{return "border-left:6px solid #007bff;border-bottom:3px solid #007bff;background:lightskyblue"}//azul
+    		case 65535{return "border-left:6px solid #ffc107;border-bottom:3px solid #ffc107;background:lightgoldenrodyellow"}//amarillo
+    		case 49152{return "border-left:6px solid #28a745;border-bottom:3px solid #28a745;background:lightgreen"}//verde
     		case 16777215{return "border-left:6px solid #FCFCFC;border-bottom:3px solid #FCFCFC"}//blanco sin color
     		default{return ""}
     	}
@@ -398,7 +399,7 @@ module "view-detail"
 	            }
 	            member @"tipo"
 	            {
-	                @"caption":"Tipo de caso"
+	                @"caption":"Tipo"
 	            }
 	            member @"prioridad"
 	            {
@@ -410,33 +411,33 @@ module "view-detail"
 	            }
 	            member @"fecha"
 	            {
-	                @"caption":"Fecha de apertura"
-	                @"format":"dd/MM/yyyy"
+	                @"caption":"Apertura"
+	                // @"format":"yyyy/MM/dd"
 	            }
-	            member @"horaapertura"
-	            {
-	                @"caption":"Hora de apertura"
-	                @"format":"HH:mm:ss"
-	            }
+	            // member @"horaapertura"
+	            // {
+	            //     @"caption":"Hora de apertura"
+	            //     @"format":"HH:mm:ss"
+	            // }
 	            member @"usuarioabre"
 	            {
-	                @"caption":"Usuario crea"
+	                @"caption":"Creó"
 	            }
 	            member @"usuarioasignado"
 	            {
-	                @"caption":"Usuario asignado"
+	                @"caption":"Asignado"
 	            }
 	            member @"usuariocierra"
 	            {
-	                @"caption":"Usuario cierra"
+	                @"caption":"Cerró"
 	            }
 	            member @"fechavencimiento"
 	            {
-	                @"caption":"Fecha de vencimiento"
+	                @"caption":"Vencimiento"
 	            }
 	            member @"codigo"
 	            {
-	                @"caption":"Código de cliente"
+	                @"caption":"Código"
 	            }
 	            member @"nombre"
 	            {
@@ -450,14 +451,14 @@ module "view-detail"
 	                	@"style":"min-width:8rem !important;"
 	                }
 	            }
-	            member @"_actions"
-	            {
-	                @"caption":"Acción"
-	                member @"attributes"
-	                {
-	                	@"style":"min-width:8rem !important;"
-	                }
-	            }
+	            // member @"_actions"
+	            // {
+	            //     @"caption":"Acción"
+	            //     member @"attributes"
+	            //     {
+	            //     	@"style":"min-width:8rem !important;"
+	            //     }
+	            // }
 	        }
 	        member @"rows_attributes"
 	        {
@@ -689,7 +690,7 @@ module "view-detail"
 	{
 		new def_tipo_caso
 	    {
-	        @"datatable*":dbr.list(@("&database"),"select sys_pk, uf_descripcion as nombre from ut_crmtipocaso order by sys_pk;",@null)
+	        @"datatable*":dbr.list(@("&database"),"select sys_pk, uf_descripcion as nombre from ut_crmtipocaso WHERE ifnull(sys_deleted,0)=0 order by sys_pk;",@null)
 	        @"id":"tipocaso_admin"
 	        member "attributes"
 	        {
@@ -839,7 +840,15 @@ module "view-detail"
 	    if dis{def_select<"attributes/disabled">:"true"}
 	    do uie.dbSelect(def_select)
 	}
-
+	#!
+	get.user::id
+	{
+		id >> p
+		
+		ref user=dbr.rec(@("&database"),"SELECT sys_pk,sys_guid, t.UserID as codigo,t.UserName as name FROM tuser t where ifnull(t.sys_deleted,0)=0 AND userid=@id",p)
+		
+		return user
+	}
 	#!
 	select.userassign::dis
 	{
