@@ -14,7 +14,7 @@ module ""
         ref attributes_container=@@(column,"&attributes_container")
 
         if field.exist(column,"value"){value=@@(column,"$value")}
-        else{value=@@(row,k)}
+        else{value=@@(row,"$"+k)}
         
         if not(isnull(before_cell))
         {
@@ -96,7 +96,11 @@ module ""
         if @count(array) < 1
         {
             #$
-            h6{"SIN DATOS"}
+            div(class="d-flex justify-content-center mt-4")
+            {
+                h6{"SIN DATOS"}
+            }
+            
             #!
             return
         }

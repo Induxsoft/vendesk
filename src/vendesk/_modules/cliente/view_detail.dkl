@@ -296,33 +296,67 @@ module "view-detail"
         	style=ifstr(@@(row,"#completado"),"opacity: .5;","")
         	event=ifstr(not(@@(row,"#completado")),"CloseCase("+@@(row,"$sys_pk")+",event)","event.stopPropagation();alert('El caso ya esta cerrado.');return;")
 
-			cell<"text">:ftext('
-				<div class="btn-group" role="group" aria-label="Button group with nested dropdown">
-                    <div class="btn-group" role="group">
-                        <button id="btnGroupDrop2" type="button" onclick="event.stopPropagation()" class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                            Opciones
-                        </button>
-                        <ul class="dropdown-menu" aria-labelledby="btnGroupDrop2" onclick="event.stopPropagation()">
-                            <li class="d-flex align-items-center gap-2 p-2">
-                                <a id="btnEditar" href="#" onclick="EditCase(#<@@(row,"sys_pk")>,\'#<@@(row,"cliente")>\')"  class="text-decoration-none text-secondary d-flex align-items-center gap-2">
-									<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16" style="">
-								  		<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"></path>
+			if @@(cell,"#is_card")
+			{
+				// color=replace(row.color(@@(row,"#uf_color")),"border","")
+
+				btn_closed_case=ftext('<a href="#" onclick="#<event>" id="btnclose" style="#<style>;" class="btn btn-sm btn-danger ms-2 text-decoration-none d-flex align-items-center gap-2">
+							<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lock-fill" viewBox="0 0 16 16">
+								<path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"></path>
+							</svg>
+							Cerrar caso
+						</a>')
+
+				btn_opened_case=ftext('<button class="btn btn-sm btn-secondary d-flex align-items-center gap-2 ms-2" style="margin-bottom:2px" id="btn_reopen_case" onclick="ReabrirCaso(#<@@(row,"#sys_pk")>,event);"> 
+					<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-unlock-fill" viewBox="0 0 16 16">
+									<path d="M11 1a2 2 0 0 0-2 2v4a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h5V3a3 3 0 0 1 6 0v4a.5.5 0 0 1-1 0V3a2 2 0 0 0-2-2"/>
 									</svg>
-									Editar
-								</a>
-                            </li>
-                            <li class="d-flex align-items-center gap-2 p-2">
-                                <a href="#" onclick="#<event>" id="btnclose" style="#<style>" class="text-decoration-none text-secondary d-flex align-items-center gap-2">
-									<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lock-fill" viewBox="0 0 16 16">
-										<path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"></path>
-									</svg>
-									Cerrar caso
-								</a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-			')
+						Re-abrir caso
+				</button>')
+
+				buttons='<a id="btnEditar" href="#" style="" onclick="EditCase(#<@@(row,"sys_pk")>,\'#<@@(row,"cliente")>\')"  class="btn btn-sm btn-primary text-decoration-none d-flex align-items-center gap-2">
+							<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16" style="">
+								<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"></path>
+							</svg>
+							Editar
+						</a>
+						#<ifstr(@@(row,"#completado"),btn_opened_case,btn_closed_case)>
+
+						'
+
+				cell<"text">:ftext(buttons)
+			}
+			else 
+			{
+				cell<"text">:ftext('
+					<div class="btn-group" role="group" aria-label="Button group with nested dropdown">
+						<div class="btn-group" role="group">
+							<button id="btnGroupDrop2" type="button" onclick="event.stopPropagation()" class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+								Opciones
+							</button>
+							<ul class="dropdown-menu" aria-labelledby="btnGroupDrop2" onclick="event.stopPropagation()">
+								<li class="d-flex align-items-center gap-2 p-2">
+									<a id="btnEditar" href="#" onclick="EditCase(#<@@(row,"sys_pk")>,\'#<@@(row,"cliente")>\')"  class="text-decoration-none text-secondary d-flex align-items-center gap-2">
+										<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16" style="">
+											<path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"></path>
+										</svg>
+										Editar
+									</a>
+								</li>
+								<li class="d-flex align-items-center gap-2 p-2">
+									<a href="#" onclick="#<event>" id="btnclose" style="#<style>" class="text-decoration-none text-secondary d-flex align-items-center gap-2">
+										<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lock-fill" viewBox="0 0 16 16">
+											<path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"></path>
+										</svg>
+										Cerrar caso
+									</a>
+								</li>
+							</ul>
+						</div>
+					</div>
+				')
+			}
+			
         }
         
     }

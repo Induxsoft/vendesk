@@ -309,7 +309,7 @@ module "view.caso"
 							}
 							div(class="col-md-12")
 							{
-								label{"Correo electrónico:"}
+								label{"Correo electrónico para notificaciones:"}
 								input(type="email" class="induxsoft-form-control" id="_email_notif" name="_email_notif" value="#<@('$./caso/email_notif')>" readonly="true" )
 							}
 							// div(class="col-lg-6")
@@ -328,7 +328,7 @@ module "view.caso"
 					
 				}
 
-				div(class="col col-lg-7 col-sm-12 mb-2 pe-4" id="div-element" style="height:90vh;")
+				div(class="col col-lg-7 col-sm-12 mb-2 pe-4 mt-4" id="div-element" style="height:90vh;")
 				{
 					// div(class="d-flex justify-content-between bg-white p-4 pb-1")
 					// {
@@ -337,11 +337,11 @@ module "view.caso"
 					// }
 					div(class="d-flex gap-2 align-items-start bg-white ps-4 pe-4 pt-1 pb-2 p-2 m-0 mt-2")
 					{
-						textarea(class="form-control form-control-sm mt-2" name="nota" id="nota" rows="2" maxlength="1024" style="min-height:31px; max-height:220px;"){$""}
+						textarea(class="form-control mt-2" name="nota" id="nota" rows="2" maxlength="1024" style="min-height:31px; max-height:220px; "){$""}
 						div(class="mt-2")
 						{
 							button(class="btn btn-sm btn-primary d-block" onclick="addnota(#<@('./caso/sys_pk')>)" id="addnotacaso"){"Agregar"}
-							small(class="d-flex justify-content-center" style="font-size: .560em;"){"Ctrl + Enter"}
+							// small(class="d-flex justify-content-center" style="font-size: .560em;"){"Ctrl + Enter"}
 						}
 					}
 					div(class="bg-white px-4 pb-2")

@@ -368,18 +368,31 @@ script
         if (event.which === 13)
             $('#bt-search-alertas').click();
     });
-    // $('#nota').keyup(function (event) {
-    //     if (event.which === 13)
-    //         $('#addnotacaso').click();
-    // });
-    $('#nota').on('input', function(event) {
-        $(this).css('height', 'auto');
-        $(this).css('height', this.scrollHeight + 'px');
+    $('#nota').keyup(function (e) 
+    {
+        if (e.shiftKey && e.key === 'Enter') {}
+        else if (e.key === 'Enter') 
+        {
+            e.preventDefault();
+            $('#addnotacaso').click();
+            $('#nota').css('height','auto');
+            $('#nota').focus();
+        }
+        // if (event.which === 13)
+        //     $('#addnotacaso').click();
+    });
+    $('#nota').on('input', function(event) 
+    {
+        // this.style.height = 'auto';
+        // this.style.height = this.scrollHeight + 'px';
+
+        // $(this).css('height', 'auto');
+        // $(this).css('height', this.scrollHeight + 'px');
         
-        let chars = $(this).val().length;
-        $('#char-count').text(chars+'/1024');
+        // let chars = $(this).val().length;
+        // $('#char-count').text(chars+'/1024');
         
-        $('#div-caso-notes').css('max-height', 'calc(88vh - (55px + '+$(this).css('height')+' + 12px))');
+        // $('#div-caso-notes').css('max-height', 'calc(88vh - (55px + '+$(this).css('height')+' + 12px))');
     });
     $('#inpduracion').change(function () {
         numdura = $(this).val();
@@ -869,7 +882,7 @@ function updateItemBd(i = '', sys_pk, active = true) {
             else
             {
                 plantilla=plantilla_fecha + plantilla;
-                div_bitacora.insertAdjacentHTML('afterend',plantilla);
+                div_bitacora.insertAdjacentHTML('afterbegin',plantilla);
             }
         }
         function addnota(sys_pk) 

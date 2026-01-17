@@ -14,14 +14,34 @@ script
 			
 			module.init();
 			module.filter_enabled(null,true);
-			if(rango_fecha)rango_fecha.addEventListener("change",function(e){
+			if(rango_fecha)rango_fecha.addEventListener("change",function(e)
+			{
+				let status_admin=document.getElementById("status_admin");
+				if(status_admin)status_admin.disabled=false;
+
 				if(this.value=="@closed")
 				{
+					if(status_admin)
+					{
+						status_admin.value="1";
+						status_admin.disabled=true;
+					}
 					if(showclosed)showclosed.checked=true;
-				}else{
+				}
+				else if(this.value=="@opened")
+				{
+					if(status_admin)
+					{
+						status_admin.value="0";
+						status_admin.disabled=true;
+					}
+				}
+				else
+				{
 					if(showclosed)showclosed.checked=false;
 				}
 			});
+
 			if(text_filter_admin)
 				text_filter_admin.addEventListener("keyup",function(e){
 					if(e.which===13){
@@ -51,12 +71,23 @@ script
 				},
 				filter_enabled:function(btn=null,prop=false)
 				{
-					var module_filter=document.querySelectorAll(".module-filter input,.module-filter select");
-
+					var module_filter=document.querySelectorAll(".module-filter input,.module-filter select,.module-filter input-key");
+					let btn_contraer=document.getElementById("btn-contraer");
+					if(btn_contraer)
+					{
+						btn_contraer.classList.remove("d-none");
+						if(!prop)btn_contraer.classList.add("d-none");
+					}
 					if(module_filter )
 						for(var i=0;i<module_filter.length;i++)
 						{
 							var elem=module_filter[i];
+							if(elem.tagName=="INPUT-KEY")
+							{
+								elem.setAttribute("disabled",prop);
+								continue;
+							}
+							
 							if(prop){
 								elem.classList.add("disabled");
 								if(elem.type=="checkbox")
@@ -77,7 +108,7 @@ script
 						module.btn_cancel.classList.toggle("hidden");
 					}
 
-						
+					tools.trigger(rango_fecha,"change");
 				},
 				filter_cancel:function()
 				{
@@ -394,15 +425,18 @@ script
 					var asignado=document.querySelector("#selectasignado_admin");
 					var por_vencimiento=document.querySelector("#por_vencimiento");
 					var showclesed=document.querySelector("#check_show_cancelados");
+					var status_admin=document.querySelector("#status_admin");
 
-					var data={
+					var data=
+					{
 						"fecha":rango_fecha.value,
 						"de":de.value,
 						"a":a.value,
 						"tipo":tipo_caso.value,
-						"assing":asignado.value,
+						"assing":asignado?.getValue()?.codigo??"@cual",
 						"por_vnmt":por_vencimiento.value,
-						"showclosed":showclesed.checked
+						"showclosed":showclesed?.checked??false,
+						"status":status_admin?.value??-1
 					}
 					var uri=JSON.stringify(data);
 					

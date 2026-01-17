@@ -34,15 +34,22 @@ module "cliente.dk"
     }
     get_query_filter::&get_data,where
     {
-         if parse.bool(@@(get_data,"showclosed"))
+        if parse.bool(@@(get_data,"showclosed"))
         {
             where="1=1"
         }
 
-        if @@(get_data,"$de")!="" && @@(get_data,"$a")!="" && @@(get_data,"$fecha")!="@cual"
+        if @@(get_data,"$de")!="" && @@(get_data,"$a")!="" //&& @@(get_data,"$fecha")!="@cual"
         {
             where =where + " and date(u.Sys_TimeStamp) BETWEEN "+"'"+@@(get_data,"$de")+"'"+" and "+"'"+@@(get_data,"$a")+"'"
         }
+
+        switch @@(get_data,"#status")
+        {
+            case 0{where=where+" and ifnull(u.`status`,0)=0"}
+            case 1{where=where+" and ifnull(u.`status`,0)=1"}
+        }
+
         if @@(get_data,"$fecha")!="" && @@(get_data,"$fecha")!="@cual"
         {
             switch @@(get_data,"$fecha")
@@ -51,22 +58,17 @@ module "cliente.dk"
                 case "@closed"{where=where+" and ifnull(u.`status`,0)=1"}
                 case "@updated"{where=where+" and date(u.Sys_TimeStamp)=date(now())"}
             }
-            
         }
         if @@(get_data,"$assing")!="" && @@(get_data,"$assing")!="@cual"
         {
             switch @@(get_data,"$assing")
             {
-                case "@ami"
-                    {
-                        where=where + " and usuarioasignado="+"'"+@@(@http_context,"session/user/uid")+"'"
-                    }
+                case "@ami"{where=where + " and usuarioasignado="+"'"+@@(@http_context,"session/user/uid")+"'"}
                 case "@sin"{where=where + " and COALESCE(usuarioasignado,'')=''"}
-                default{
-                    where=where + " and COALESCE(usuarioasignado,'')='"+@@(get_data,"$assing")+"'"
-                }
+                default{where=where + " and COALESCE(usuarioasignado,'')='"+@@(get_data,"$assing")+"'"}
             }
         }
+
         if @@(get_data,"$por_vnmt")!="" && @@(get_data,"$por_vnmt")!="@cual"
         {
             switch @@(get_data,"$por_vnmt")
@@ -165,6 +167,7 @@ module "cliente.dk"
                 ref get_data=from.json(base64)
 
                 params<"seccion_filter*">:get_data
+                where="true"
                where= get_query_filter(get_data,where)
 
             }
@@ -176,7 +179,7 @@ module "cliente.dk"
             }
 
             query = query+" "+where+" ORDER by u.Sys_TimeStamp desc limit 200;"
-            
+            // do rise_error(0,query)
             using cliente
             {
                 @"tablecasos*": dbr.list(db,query,cliente)

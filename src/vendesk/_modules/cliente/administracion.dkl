@@ -10,6 +10,7 @@ module "administracion"
 	#include "../../config.dkl"
 	#include "uielements.v12.dkl"
 	#include "./lib.dk"
+	#include "view_detail.dkl"
 	do @context.begin(@crud_context)
 	
 	filter=ifstr(@('parameters/text_filter')!="","?text_filter="+@('parameters/text_filter'),"")
@@ -29,11 +30,117 @@ module "administracion"
 			@"print":@true
 		}
     }
+	point cell_link to cell_link_func
+	new card_general
+	{
+		@"datatable*":@("&./tablecasos")
+		@"value_field":"sys_pk"
+		@"before_cell*":cell_link
+		@"title":"Caso # #<@@(row,'$sys_pk')>"
+		@"height":"100vh"
+		member @"attributes"
+		{
+			@"class":"table table-hover"
+			@"style":"font-size:.9rem; th{border-bottom:1px solid #888;}"
+		}
+		member @"columns"
+		{
+			member @"nombre"
+			{
+				@"caption":"Cliente:"
+				@"value":"#<@@(row,'$codigo')> - #<@@(row,'$nombre')>"
+				member @"attributes"{@"class":"fw-bold"}
+				member @"attributes_container"{@"class":"d-flex gap-2"}
+			}
+			member @"completado"
+			{
+				@"caption":"Status:"
+				member @"attributes"{@"class":"fw-bold"}
+				member @"attributes_container"{@"class":"d-flex gap-2"}
+			}
+			member @"tipo"
+			{
+				@"caption":"Tipo:"
+				member @"attributes"{@"class":"fw-bold"}
+				member @"attributes_container"{@"class":"d-flex gap-2"}
+			}
+			member @"prioridad"
+			{
+				@"caption":"Prioridad:"
+				member @"attributes"{@"class":"fw-bold"}
+				member @"attributes_container"{@"class":"d-flex gap-2"}
+			}
+			member @"asunto"
+			{
+				@"caption":"Asunto:"
+				member @"attributes"{@"class":"fw-bold"}
+				member @"attributes_container"{@"class":"d-flex gap-2"}
+			}
+			member @"fecha"
+			{
+				@"caption":"Apertura:"
+				member @"attributes"{@"class":"fw-bold"}
+				member @"attributes_container"{@"class":"d-flex gap-2"}
+			}
+			member @"usuarioabre"
+			{
+				@"caption":"Creó:"
+				member @"attributes"{@"class":"fw-bold"}
+				member @"attributes_container"{@"class":"d-flex gap-2"}
+			}
+			member @"usuarioasignado"
+			{
+				@"caption":"Asignado:"
+				member @"attributes"{@"class":"fw-bold"}
+				member @"attributes_container"{@"class":"d-flex gap-2"}
+			}
+			member @"usuariocierra"
+			{
+				@"caption":"Cerró:"
+				member @"attributes"{@"class":"fw-bold"}
+				member @"attributes_container"{@"class":"d-flex gap-2"}
+			}
+			member @"fechavencimiento"
+			{
+				@"caption":"Vencimiento:"
+				member @"attributes"{@"class":"fw-bold"}
+				member @"attributes_container"{@"class":"d-flex gap-2"}
+			}
+			member @"color"
+			{
+				@"caption":""
+				member @"attributes"
+				{
+					@"style":"min-width:8rem !important;"
+				}
+			}
+		}
+		member @"_actions" 
+		{ 
+			@"caption":""
+			@"is_card":@true
+			member @"attributes_value"
+			{
+				@"class":"d-flex justify-content-end"
+			}
+		}
+		member @"attributes"
+		{
+			@"class":"col-md-6 col-lg-4 mt-2"
+		}
+		member @"attributes_header"
+		{
+			@"class":"row_tr_#<@@(row,'sys_pk')> row_case"
+			@"style":"#<row.color(@@(row,'#uf_color'))>"
+			@"onclick":"EditCase('#<@@(row,'#sys_pk')>','#<@@(row,'cliente')>')"
+		}
+	}
+
 	#$	
 	div(class="container-fluid v12-list-view" id="view") //style="background-color:#F5F5F5;"
 	{
 		#!
-		#include "view_detail.dkl"
+		
 		#include "cliente.dkl"
 		#include "admin_js.dkl"
 		#include "../modals.dkl"
@@ -83,10 +190,19 @@ module "administracion"
 									div(class="d-flex")
 									{
 										h6(class="flex-grow-1 text-secondary"){"Filtrar:"}
-										button(class="btn btn-sm btn-light border-secondary" onclick="document.getElementById('toggleFilter').click()" id="btn-contraer" title="Ocultar barra de filtro")
+										button(class="btn btn-sm btn-light border-secondary d-flex" onclick="document.getElementById('toggleFilter').click()" id="btn-contraer" title="Ocultar barra de filtro")
 										{
-											$'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-up" viewBox="0 0 16 16">
-											<path fill-rule="evenodd" d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5"/>
+											$'<svg xmlns="http://www.w3.org/2000/svg"
+												width="21"
+												height="21"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round">
+												<polyline points="6 14 12 8 18 14" />
+												<polyline points="6 18 12 12 18 18" />
 											</svg>'
 											""
 										}
@@ -122,11 +238,29 @@ module "administracion"
 												#! do select.tipocaso_admin()
 												#$
 											} 
-											div(class="col-md-3 col-lg-3 col-sm-12")
+											div(class="col-md-3 col-lg-6 col-sm-12")
 											{
 												label{small(class="text-secondary"){$"Asignado a:"}}
-												#! do select.userassign_admin(@false)
+												// #! do select.userassign_admin(@false)
 												#$ 
+												$'
+												<input-key 
+													id="selectasignado_admin"
+													name="tipo"
+													data-key="sys_guid"
+													data-search="codigo"
+													data-text="name"
+													data-source="/!/vendesk/notif/_new/?view=users&search=@search"
+													box-title-text="Seleccione un usuario"
+													box-placeholder-text="Buscar datos..."
+													box-nodata-text="No se encontraron datos"
+													data-value=\'#<to.json(ifnull(get.user(@("parameters/seccion_filter/assing")),record.create()))>\'
+													columns="codigo,name"
+													colcaptions="Código,Nombre"
+													disabled="true"
+													control-styles="">
+												</input-key>
+												'
 											}
 											div(class="col-md-3 col-lg-3 col-sm-12")
 											{
@@ -134,15 +268,23 @@ module "administracion"
 												#! do select.por_vencimiento()
 												#$		
 											}
-											div(class="col-md-6 col-lg-3 col-sm-12 mt-4")
+											div(class="col-md-6 col-lg-3 col-sm-12")
 											{
-												#!
-												check=@('parameters/seccion_filter/showclosed')
-												#$
-												label(class="d-flex align-items-center gap-2 mt-2"){
-													input(type="checkbox" "#<ifstr(parse.bool(check),'checked','')>"="true" id="check_show_cancelados")
-													small(class="text-secondary"){$"Mostrar casos cerrados"}
+												small(class="text-secondary"){"Estado:"}
+												select(class="form-select form-select-sm" name="status" id="status_admin")
+												{
+													option(value="-1" ){"(Todos los estados)"}
+													option(value="0" "#<ifstr(@('#parameters/seccion_filter/status')==0,'selected','')>"="true"){"Abiertos"}
+													option(value="1" "#<ifstr(@('#parameters/seccion_filter/status')==1,'selected','')>"="true"){"Cerrados"}
 												}
+												// #!
+												// check=@('parameters/seccion_filter/showclosed')
+												// #$
+												// label(class="d-flex align-items-center gap-2 mt-2")
+												// {
+												// 	input(type="checkbox" "#<ifstr(parse.bool(check),'checked','')>"="true" id="check_show_cancelados")
+												// 	small(class="text-secondary"){$"Mostrar casos cerrados"}
+												// }
 											}
 										}
 									}
@@ -196,121 +338,6 @@ module "administracion"
 			{
 				input(type="hidden" id="cliente" class="cliente_admin" trigger="addCasos();")
 				#! 
-				point cell_link to cell_link_func
-				new card_general
-				{
-					@"datatable*":@("&./tablecasos")
-					@"value_field":"sys_pk"
-					@"before_cell*":cell_link
-					@"title":"Caso # #<@@(row,'$sys_pk')>"
-					@"height":"100vh"
-					member @"attributes"
-					{
-						@"class":"table table-hover"
-						@"style":"font-size:.9rem; th{border-bottom:1px solid #888;}"
-					}
-					member @"columns"
-					{
-						member @"completado"
-						{
-							@"caption":"Status:"
-							member @"attributes"{@"class":"fw-bold"}
-                			member @"attributes_container"{@"class":"d-flex gap-2"}
-						}
-						member @"tipo"
-						{
-							@"caption":"Tipo:"
-							member @"attributes"{@"class":"fw-bold"}
-                			member @"attributes_container"{@"class":"d-flex gap-2"}
-						}
-						member @"prioridad"
-						{
-							@"caption":"Prioridad:"
-							member @"attributes"{@"class":"fw-bold"}
-                			member @"attributes_container"{@"class":"d-flex gap-2"}
-						}
-						member @"asunto"
-						{
-							@"caption":"Asunto:"
-							member @"attributes"{@"class":"fw-bold"}
-                			member @"attributes_container"{@"class":"d-flex gap-2"}
-						}
-						member @"fecha"
-						{
-							@"caption":"Apertura:"
-							member @"attributes"{@"class":"fw-bold"}
-                			member @"attributes_container"{@"class":"d-flex gap-2"}
-						}
-						member @"usuarioabre"
-						{
-							@"caption":"Creó:"
-							member @"attributes"{@"class":"fw-bold"}
-                			member @"attributes_container"{@"class":"d-flex gap-2"}
-						}
-						member @"usuarioasignado"
-						{
-							@"caption":"Asignado:"
-							member @"attributes"{@"class":"fw-bold"}
-                			member @"attributes_container"{@"class":"d-flex gap-2"}
-						}
-						member @"usuariocierra"
-						{
-							@"caption":"Cerró:"
-							member @"attributes"{@"class":"fw-bold"}
-                			member @"attributes_container"{@"class":"d-flex gap-2"}
-						}
-						member @"fechavencimiento"
-						{
-							@"caption":"Vencimiento:"
-							member @"attributes"{@"class":"fw-bold"}
-                			member @"attributes_container"{@"class":"d-flex gap-2"}
-						}
-						member @"nombre"
-						{
-							@"caption":"Cliente:"
-							@"value":"#<@@(row,'$codigo')> - #<@@(row,'$nombre')>"
-							member @"attributes"{@"class":"fw-bold"}
-                			member @"attributes_container"{@"class":"d-flex gap-2"}
-						}
-						member @"color"
-						{
-							@"caption":""
-							member @"attributes"
-							{
-								@"style":"min-width:8rem !important;"
-							}
-						}
-					}
-					member @"_actions" 
-					{ 
-						@"caption":""
-						// @""
-						member @"attributes_value"
-						{
-							@"class":"d-flex justify-content-end"
-						}
-					}
-					member @"rows_attributes"
-					{
-						member @"detail"
-						{
-							@"class":"row_tr_#<@@(row,'sys_pk')> row_case"
-							@"style":"#<row.color(@@(row,'#uf_color'))>"
-							@"onclick":"EditCase('#<@@(row,'#sys_pk')>','#<@@(row,'cliente')>')"
-						}
-					}
-					member @"attributes"
-					{
-						@"class":"col-md-6 col-lg-6 mt-2"
-					}
-        			member @"attributes_header"
-					{
-						@"class":"row_tr_#<@@(row,'sys_pk')> row_case"
-						@"style":"#<row.color(@@(row,'#uf_color'))>"
-						@"onclick":"EditCase('#<@@(row,'#sys_pk')>','#<@@(row,'cliente')>')"
-					}
-				}
-
 				do uie.dbcard(card_general)
 				
 				// do table.casos()
