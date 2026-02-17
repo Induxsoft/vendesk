@@ -41,10 +41,8 @@ module "ventas"
 	buttons::
 	{
 		#$
-		a(href="_new/" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print v12-context-act-0 list-action")
-		{
-			$'Agregar'
-		}
+		a(href="_new/" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print v12-context-act-0 list-action"){$'Agregar'}
+		a(href="reporte-oportunidad/" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print v12-context-act-0 list-action"){$'Reporte'}
 		#!
 	}
 	point buttons to buttons

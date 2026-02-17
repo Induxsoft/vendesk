@@ -6,6 +6,7 @@ module "forms"
 	#include "serialize.dkh"
 	#include "webcl.dkh"
 	#include "website.dkl"
+	#include "vendesk/_lib/lib.dk"
 
 	form.default::
 	{
@@ -26,12 +27,24 @@ module "forms"
 		url=@VDK_CLIENTE+ifstr(contains(@VDK_CLIENTE,"?"),"&","?")+"text_filter=@filter"
 		url=replace(url,"@filter",@('parameters/text_filter'))
 		url_encode=url_encode(url)
-		url=@url_var_config
 
-		if trim(url)==""{url=@URL_FORM_NEW_CXC}
-		url=replace(url,"@url",url_encode)
+		url=replace(@VDK_CLIENTE_NEW,"@url",url_encode)
+		url_edit=replace(@VDK_CLIENTE_FORM,"@url",url_encode)
+
+		_urlcfg=trim(@url_var_config)
+		if _urlcfg !="" // se trata de cxc
+		{
+			pack=getPackUrl(_urlcfg)
+			if PackExist(@("&database"),pack)
+			{
+				url=_urlcfg
+				url=replace(url,"@url",url_encode)
+				url_edit=replace(@URL_FORM_CXC,"@url",url_encode)
+			}
+		}
+		
 		//form edit
-		@url_edit_row=replace(@URL_FORM_CXC,"@url",url_encode)
+		@url_edit_row=url_edit
 		new=""
 		ps=""
 		if @@(@crud_context,"http/request/get/_entities_type")==""

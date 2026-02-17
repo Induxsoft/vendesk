@@ -52,12 +52,13 @@ module ""
         }
         return entity
     }
+    
     read::&db,&params
     {
         do dbr.apps.action.grant("VC80")
         do ValidatePrivileges(params)
 
-        if @@(params,"$_entity_id")=="freezer"{return record.create()}
+        if @@(params,"$_entity_id")=="freezer" || @@(params,"$_entity_id")=="reporte-oportunidad" {return record.create()}
 
         ref entity=entity.read(db,params)
         using entity

@@ -178,6 +178,8 @@ module "config.dkl"
 	@JS_CRM_NOTIF="/$/vendesk/js/crm_notif.js"
 	//* ======================================== [ _PACKAGE ]
 	@VDK_CLIENTE = "/!/vendesk/cliente/"
+	@VDK_CLIENTE_NEW = "/!/vendesk/cliente/_new/?url_exit=@url"
+	@VDK_CLIENTE_FORM="/!/vendesk/cliente/@id/?url_exit=@url"
 	@VDK_PIPELINE = "/!/vendesk/sales_pipeline/"
 	@VDK_PROSPECTO="/!/vendesk/prospecto/"
 	@VDK_PROSPECTO_NEW=@VDK_PROSPECTO +"_new/"

@@ -1,0 +1,152 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    #include "functions.dkh"
+	#include "serialize.dkh"
+	#include "dbr.dkh"
+	#include "webcl.dkh"
+	#include "../../config.dkl"
+	#include "../lib.dk"
+	#include "vendesk/_lib/lib.dk"
+	#include "uielements.v12.dkl"
+
+    do @context.begin(@crud_context)
+
+    new nav_config
+    {
+        @"title": "Reporte de oportunidades"
+        @"urlexit": ".."
+        @"jscurrentcontext": ""
+		member @"hidden"
+		{
+			@"print":@true
+			@"csv":@true
+			@"copy":@true
+		}
+    }
+	ref prospectos=dbr.list(@("&database"),"SELECT u.sys_pk,u.uf_nombre,u.uf_email,u.uf_telefono,u.uf_empresa,u.uf_probability,u.uf_amount,u.uf_perfil,
+        GROUP_CONCAT(u.uf_pipeline) pipeslines,u.uf_iejecutivo,a.nombre vendedor
+        FROM ut_icontact u
+		INNER JOIN agente a ON u.uf_iejecutivo=a.sys_pk
+        WHERE u.uf_status=3
+        GROUP by u.uf_perfil;",@null)
+
+    #$
+	div(class="container-fluid pt-1 ps-3 pe-3" style="background-color:#F5F5F5; min-height:94%;" id="container-clientes")
+	{
+		script(src="#<@JS_MODEL>"){""}
+		script(src="#<@JS_PROSPECTO>"){""}
+		#!
+		#include "vendesk/_modules/modalsVendesk.dkl"
+		#include "modals.dkl"
+		#$
+		section(id="top_area")
+		{
+			#! 
+            do uie.printV12FormBar(nav_config)
+            #$
+		}
+        section(id="work_area")
+        {
+            table(class="table")
+			{
+				thead
+				{
+					tr
+					{
+						th{"Vendedor"}
+						th{"Propsectos"}
+						th{"% éxito"}
+						th{"Valor estimado"}
+						th{"Valor probable"}
+					}
+				}
+				tbody
+				{
+					#!
+					total_prospectos= 0
+					total_percentaje= 0
+					total_valor_estimado= 0
+					total_valor_probable= 0
+
+					for i = 0; i < @count(prospectos)
+					{
+						ref prospecto=@item(prospectos,i)
+						str=trim(@@(prospecto,"$pipeslines"))
+						if str != ""
+						{
+							_sql=_.logicexp_from_list(str,"",",","(",")")
+							
+							sql="SELECT COUNT(*) AS prospectos,sp.sys_pk pk_pipeline,u.uf_stage pk_stage,sp.`name` pipeline,u.uf_iejecutivo
+								FROM sales_pipeline sp
+								INNER JOIN ut_icontact u on sp.sys_pk=u.uf_pipeline
+								WHERE sp.sys_pk in "+_sql+"
+								AND u.uf_iejecutivo=@uf_iejecutivo"
+							
+							ref pipelines=dbr.list(@("&database"),sql,prospecto)
+
+							if @count(pipelines) > 0
+							{
+								#$
+								tr{td(colspan="5" style="background: lightgray;"){"#<@@(prospecto,'$vendedor')>"}}
+								#!
+							}
+							for a = 0; a < @count(pipelines)
+							{
+								ref pipeline=@item(pipelines,a)
+
+								sql_detalle="SELECT COUNT(*) prospectos,ifnull(SUM(ifnull(u.uf_probability,0)) / COUNT(*),0)exito ,
+								ifnull(SUM(IFNULL(u.uf_amount,0)),0) valor_estimado
+								,ifnull(SUM(IFNULL(u.uf_amount,0) * (IFNULL(st.probability,0) / 100)),0) valor_probable,
+								st.name stage
+								FROM ut_icontact  u 
+								INNER JOIN sales_pipeline_stage st ON u.uf_stage=st.sys_pk
+								WHERE u.uf_pipeline=@pk_pipeline 
+								AND u.uf_iejecutivo=@uf_iejecutivo
+								GROUP BY st.sys_pk 
+								ORDER BY st.sequence desc;"
+								
+								ref data=dbr.list(@("&database"),sql_detalle,pipeline)
+
+								#$
+								tr{td(colspan="5" style="padding-left: 20px;"){"#<@@(pipeline,'$pipeline')>"}}
+
+								#!
+								for j = 0; j < @count(data)
+								{
+									ref detalle=@item(data,j)
+									
+									total_prospectos= total_prospectos + @@(detalle,"#prospectos")
+									total_percentaje= total_percentaje + @@(detalle,"#exito")
+									total_valor_estimado= total_valor_estimado + @@(detalle,"#valor_estimado")
+									total_valor_probable= total_valor_probable + @@(detalle,"#valor_probable")
+									#$
+									tr
+									{
+										td(style="padding-left: 40px;"){"#<@@(detalle,'$stage')>"}
+										td(class="text-center"){"#<@@(detalle,'#prospectos')>"}
+										td(class="text-end"){"#<trun(@@(detalle,'#exito'))>"}
+										td(class="text-end"){"#<@@(detalle,'#valor_estimado'):$ #,0.00>"}
+										td(class="text-end"){"#<@@(detalle,'#valor_probable'):$ #,0.00>"}
+									}
+								}
+							}
+							
+						}
+					}
+
+					#$
+					tr
+					{
+						td(class="fw-bold"){"TOTALES:"}
+						td(class="fw-bold text-center"){"#<total_prospectos>"}
+						td(class="fw-bold text-end"){"#<round(total_percentaje,0)>"}
+						td(class="fw-bold text-end"){"#<total_valor_estimado:$ #,0.00>"}
+						td(class="fw-bold text-end"){"#<total_valor_probable:$ #,0.00>"}
+					}
+				}	
+			}
+        }
+    }
+}

@@ -228,4 +228,22 @@ module ""
 
         exception{ return @false }
     }
+
+    getPackUrl::url
+    {
+        if not(contains(url,"!")){return ""}
+        
+        pack=""
+        ref cds=split(url,"!")
+        for i = 0; i < @count(cds)
+        {
+            path=list.str(cds,i)
+            ref ps=split(path,"/")
+            pack=list.str(ps,1)
+        }
+
+        return pack
+
+        exception{return ""}
+    }
 }
