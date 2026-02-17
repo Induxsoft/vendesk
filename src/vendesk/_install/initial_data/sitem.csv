@@ -31,3 +31,6 @@ itemid,description,itemparent
 "VC82","Editar prospecto",vendesk.prospectos
 "VC83","Eliminar prospecto",vendesk.prospectos
 "VC84","Administrar prospectos de todos",vendesk.prospectos
+
+"VC85",Ver mensajes,vendesk.prospectos
+"VC86",Publicar mensajes,vendesk.prospectos

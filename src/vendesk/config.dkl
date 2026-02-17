@@ -203,7 +203,7 @@ module "config.dkl"
 		{"id":"group","text":"Grupo"}
 	]'
 
-	@URL_BITACORA = "/!/webshell/log/DET01C/@guid/"
+	@URL_BITACORA = "/!/webshell/log/DET0AF/@guid/"
 	//url modulo de notificación
 	@URL_CLIENT_ALERT="/!/vendesk/cliente/_detail/?_key=@cliente&i=alert"
 	@URL_CLIENT_CASE_LIST="/!/vendesk/cliente/_detail/?_key=@cliente&i=case"
