@@ -30,6 +30,18 @@
                 }
             },
             {
+                "varname": "vendesk_links_prospectos",
+                "vardefault": "/!/vendesk/prospecto/config-links/",
+                "varvalue": "/!/vendesk/prospecto/config-links/",
+                "varcaption": "Enlaces en prospectos",
+                "varhelp": "Enlaces en prospectos",
+                "vartype": "string",
+                "varinput": 
+                {
+                    "control": "button"
+                }
+            },
+            {
                 "varname": "vendesk_url_form_client",
                 "vardefault": "/!/cxc/clientes/_new/?url_exit=@url",
                 "varvalue": "/!/cxc/clientes/_new/?url_exit=@url",

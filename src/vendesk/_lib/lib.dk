@@ -6,6 +6,36 @@ module ""
     #include "dbr.vars.dkl"
     #include "webcl.dkh"
 
+    function solveServiceId(&db)
+    {
+        qname = dbr.relative_qname(db)
+        cnn = list.str(split(qname,"@"),0)
+        if not(contains(cnn,"vxii")) && @hosting_service_id != "" { return @hosting_service_id }
+
+        id = replace(cnn,"vxii","")
+
+        return id
+    }
+
+    function solveInduxsoftSession(svc_id)
+    {
+        endpoint = @endpoint_induxsoft_auth_fromv12
+        new headers
+        {
+            @"Content-Type": "application/json"
+        }
+        new body
+        {
+            @"svc_id": svc_id
+            @"ids": @@(@http_context,"$session/user/ids")
+        }
+
+        response = http.request(endpoint,"POST",headers,to.json(body))
+        ref resp = from.json(response)
+
+        if not(@@(resp,"#success")) { do rise_error(500,@@(resp,"$message")) }
+        return @@(resp,"&data")
+    }
     AddKeyValue::&org,&dest
     {
         if isnull(org){return}

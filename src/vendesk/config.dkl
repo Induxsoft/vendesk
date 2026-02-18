@@ -76,7 +76,8 @@ module "config.dkl"
 	@name_root="192.168.0.125" //"r8-clientes.ws.induxsoft.net"
 	@path_root="vendesk/" //"web/"+@name_root
 	@path_web=""
-
+	@endpoint_induxsoft_auth_fromv12 = "https://api.induxsoft.net/auth/from-v12/"
+	@hosting_service_id="5CC98F650EB041928F6C4394E5D51BA6"
 	@url_root="https://"+@name_root
 
 	@dir_catalogs=@path_root+"/_modules/"
@@ -92,7 +93,7 @@ module "config.dkl"
 	@url_home="/"
 	@url_service_workspace="https://api.induxsoft.net/workspaces/"
 	@url_service_vendesk="/vendesk/_services/"
-	
+	@url_globalvar="/!/dbext/globalvar/"
 	if isset("@http_context")
 	{
 		@ws=@@(@http_context,"request/get/ws")

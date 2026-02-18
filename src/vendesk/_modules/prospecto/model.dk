@@ -6,6 +6,9 @@ module ""
     @read_query="select *,date_format(uf_proxcontac,'%Y-%m-%d %H:%i') prox_contact,uf_pipeline pipeline, 
         uf_stage as stage,uf_status oportunidad
     from ut_icontact where sys_pk=@_entity_id limit 1"
+
+    @fields_configs="vendesk_link1_text,vendesk_link1,vendesk_link2_text,vendesk_link2,vendesk_link3_text,vendesk_link3,vendesk_link1_target_blank,vendesk_link2_target_blank,vendesk_link3_target_blank"
+
     existIlinkType::&db
     {
         new p{@"detilink":@ILINK_TYPE}
@@ -29,6 +32,13 @@ module ""
 
         return permiso
     }
+    getIdsInd::&db
+    {
+        ref sinfo=solveInduxsoftSession(solveServiceId(db))
+        return @@(sinfo,"$induxsoft_sid")
+
+        exception{return ""}
+    }
     list::&db,&params
     {
         do dbr.apps.action.grant("VC80")
@@ -45,10 +55,13 @@ module ""
         ref agente=dbr.rec(db,sql,user)
         if isnull(agente) && not(CanViewAll()){do rise_error(500,"No estas vinculado a ningún agente <br> <a target='_top' href='"+url+"' class='btn'>Vincular</a>")}
         
+        
         new entity
         {
             @"entity*":list.create()
             @"agente*":agente
+            @"links*":GetVarsConfigs(db,params)
+            @"induxsoft_sid":getIdsInd(db)
         }
         return entity
     }
@@ -58,9 +71,12 @@ module ""
         do dbr.apps.action.grant("VC80")
         do ValidatePrivileges(params)
 
-        if @@(params,"$_entity_id")=="freezer" || @@(params,"$_entity_id")=="reporte-oportunidad" {return record.create()}
+        if @@(params,"$_entity_id")=="config-links"{return GetVarsConfigs(db,params)}
+
+        if @@(params,"$_entity_id")=="freezer" || @@(params,"$_entity_id")=="reporte-oportunidad"{return record.create()}
 
         ref entity=entity.read(db,params)
+        
         using entity
         {
             @"hash_privg":CanViewAll()
@@ -95,6 +111,66 @@ module ""
         return entity
     }
     
+    saveConfigLinks::&db,&params,&data
+    {
+        ref vars=record.copy(data,@fields_configs)
+        ref lvars=list.create_from_fields(vars)
+        for i = 0; i < @count(lvars)
+        {
+            var=trim(list.str(lvars,i))
+            value=trim(@@(vars,"$"+var))
+
+            do SetVars(db,var,value)
+        }
+        @url_redir=@url_globalvar
+        
+        return data
+    }
+    GetVarsConfigs::&db,&params
+    {
+        fields=_.logicexp_from_list(@fields_configs,"'",",","(",")","'")
+        sql=ftext("SELECT g.varname,g.varvalue FROM globalvar g WHERE g.varname IN #<fields>;")
+        ref vars=dbr.list(db,sql,params)
+        
+        ref config=record.create()
+        for i = 0; i < @count(vars)
+        {
+            ref item=@item(vars,i)
+            config<@@(item,"$varname")>:@@(item,"$varvalue")
+        }
+
+        return config
+    }
+    function SetVars(&db,var_name,value)
+    {
+        new var
+        {
+            @"varname": var_name
+            @"varvalue": value
+        }
+        do dbr.execute(db,"
+            INSERT INTO globalvar (sys_guid, sys_dtcreated, sys_timestamp, sys_recver, varname, varvalue)
+            VALUES (REPLACE(UUID(),'-',''), NOW(), NOW(), 0, @varname, @varvalue)
+            ON DUPLICATE KEY UPDATE
+                sys_timestamp = NOW(),
+                sys_recver = IFNULL(sys_recver,0) + 1,
+                varvalue = @varvalue
+        ",var)
+    }
+    _.logicexp_from_list::str, termino, op,prefix, sufix, t
+    {
+        sql=""
+        ref l=split(str,",")
+        for i=0;i<@count(l)
+        {
+            if sql=="" { sql=termino + list.str(l,i) + t }
+            else { sql=sql+" "+op + " " + termino + list.str(l,i) + t }
+        }
+        sql=trim(sql)
+        if sql!="" { sql=prefix+" " + sql + " " + sufix + " "}
+
+        return sql
+    }
     point @blank to blank
     point @read to read
     point @list to list

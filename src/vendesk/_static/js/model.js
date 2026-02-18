@@ -408,6 +408,7 @@ var model =
     if(!this.inputkye_cliente)return;
     this.inputkye_cliente.searchText("",false);
   },
+  induxsoft_sid:"",
   SetClient(clear=false)
   {
     if(!this.inputkye_cliente)return;
@@ -685,6 +686,44 @@ var model =
     }
     return _filter;
   },
+  data_enlances:{},
+  CreateEnlace(text,link,target,item={},prms="")
+  {
+    if(text.trim()=="")return "";
+
+    if(!link.includes("@phone") && !link.includes("@email"))
+    {
+      if(item.phone)prms="phone="+item.phone;
+      else if(item.email)prms="email="+item.email;
+    }
+
+    if(!link.includes("@ids") && !link.includes("@token") && model.induxsoft_sid)link=(link.includes("?")?(link+"&ids"+model.induxsoft_sid):(link+"?ids="+model.induxsoft_sid))
+    
+    link=link.replaceAll("@ids",model.induxsoft_sid);
+    link=link.replaceAll("@token",model.induxsoft_sid);
+
+    for (let key in item) 
+    {
+      link=link.replaceAll(`@${key}`,item[key??""]);
+    }
+    if(prms)link=link.includes("?")?(link+"&"+prms):(link+"?"+prms)
+
+    return `<li>
+            <a class="dropdown-item" href="${link}" target="${tools.ParseBool(target)?"_blank":"_self"}" onclick="event.stopPropagation();">${text}</a>
+        </li>`;
+  },
+  CreateDropDown(li)
+  {
+    return `<div class="dropdown">
+      <button class="btn btn-sm btn-secondary shadow-none dropdown-toggle" type="button"
+          id="dmb-event-links" data-bs-toggle="dropdown" aria-expanded="true" onclick="event.stopPropagation();">Enlaces</button>
+      <ul class="dropdown-menu" aria-labelledby="dmb-event-links"
+          style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate(0px, 33px);"
+          data-popper-placement="bottom-start">
+          ${li}
+      </ul>
+  </div>`;
+  },
   CreateItem(itm)
   {
     var ps = "";
@@ -698,6 +737,22 @@ var model =
 
     var style = "";
     if (model.alertNextContact(itm.next_contact)) style = "background:red;";
+
+    let vendesk_link1_text=(this.data_enlances["vendesk_link1_text"]??"").trim();
+    let vendesk_link1=(this.data_enlances["vendesk_link1"]??"").trim();
+    let vendesk_link2_text=(this.data_enlances["vendesk_link2_text"]??"").trim();
+    let vendesk_link2=(this.data_enlances["vendesk_link2"]??"").trim();
+    let vendesk_link3_text=(this.data_enlances["vendesk_link3_text"]??"").trim();
+    let vendesk_link3=(this.data_enlances["vendesk_link3"]??"").trim();
+    let vendesk_link1_target_blank=(this.data_enlances["vendesk_link1_target_blank"]??"").trim();
+    let vendesk_link2_target_blank=(this.data_enlances["vendesk_link2_target_blank"]??"").trim();
+    let vendesk_link3_target_blank=(this.data_enlances["vendesk_link3_target_blank"]??"").trim();
+
+    let li=this.CreateEnlace(vendesk_link1_text,vendesk_link1,vendesk_link1_target_blank,itm,"");
+    li+=this.CreateEnlace(vendesk_link2_text,vendesk_link2,vendesk_link2_target_blank,itm,"");
+    li+=this.CreateEnlace(vendesk_link3_text,vendesk_link3,vendesk_link3_target_blank,itm,"");
+
+    let enlaces=this.CreateDropDown(li);
 
     return `<div class="card bg-white shadow shadow-sm">
               <div class="d-flex" id="dv-color_${itm.sys_pk}" style="padding-left: 1rem !important;padding-right: .5rem !important;${model.getColor(itm.color)}">
@@ -735,6 +790,11 @@ var model =
                           <div class="d-flex justify-content-end">
                               <b></b><smal style="font-size: small;">${itm.sys_dtcreated}</smal>
                           </div>
+                          
+                          <div class="d-flex justify-content-end p-2">
+                              ${enlaces}
+                          </div>
+
                           <div class="card-footer header-items-center ${this.IsFreezer?"d-none":""}" style="padding: 0; cursor: default;">
                             <div class="btn-group d-inline-block flex-wrap mt-1 flex-grow-1" id="group-colors">
                               <button type="button" onclick="model.setColor(${itm.sys_pk},0,event);" style="background-color:#FFFFFF;" title="Sin color" class="color border"></button>
@@ -744,6 +804,7 @@ var model =
                               <button type="button" onclick="model.setColor(${itm.sys_pk},4,event);" style="background-color:#6f42c1;" title="Morado" class="color border"></button>
                               <button type="button" onclick="model.setColor(${itm.sys_pk},5,event);" style="background-color:#ffc107;" title="Amarillo" class="color border"></button>
                             </div>
+
                             <a class="" href="./${itm.sys_pk}/?_filter=${tools.url_encode(JSON.stringify(model.GetFieldsFilter()))}" style="margin-right:5px;margin-left:5px">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
                                   <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"></path>
@@ -756,6 +817,7 @@ var model =
                               </svg>
                             </a>
                             
+
                           </div>
                           ${itm.sys_info=="freezer" && this.OnlyRows ? `
                           <div class="card-footer header-items-center border-0 mb-2" style="padding: 0; cursor: default;padding-bottom: 8px; padding-top:6px" title="Descongelar">

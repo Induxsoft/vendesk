@@ -9,9 +9,10 @@ module "ventas"
 	do @context.begin(@crud_context)
 	ref @http_context = @("&http")
 	ref agente=@("&./agente")
-
+	ref links=ifnull(@("&./links"),record.create())
 	ref filter=@("&./filters")
-
+	@induxsoft_sid=@("$./induxsoft_sid")
+	
 	if trim(@("$parameters/_filter"))!="" && isnull(filter)
 	{
 		ref filter=from.json(url_dcode(@("$parameters/_filter")))
@@ -36,7 +37,6 @@ module "ventas"
 
 	showModule=@true
 	idtienda=""
-
 
 	buttons::
 	{
@@ -213,6 +213,8 @@ module "ventas"
 					model.source="#<idtienda>";
 					model.sourceId="#<idtienda>";
 					model._filter=#<to.json(filter)>;
+					model.data_enlances=#<to.json(links)>;
+					model.induxsoft_sid="#<@induxsoft_sid>";
 					model.Init();
 					model.fieldsOrder((model._filter?.sOrderBy??""));
 

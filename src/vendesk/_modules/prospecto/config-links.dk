@@ -1,0 +1,146 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    #include "functions.dkh"
+	#include "serialize.dkh"
+	#include "dbr.dkh"
+	#include "webcl.dkh"
+	#include "../../config.dkl"
+	#include "../lib.dk"
+	#include "vendesk/_lib/lib.dk"
+	#include "uielements.v12.dkl"
+
+    do @context.begin(@crud_context)
+    ref @http_context=@("&http")
+
+    error=@("$error/message")
+    
+    new nav_config
+    {
+        @"title": "Configuración de enlaces para prospectos"
+        @"urlexit": @url_globalvar
+        @"jscurrentcontext": ""
+		member @"hidden"
+		{
+			@"print":@true
+			@"csv":@true
+			@"copy":@true
+            // @"exit":@true
+		}
+    }
+	ref prospectos=dbr.list(@("&database"),"SELECT u.sys_pk,u.uf_nombre,u.uf_email,u.uf_telefono,u.uf_empresa,u.uf_probability,u.uf_amount,u.uf_perfil,
+        GROUP_CONCAT(u.uf_pipeline) pipeslines,u.uf_iejecutivo,a.nombre vendedor
+        FROM ut_icontact u
+		INNER JOIN agente a ON u.uf_iejecutivo=a.sys_pk
+        WHERE u.uf_status=3
+        GROUP by u.uf_perfil;",@null)
+
+    #$
+	div(class="container pt-1 ps-3 pe-3" style="background-color:#F5F5F5; min-height:94%;")
+	{
+		script(src="#<@JS_MODEL>"){""}
+		script(src="#<@JS_PROSPECTO>"){""}
+		#!
+		#include "vendesk/_modules/modalsVendesk.dkl"
+		#include "modals.dkl"
+		#$
+		section(id="top_area")
+		{
+			#! 
+            do uie.printV12FormBar(nav_config)
+            #$
+		}
+        section(id="work_area")
+        {
+            #!
+            if error != ""
+            {
+                #$
+                div(class="alert alert-danger"){"#<error>"}
+            }
+            form(action="." method="POST" enctype="multipart/form-data" id="")
+            {
+                div(class="card")
+                {
+                    div(class="card-body")
+                    {
+                        //redireccion 1
+                        
+                        div(class="row")
+                        {
+                            div(class="col-12")
+                            {
+                                label(class="" "for"=""){"Redirección 1"}
+                            }
+                            div(class="col-sm-4 col-lg-3")
+                            {
+                                input(type="text" class="form-control rounded-0" id="vendesk_link1_text" name="vendesk_link1_text" value="#<@('$./vendesk_link1_text')>" placeholder="Texto")
+                            }
+                            div(class="col-sm-8 col-lg-9")
+                            {
+                                input(type="text" class="form-control rounded-0" id="vendesk_link1" name="vendesk_link1" value="#<@('$./vendesk_link1')>" placeholder="URL")
+                            }
+                        }
+                        div(class="form-check form-check-inline")
+                        {
+                            input(type="checkbox" class="form-check-input" id="vendesk_link1_target_blank" name="vendesk_link1_target_blank" "#<ifstr(parse.bool(@('$./vendesk_link1_target_blank')),'checked','')>"="")
+                            label(class="form-check-label" "for"="vendesk_link1_target_blank"){"Abrir enlace en nueva pestaña"}
+                        }
+                        //redireccion 2
+                        
+                        div(class="row")
+                        {
+                            div(class="col-12")
+                            {
+                                label(class="" "for"=""){"Redirección 2"}
+                            }
+                            div(class="col-sm-4 col-lg-3")
+                            {
+                                input(type="text" class="form-control rounded-0" id="vendesk_link2_text" name="vendesk_link2_text" value="#<@('$./vendesk_link2_text')>" placeholder="Texto")
+                            }
+                            div(class="col-sm-8 col-lg-9")
+                            {
+                                input(type="text" class="form-control rounded-0" id="vendesk_link2" name="vendesk_link2" value="#<@('$./vendesk_link2')>" placeholder="URL")
+                            }
+                        }
+                        div(class="form-check form-check-inline")
+                        {
+                            input(type="checkbox" class="form-check-input" id="vendesk_link2_target_blank" name="vendesk_link2_target_blank" "#<ifstr(parse.bool(@('$./vendesk_link2_target_blank')),'checked','')>"="")
+                            label(class="form-check-label" "for"="vendesk_link2_target_blank"){"Abrir enlace en nueva pestaña"}
+                        }
+                        //redireccion 3
+                        
+                        div(class="row")
+                        {
+                            div(class="col-12")
+                            {
+                                label(class="" "for"=""){"Redirección 3"}
+                            }
+                            div(class="col-sm-4 col-lg-3")
+                            {
+                                input(type="text" class="form-control rounded-0" id="vendesk_link3_text" name="vendesk_link3_text" value="#<@('$./vendesk_link3_text')>" placeholder="Texto")
+                            }
+                            div(class="col-sm-8 col-lg-9")
+                            {
+                                input(type="text" class="form-control rounded-0" id="vendesk_link3" name="vendesk_link3" value="#<@('$./vendesk_link3')>" placeholder="URL")
+                            }
+                        }
+                        div(class="form-check form-check-inline")
+                        {
+                            input(type="checkbox" class="form-check-input" id="vendesk_link3_target_blank" name="vendesk_link3_target_blank" "#<ifstr(parse.bool(@('$./vendesk_link3_target_blank')),'checked','')>"="")
+                            label(class="form-check-label" "for"="vendesk_link3_target_blank"){"Abrir enlace en nueva pestaña"}
+                        }
+                    }
+                    div(class="card-footer")
+                    {
+                        div(class="d-flex justify-content-end")
+                        {
+                            button(class="btn btn-sm btn-primary" type="submit" id=""){$"Guardar"}
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

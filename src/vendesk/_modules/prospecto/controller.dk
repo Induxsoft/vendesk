@@ -17,5 +17,11 @@ module ""
             @form_view="reporte-oportunidad.dk"
             break
         }
+        case "config-links"
+        {
+            point @update to saveConfigLinks
+            @form_view="config-links.dk"
+            break
+        }
     }
 }
