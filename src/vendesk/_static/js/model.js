@@ -697,7 +697,7 @@ var model =
       else if(item.email)prms="email="+item.email;
     }
 
-    if(!link.includes("@ids") && !link.includes("@token") && model.induxsoft_sid)link=(link.includes("?")?(link+"&ids"+model.induxsoft_sid):(link+"?ids="+model.induxsoft_sid))
+    // if(!link.includes("@ids") && !link.includes("@token") && model.induxsoft_sid)link=(link.includes("?")?(link+"&ids"+model.induxsoft_sid):(link+"?ids="+model.induxsoft_sid))
     
     link=link.replaceAll("@ids",model.induxsoft_sid);
     link=link.replaceAll("@token",model.induxsoft_sid);
