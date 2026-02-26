@@ -690,7 +690,6 @@ var model =
   CreateEnlace(text,link,target,item={},prms="")
   {
     if(text.trim()=="")return "";
-
     if(!link.includes("@phone") && !link.includes("@email"))
     {
       if(item.phone)prms="phone="+item.phone;
@@ -701,7 +700,7 @@ var model =
     
     link=link.replaceAll("@ids",model.induxsoft_sid);
     link=link.replaceAll("@token",model.induxsoft_sid);
-
+    
     for (let key in item) 
     {
       link=link.replaceAll(`@${key}`,item[key??""]);
@@ -712,10 +711,10 @@ var model =
             <a class="dropdown-item" href="${link}" target="${tools.ParseBool(target)?"_blank":"_self"}" onclick="event.stopPropagation();">${text}</a>
         </li>`;
   },
-  CreateDropDown(li)
+  CreateDropDown(li,_class="btn-sm")
   {
     return `<div class="dropdown">
-      <button class="btn btn-sm btn-secondary shadow-none dropdown-toggle" type="button"
+      <button class="btn ${_class} btn-secondary shadow-none dropdown-toggle" type="button"
           id="dmb-event-links" data-bs-toggle="dropdown" aria-expanded="true" onclick="event.stopPropagation();">Enlaces</button>
       <ul class="dropdown-menu" aria-labelledby="dmb-event-links"
           style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate(0px, 33px);"

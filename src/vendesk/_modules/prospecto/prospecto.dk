@@ -11,9 +11,22 @@ module "condif lead"
 	#include "../lib.dk"
 	#include "vendesk/_lib/lib.dk"
 	#include "uielements.v12.dkl"
+	#include "dbr.vars.dkl"
 
 	do @context.begin(@crud_context)
 	ref @http_context=@("&http")
+	ref db=@("&database")
+
+	vendesk_link1_text=dbr.vars.get(db,"vendesk_link1_text")
+	vendesk_link1=dbr.vars.get(db,"vendesk_link1")
+	vendesk_link2_text=dbr.vars.get(db,"vendesk_link2_text")
+	vendesk_link2=dbr.vars.get(db,"vendesk_link2")
+	vendesk_link3_text=dbr.vars.get(db,"vendesk_link3_text")
+	vendesk_link3=dbr.vars.get(db,"vendesk_link3")
+	vendesk_link1_target_blank=dbr.vars.get(db,"vendesk_link1_target_blank")
+	vendesk_link2_target_blank=dbr.vars.get(db,"vendesk_link2_target_blank")
+	vendesk_link3_target_blank=dbr.vars.get(db,"vendesk_link3_target_blank")
+
 	using @http_context
     {
         member "session" { member "resource" { member "properties" { member  "web_meta_tags" {@"title":"Notas" }  } } }
@@ -131,10 +144,12 @@ module "condif lead"
 			#$
 			div(class="p-2 bg-white border-bottom" id="div_controls")
 			{
+				small(class="#<ifstr(edit_proc!=0,'','d-none')>"){"Creación: #<@('$./creacion')>"}
 				div(class="d-flex justify-content-end mb-2 gap-2 d-block-media")
 				{
 					div(class="d-flex gap-2 div_btns_lead" )
-					{$""
+					{
+						div(id="div_enlances" class="#<ifstr(edit_proc!=0,'','d-none')>"){$""}
 						#!
 						if show_btns_recibido
 						{
@@ -386,6 +401,25 @@ module "condif lead"
 					model.load_pipelines("#<@("$./pipeline")>");
 					model._stage_selected=#<@("#./stage")>;
 					
+					let div_enlances=document.getElementById("div_enlances");
+					let vendesk_link1_text="#<vendesk_link1_text>";
+					let vendesk_link1="#<vendesk_link1>";
+					let vendesk_link2_text="#<vendesk_link2_text>";
+					let vendesk_link2="#<vendesk_link2>";
+					let vendesk_link3_text="#<vendesk_link3_text>";
+					let vendesk_link3="#<vendesk_link3>";
+					let vendesk_link1_target_blank="#<vendesk_link1_target_blank>";
+					let vendesk_link2_target_blank="#<vendesk_link2_target_blank>";
+					let vendesk_link3_target_blank="#<vendesk_link3_target_blank>";
+
+					let itm=#<to.json(@("&."))>;
+					let li=model.CreateEnlace(vendesk_link1_text,vendesk_link1,vendesk_link1_target_blank,itm,"");
+					li+=model.CreateEnlace(vendesk_link2_text,vendesk_link2,vendesk_link2_target_blank,itm,"");
+					li+=model.CreateEnlace(vendesk_link3_text,vendesk_link3,vendesk_link3_target_blank,itm,"");
+
+					let enlaces=model.CreateDropDown(li,"");
+					if(div_enlances)div_enlances.innerHTML=enlaces;
+
 					if(Number(model.sys_pk)>0)
 					{
 						model.get_prospecto("#<sys_pk_lead>",true);

@@ -3,8 +3,12 @@
 module ""
 {
     @table_name="ut_icontact"
-    @read_query="select *,date_format(uf_proxcontac,'%Y-%m-%d %H:%i') prox_contact,uf_pipeline pipeline, 
-        uf_stage as stage,uf_status oportunidad
+    @read_query="select *,date_format(uf_proxcontac,'%Y-%m-%d %H:%i') prox_contact,
+        uf_pipeline pipeline, 
+        uf_stage as stage,uf_status oportunidad,
+        trim(sys_dtcreated)creacion,
+        uf_email email,
+        uf_telefono phone
     from ut_icontact where sys_pk=@_entity_id limit 1"
 
     @fields_configs="vendesk_link1_text,vendesk_link1,vendesk_link2_text,vendesk_link2,vendesk_link3_text,vendesk_link3,vendesk_link1_target_blank,vendesk_link2_target_blank,vendesk_link3_target_blank"
