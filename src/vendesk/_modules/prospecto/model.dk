@@ -38,7 +38,7 @@ module ""
     }
     getIdsInd::&db
     {
-        ref sinfo=solveInduxsoftSession(solveServiceId(db))
+        ref sinfo=dbext.induxsoft.getSession(db,@@(@http_context,"$session/user/ids"))
         return @@(sinfo,"$induxsoft_sid")
 
         exception{return ""}
