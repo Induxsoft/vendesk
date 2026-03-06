@@ -55,6 +55,7 @@ module "view.caso"
 	div(class="container-fluid v12-form-view" id="view")
 	{
 		#!
+		#include "admin_js.dkl"
 		#include "view_detail.dkl"
 		#include "cliente.dkl"
 		#include "../modals.dkl"
