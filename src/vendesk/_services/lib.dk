@@ -231,6 +231,25 @@ module ""
     }
 
     ///leads
+    LogLeadStageTransition :: &db, lead_guid, stage_guid, username
+    {
+        new entry
+        {
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": dbr.sql("now()")
+            @"sys_timestamp*": dbr.sql("now()")
+            @"sys_recver": 0
+
+            @"lead_id": lead_guid
+            @"stage_id": stage_guid
+            @"transition_date*": dbr.sql("now()")
+            @"username": username
+        }
+        do dbr.insert(db,"lead_stage_log",entry)
+
+        exception{ do clear_exceptions() }
+    }
+
     _AddLead::&db,&params,&response
     {
         ref user=@@(@http_context,"&session/user")
@@ -254,7 +273,7 @@ module ""
         }
         
         if field.exist(params,"agent_id")
-        { 
+        {
             newEntry<"uf_iejecutivo*">:@null
             newEntry<"uf_perfil">:@@(params,"agent_id")
 
@@ -351,6 +370,8 @@ module ""
             log=log+" - amount \r\n"
         }
 
+        newEntry<"notif_automatica_activa"> : parse.bool(@@(params,"$notif_automatica_activa"))
+
         if sys_pk > 0
         {
             //Actualizar
@@ -359,15 +380,20 @@ module ""
                 @"sys_timestamp*":dbr.sql("now()")
             }
 
-            new p { @"sys_pk":sys_pk}
+            new p
+            {
+                @"sys_pk": sys_pk
+                @"uf_stage": @@(newEntry,"#uf_stage")
+            }
+            change_stage = dbr.num(db,"select (@uf_stage > 0 and ifnull(uf_stage,0) <> @uf_stage) from ut_icontact where sys_pk = @sys_pk",p)
             do dbr.update(db,"ut_icontact",newEntry,"sys_pk=@sys_pk",p)
+            
             log_text="Actualización de:\r\n"+log
             if field.exist(params,"log")
             {
                 log_text=@@(params,"$log")
             }
             do agregar_log(db,sys_pk,log_text,@@(user,"name"))
-
         }
         else
         {
@@ -379,15 +405,14 @@ module ""
                 @"sys_timestamp*":dbr.sql("now()")
                 @"sys_guid":uuid
             }
-
+            change_stage = @@(newEntry,"#uf_stage") > 0
             do dbr.insert(db,"ut_icontact",newEntry)
-            sys_pk=dbr.num(db,"SELECT LAST_INSERT_ID();",@null)
+            sys_pk = dbr.num(db,"SELECT LAST_INSERT_ID();",@null)
+            
             do agregar_log(db,sys_pk,"Nuevo prospecto",@@(user,"name"))
-
         }
-        
-        
-        response<"data*">:dbr.rec(db,"
+
+        ref lead = dbr.rec(db,"
         select sys_pk, 
         date_format(sys_dtcreated,'%Y-%m-%dT%T') sys_dtcreated,
         date_format(sys_timestamp,'%Y-%m-%dT%T') sys_timestamp, 
@@ -413,6 +438,15 @@ module ""
         uf_amount amount
         from ut_icontact where sys_pk="+str(sys_pk)+";
         ",@null)
+
+        if change_stage
+        {
+            stage_guid = dbr.str(db,"select  sys_guid from sales_pipeline_stage where sys_pk = @stage",record.copy(lead,"stage"))
+            
+            do LogLeadStageTransition(db, @@(lead,"$sys_guid"), stage_guid, @@(lead,"$name"))
+        }
+        
+        response<"data*"> : lead
 
         response<"data/agent_name">:@@(user,"name")
         switch @@(response,"#data/leadstatus")

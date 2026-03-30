@@ -26,3 +26,8 @@
 "VC81","Agregar prospecto","Agregar","","/!/vendesk/prospecto/_new/","0","vendesk.prospectos","DET01C","0","action"
 "VC82","Editar prospecto","Editar","","/!/vendesk/prospecto/@_src_context_item_id/","0","vendesk.prospectos","DET01C","1","action"
 "VC83","Eliminar prospecto","Eliminar","","javascript:InduxsoftCrudlModel.Delete(@_src_context_item_id);","0","vendesk.prospectos","DET01C","1","action"
+
+VC90,Notificaciones por etapas del pipeline,Notificaciones,,/!/vendesk/stage_notif/,0,vendesk.stage_notif,DET0BE,0,shortcut
+VC91,Agregar notificación a una etapa,Agregar,,/!/vendesk/stage_notif/_new/,0,vendesk.stage_notif,DET0BE,0,action
+VC92,Editar notificación de una etapa,Editar,,/!/vendesk/stage_notif/@_src_context_item_id/,0,vendesk.stage_notif,DET0BE,1,action
+VC93,Eliminar notificación de una etapa,Eliminar,,"javascript:InduxsoftCrudlModel.Delete(`@_src_context_item_id`);",0,vendesk.stage_notif,DET0BE,1,action

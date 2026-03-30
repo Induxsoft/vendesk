@@ -1488,6 +1488,7 @@ var model =
     var txtProbabilidad = document.querySelector("#txtProbabilidad");
     var txtImporteTrato = document.querySelector("#txtImporteTrato");
     var cbColor = document.querySelector("#cbColors");
+    var notif_automatica_activa = document.querySelector("#notif_automatica_activa");
 
     if (name.value.trim().length < 5) {
       model.alert("El nombre del prospecto debe ser mayor a 5 caracteres.");
@@ -1516,6 +1517,7 @@ var model =
           if (itm.agent_id != cbPropietario.value) data["agent_id"] = cbPropietario.value;
           if (itm.leadstatus != cbStatus.value) data["leadstatus"] = cbStatus.value;
           if (itm.color != cbColor.value) data["color"] = cbColor.value;
+          data["notif_automatica_activa"] = notif_automatica_activa.checked;
         }
       }
     }
@@ -1532,6 +1534,7 @@ var model =
         color: cbColor.value,
         leadstatus: cbStatus.value,
         agent_id: cbPropietario.value,
+        notif_automatica_activa: notif_automatica_activa.checked
       }
     }
     data["sys_pk"] = Number(model.sys_pk);

@@ -169,8 +169,23 @@ module "Actualizaciones masivas"
                 {
                     ref item=@item(leads,i)
                     do SetStageLead(db,params,item,ndata)
+                    
+                    new p
+                    {
+                        @"sys_pk": @@(item,"#sys_pk")
+                        @"uf_stage": @@(ndata,"#uf_stage")
+                    }
+                    ref l = dbr.rec(db,"select sys_guid, uf_nombre, (@uf_stage > 0 and ifnull(uf_stage,0) <> @uf_stage) as change_stage from ut_icontact where sys_pk = @sys_pk",p)
+                    
                     do dbr.update(db,"ut_icontact",ndata,"sys_pk=@sys_pk",item)
                     do agregar_log(db,@@(item,"#sys_pk"),log,@@(user,"$name"))
+
+                    if @@(l,"#change_stage")
+                    {
+                        stage_guid = dbr.str(db,"select  sys_guid from sales_pipeline_stage where sys_pk = @uf_stage",p)
+                        
+                        do LogLeadStageTransition(db, @@(l,"$sys_guid"), stage_guid, @@(l,"$uf_nombre"))
+                    }
                 }
             }
            

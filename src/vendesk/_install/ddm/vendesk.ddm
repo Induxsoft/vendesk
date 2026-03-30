@@ -102,6 +102,30 @@ model "erp.vendesk"
         @"notas" string(255) 
     }
 
+    // Tipos de notificación. Extensible en el futuro.
+    // entity "stage_notif_type" : "EnumModel" {}
+
+    entity "snd_provider_tpy" : "EnumModel"
+    {
+        //0-E-Mail
+        //1-TEXT
+        //2-IM
+    }
+    entity "snd_provider" : "TableModel"
+    {
+        @"name" string(32) unique required
+        @"tpy" ref:"snd_provider_tpy" required
+        @"entry_point" string(256)  // URL relativa de acceso a los controles del proveedor
+        @"lib" string(256) required // Ruta hacia la biblioteca que implementa las funciones de la interfaz
+        @"manifest" mmemo 
+    }
+    entity "snd_channel" : "TableModel"
+    {
+        @"prov" ref:"snd_provider" required
+        @"name" string(32) unique required
+        @"config" mmemo
+    }
+
     //* ======================================== [ ENTIDADES PRINCIPALES ]
     // Datos de un cliente
     entity "cliente" : "TableModel"
@@ -154,7 +178,77 @@ model "erp.vendesk"
         @"probability" decimal(4,1)
         @"stuck_in_days" int
     }
-    /* uod.ut_icontact */
+    // Configuración de notificaciones por etapas del pipeline
+    entity "stage_notif" : "TableModel"
+    {
+        @"stage" ref:"sales_pipeline_stage" required
+        @"waiting_minutes" int required // minutos de espera
+        // @"notif_type" ref:"stage_notif_type" required
+        @"template" ref:"snd_channel" required // Determina el canal y los parámetros esperados.
+        @"params" memo required // objeto JSON con los valores concretos de los parámetros definidos en `snd_provider`.
+        @"tempvars" memo // Variables posicionales a ocupar
+        @"enabled" bool
+
+        index "sn_stage_enabled"
+        {
+            field "stage"
+            field "enabled"
+        }
+    }
+    // Registro Histórico de Envíos
+    entity "stage_notif_log" : "TableModel"
+    {
+        @"lead_id" string(32) required // ref:"ut_icontact" ["sys_guid"]
+        @"stage_id" string(32) required // ref:"sales_pipeline_stage" ["sys_guid"]
+        @"notif_id" string(32) required // ref:"stage_notif" ["sys_guid"]
+        @"lead_name" string(150) required
+        @"lead_email" string(255)
+        @"lead_phone" string(100)
+        @"sent_at" datetime
+        @"status" string(20) required
+        @"channel_response" memo
+        @"error_detail" memo
+
+        index "snl_uniq" unique
+        {
+            field "lead_id"
+            field "stage_id"
+            field "notif_id"
+        }
+
+        index "snl_status"
+        {
+            field "status"
+            field "sent_at"
+        }
+
+        index "snl_lead"
+        {
+            field "lead_id"
+        }
+    }
+    // Registro de Transiciones
+    entity "lead_stage_log" : "TableModel"
+    {
+        @"lead_id" string(32) required // ref:"ut_icontact" ["sys_guid"]
+        @"stage_id" string(32) required // ref:"sales_pipeline_stage" ["sys_guid"]
+        @"transition_date" datetime required
+        @"username" string(150) required
+
+        index "lsl_lead_stage"
+        {
+            field "lead_id"
+            field "stage_id"
+            field "transition_date" desc
+        }
+
+        index "lsl_lead"
+        {
+            field "lead_id"
+            field "transition_date" desc
+        }
+    }
+    
     entity "ut_icontact" : "TableModel"
     {
         @"uf_email" string(255) required
@@ -187,6 +281,7 @@ model "erp.vendesk"
         @"uf_ref_customer" int
         @"uf_probability" decimal(6,4)
         @"uf_amount" decimal(12,4)
+        @"notif_automatica_activa" bool  // interruptor por lead; si false, el task lo ignora
     }
     /* uod.xt_biticontact */
     entity "xt_biticontact"

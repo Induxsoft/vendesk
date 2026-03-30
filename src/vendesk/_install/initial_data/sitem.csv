@@ -34,3 +34,9 @@ itemid,description,itemparent
 
 "VC85",Ver mensajes,vendesk.prospectos
 "VC86",Publicar mensajes,vendesk.prospectos
+
+vendesk.stage_notif,Configuración de notificaciones por etapas del pipeline,vendesk
+VC90,Notificaciones por etapas,vendesk.stage_notif
+VC91,Agregar notificación a una etapa,vendesk.stage_notif
+VC92,Editar notificación de una etapa,vendesk.stage_notif
+VC93,Eliminar notificación de una etapa,vendesk.stage_notif

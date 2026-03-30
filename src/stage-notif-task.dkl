@@ -1,0 +1,416 @@
+#include "dkli.dkh"
+#!
+program ""
+{
+    if not(isset("@batch_context"))
+    {
+        #include "functions.dkh"
+        #include "serialize.dkh"
+        #include "dbr.dkh"
+    }
+    #include "webcl.dkh"
+    #include "v12.com.dkl"
+    #include "dbext.induxsoft.dk"
+
+    //#region >SETTINGS
+    do errordet(@false)
+
+    ref @_executive_sessions = record.create()
+    @_retries_to_extract_json = 1
+
+    @default_retention = 30
+    //#endregion
+
+    //#region >FUNCTIONS
+    print_error :: error
+    {
+        do print("")
+        do print("-  ERROR -")
+        do print(error)
+        do print("------------------------------------------------------------")
+        do print("")
+        do print("- USO DE LA HERRAMIENTA -")
+        do print('./dkl stage-notif-task db="nombrebd@grupodeapps"')
+        do print("    o")
+        do print('./dkl stage-notif-task db="nombrebd@grupodeapps" retention=30')
+        do print("")
+        do print("Donde:")
+        do print("db=Nombre cualificado de conexión a la base de datos.")
+        do print("retention=Días de retención de los registros de notificaciones procesadas.")
+        do print("------------------------------------------------------------")
+    }
+
+    from.djson :: json, djson
+    {
+        if json == "" { json = djson }
+        return from.json(json)
+        exception
+        {
+            do pop_exception()
+            return from.json(djson)
+        }
+    }
+
+    ExtractJsonAsObject :: input
+    {
+        if not(isset("@_retries_to_extract_json")) { @_retries_to_extract_json = 0 }
+        if not(isset("@_attempts_to_extract_json")) { @_attempts_to_extract_json = 0 }
+
+        string = trim(input)
+        if string == "" { return @null }
+
+        ini = findstr(string,"{")
+        if ini == -1 { return @null }
+
+        strlen = length(string)
+        depth = 0
+
+        for i = ini; i < strlen
+        {
+            char = substring(string,i,1)
+
+            if char == "{" { depth = depth + 1 }
+            else if char == "}" { depth = depth - 1 }
+
+            if depth == 0
+            {
+                fin = i - ini + 1
+                json = substring(string,ini,fin)
+                ref object = from.json(json)
+                @_attempts_to_extract_json = 0
+                return object
+
+                exception
+                {
+                    do pop_exception()
+                    if @_attempts_to_extract_json < @_retries_to_extract_json
+                    {
+                        @_attempts_to_extract_json = @_attempts_to_extract_json + 1
+                        return ExtractJsonAsObject(left(string,fin))
+                    }
+                    @_attempts_to_extract_json = 0
+                    break
+                }
+            }
+        }
+
+        return @null
+    }
+
+    UpdatePercent :: value
+    {
+        if not(isset("@batch_context")) { return }
+
+        new data
+        {
+            @"percentage": value
+            @"progress_type": 2
+        }
+        do dbr.update(batch.openDB(),"job",data,"sys_guid=@token",@("&job"))
+    }
+
+    Log :: tab, text
+    {
+        if isset("@orchestrator_context") {/*ignore*/}
+        else if isset("@batch_context") { do batch.saveLog(@("$job/token"),text) }
+        else
+        {
+            text = padleft("",tab * 4," ") + text
+            do print(text)
+        }
+    }
+
+    DeleteOldRecords :: &db, retention
+    {
+        retention >> p
+        do dbr.execute(db,"DELETE FROM stage_notif_log WHERE sys_dtcreated < (NOW() - INTERVAL @retention DAY);",p)
+    }
+
+    FindPendingLeads :: &db
+    {
+        sql = "
+        SELECT
+            c.sys_guid      AS lead_guid,
+            c.sys_pk        AS lead_pk,
+            c.uf_nombre     AS lead_name,
+            c.uf_email      AS lead_email,
+            c.uf_telefono   AS lead_phone,
+            c.uf_iejecutivo AS exec_pk,
+
+            s.sys_guid      AS stage_guid,
+            s.sys_pk        AS stage_pk,
+            s.name          AS stage_name,
+
+            n.sys_guid      AS notif_guid,
+            n.sys_pk        AS notif_pk,
+            n.waiting_minutes,
+            n.template,
+            n.params,
+            n.tempvars,
+
+            COALESCE(
+                (SELECT MAX(lsl.transition_date)
+                 FROM lead_stage_log lsl
+                 WHERE lsl.lead_id = c.sys_guid AND lsl.stage_id = s.sys_guid),
+                c.sys_timestamp
+            ) AS entered_stage_at
+
+        FROM ut_icontact c
+            JOIN sales_pipeline_stage s ON s.sys_pk = c.uf_stage
+            JOIN stage_notif n          ON n.stage = s.sys_pk AND n.enabled = TRUE
+
+        WHERE
+            c.notif_automatica_activa = TRUE
+            AND c.uf_status NOT IN (2, 4, 5)
+            AND (
+                COALESCE(
+                    (SELECT MAX(lsl.transition_date)
+                     FROM lead_stage_log lsl
+                     WHERE lsl.lead_id = c.sys_guid AND lsl.stage_id = s.sys_guid),
+                    c.sys_timestamp
+                ) + INTERVAL n.waiting_minutes MINUTE
+            ) <= NOW()
+            AND NOT EXISTS (
+                SELECT 1 FROM stage_notif_log snl
+                WHERE snl.lead_id  = c.sys_guid
+                  AND snl.stage_id = s.sys_guid
+                  AND snl.notif_id = n.sys_guid
+                  AND snl.status IN ('sent','pending')
+            )
+        "
+        return dbr.list(db, sql, @null)
+    }
+
+    SaveNotifLog :: &db, &data
+    {
+        fields = "lead_guid,stage_guid,notif_guid,lead_name,lead_email,lead_phone,status,sent_at,channel_response,error_detail"
+        ref log = record.copy(data, fields)
+
+        sql = "
+        INSERT INTO stage_notif_log
+            (sys_guid, sys_dtcreated, sys_timestamp, sys_recver,
+             lead_id, stage_id, notif_id, lead_name, lead_email, lead_phone, status, sent_at, channel_response, error_detail)
+        VALUES
+            (replace(uuid(),'-',''), now(), now(), 0,
+             @lead_guid, @stage_guid, @notif_guid, @lead_name, @lead_email, @lead_phone, 'pending', null, null, null)
+        ON DUPLICATE KEY UPDATE
+            sys_timestamp    = now(),
+            sys_recver       = sys_recver + 1,
+            status           = ifnull(@status, status),
+            sent_at          = if(@status = 'sent', now(), null),
+            channel_response = if(@status = 'sent', @channel_response, null),
+            error_detail     = if(@status = 'failed', @error_detail, null)
+        "
+        do dbr.execute(db, sql, log)
+        return log
+    }
+
+    GetLeadContext :: &lead
+    {
+        ref tempvars = from.djson(@@(lead,"$tempvars"), "[]")
+
+        vars = ""
+        for i = 0; i < list.count(tempvars)
+        {
+            ref item = list.obj(tempvars, i)
+            varname  = @@(item,"$varname")
+            vars     = vars + varname + ","
+        }
+
+        if vars == ""
+        {
+            // Todas las variables disponibles por defecto para las plantillas de mensajes
+            vars = "lead_name,lead_email,lead_phone,stage_name,entered_stage_at,"
+        }
+        vars = rremove(vars, 1)
+
+        return record.copy(lead, vars)
+    }
+
+    ResolveMarksInParams :: &lead, &context
+    {
+        ref params = from.djson(@@(lead,"$params"), "{}")
+
+        ref keys  = list.create_from_fields(params)
+        ref marks = list.create_from_fields(context)
+
+        count_marks = list.count(marks)
+        for i = 0; i < list.count(keys)
+        {
+            key = list.str(keys, i)
+            val = @@(params,"$" + key)
+
+            if contains(val,"{{")
+            {
+                for n = 0; n < count_marks
+                {
+                    mark = list.str(marks, n)
+                    val  = replace(val, "{{" + mark + "}}", @@(context,"$" + mark))
+                }
+                params<key> : val
+            }
+        }
+
+        lead<"params*"> : params
+        return params
+    }
+
+    /**
+    * Recupera la sesión induxsoft del ejecutivo asignado al lead.
+    * lead.exec_pk -> tuser.induxsoft_identifier, tuser.induxsoft_token con caché en @_executive_sessions
+    */
+    InduxsoftSession :: &db, &lead
+    {
+        lead_executive = @@(lead,"$exec_pk")
+        if field.exist(@_executive_sessions,lead_executive) {
+            return @@(@_executive_sessions,"&"+lead_executive)
+        }
+        
+        ref tuser = dbr.rec(db,"
+        SELECT
+            u.sys_guid,
+            u.induxsoft_identifier,
+            u.induxsoft_token
+        FROM
+            agente a
+            INNER JOIN tuser u ON a.uf_iuser = u.sys_pk
+        WHERE a.sys_pk = @exec_pk
+        ",record.copy(lead,"exec_pk"))
+
+        new payload
+        {
+            @"uid": trim(@@(tuser,"$induxsoft_identifier"))
+            @"secret": trim(@@(tuser,"$induxsoft_token"))
+        }
+        ref resp = dbext.induxsoft.invoke_service(payload)
+
+        exception
+        {
+            do pop_exception()
+            // fallback: asumir misma 'guid' del usuario v12 (tuser) para el perfil induxsoft que se intento recuperar.
+            new resp
+            {
+                @"profile": @@(tuser,"$sys_guid")
+            }
+        }
+
+        @_executive_sessions<lead_executive+"*"> : resp
+        return resp
+    }
+
+    GetChannelSettings :: &db, &lead
+    {
+        ref params = @@(lead,"&params")
+        ref snd = dbr.rec(db,"SELECT c.name, p.lib FROM snd_channel c INNER JOIN snd_provider p ON c.prov = p.sys_pk WHERE c.sys_pk = @template",record.copy(lead,"template"))
+
+        params.channel := @@(snd,"$name")
+        params.lib     := @@(snd,"$lib")
+
+        // Preferir teléfono; si no tiene, caer a email
+        // params.to := @@(lead,"$lead_phone")
+        // if params.to == "" { params.to := @@(lead,"$lead_email") }
+
+        /**
+        * Para que el envio de mensaje usando los canales de los Agentes IA funcione...
+        * 1- el ejecutivo asignado al lead debe estar relacionado a un usuario de v12 (tuser).
+        * 2- el usuario de v12 debe estar vinculado e un perfil induxsoft.
+        * 3- el perfil induxsoft debe tener acceso al AgenteIA que se configuro en alguno de los canales disponibles.
+        * 4- el AgenteIA configurado debe mantener activa la conexión del canal seleccionado.
+        */
+        // ref ses    = InduxsoftSession(db, lead)
+        // params.ids := @@(ses,"$induxsoft_sid")
+        // params.uid := @@(ses,"$profile")
+
+        return params
+    }
+    //#endregion
+
+    //#region >MAIN
+    if isset("@orchestrator_context")
+    {
+        ref args = @orchestrator_context
+        ref db   = dbr.open(@@(args,"$db"))
+    }
+    else if isset("@batch_context")
+    {
+        ref args = @("&params")
+        ref db   = @("&database")
+    }
+    else
+    {
+        ref args = commandline("=")
+
+        if @@(args,"$db") == "" { do rise_error(400,"Nombre cualificado de conexión es requerido.") }
+        ref db = dbr.open(@@(args,"$db"))
+    }
+
+    retention = @@(args,"#retention")
+    if retention < 1 { retention = @default_retention }
+
+    do Log(0,":: NOTIFICAR A LEADS DETENIDOS EN ETAPA ::")
+    do DeleteOldRecords(db, retention)
+
+    ref pending_leads = FindPendingLeads(db)
+    total = list.count(pending_leads)
+    do Log(0,"Leads pendientes encontrados: " + str(total))
+
+    for i = 0; i < total
+    {
+        ref lead = list.obj(pending_leads, i)
+
+        do Log(1,"> [" + str(i+1) + "/" + str(total) + "] " + lead.lead_name + " - etapa: " + lead.stage_name)
+        ref log = SaveNotifLog(db, lead)
+
+        ref context = GetLeadContext(lead)
+        do ResolveMarksInParams(lead, context)
+        ref message = GetChannelSettings(db, lead)
+
+        if isset("@batch_context") || isset("@orchestrator_context")
+        {
+            include @@(message,"$lib")
+        }
+        do field.remove(message,"lib")
+        ref response = v12.com.sendMessageV2(db, message, context)
+
+        if not(isnull(response)) && not(@@(response,"#success")) { do rise_error(500,@@(response,"$message")) }
+        using log
+        {
+            @"status": "sent"
+            @"channel_response": to.json(@@(response,"&data"))
+        }
+
+        exception
+        {
+            error = last_error()
+            ref detail = ExtractJsonAsObject(error)
+            
+            if not(isnull(detail)) { error = to.json(detail) }
+            if error == "" && isset("response") { error = to.json(response) }
+            
+            do Log(2,"* Error: " + error)
+
+            using log
+            {
+                @"status": "failed"
+                @"error_detail": error
+            }
+        }
+
+        do SaveNotifLog(db, log)
+        do UpdatePercent((i + 1) * 100 / total)
+    }
+
+    exception
+    {
+        if isset("@batch_context") || isset("@orchestrator_context") { do Log(0,last_error()) }
+        else { do print_error(last_error()) }
+        do clear_exceptions()
+    }
+    if isset("db")
+    {
+        if dbr.in_transaction(db) { do dbr.rollback(db) }
+        if not(isset("@batch_context")) { do dbr.close(db) }
+    }
+    if isset("@orchestrator_context") { @orchestrator_context.status := "finished" }
+    //#endregion
+}

@@ -7,10 +7,48 @@ module ""
     #include "serialize.dkh"
     #include "dbr.dkh"
     #include "webcl.dkh"
-    #include "model.dk"
+    
     #include "vendesk/_services/lib.dk"
+    #include "model.dk"
+
+    do errordet(@false)
 
     res= str(rest.EntryPoint("add-lead"))
+
+    codeblock "Aislar creación de evento relacionado al lead"
+    {
+        #include "dbr.apps.dkl"
+        #include "dbr.events.dkl"
+        #include "dbr.security.dkl"
+        #include "dbr.vars.dkl"
+        #include "crudl/entity.dk"
+
+        #include "pim/_lib/config.dk"
+        #include "pim/_lib/lib.dk"
+        #include "pim/pim_events/model.dk"
+        #include "pim/pim_event_participant/model.dk"
+        #include "pim/sise/model.dk"
+
+        // crear o actualizar evento si se recibió calendar
+        if isset("@pim_event_data")
+        {
+            // Combinar parámetros de url con los parámetros de la carga útil
+            ref params = record.copyex(_params(), ifnull(@@(@pim_event_data,"&params"),record.create()), "*", ",", "", ":")
+
+            // Establecer propiedades necesarias al @http_context para las validaciones y los disparadores
+            @http_context<"request/get*"> : params
+            if isnull(@@(@http_context,"&session/user")) { @http_context<"session/user*"> : record.create() }
+
+            // Llamar a SaveEvent reutilizando el mismo contexto pero con payload.data = contenido del calendar
+            res = res + "\r\n\r\n" + rest.SaveEvent(rest.GetDb(), params, @pim_event_data)
+        }
+
+        exception
+        {
+            res = res + "\r\n\r\n" + "No fue posible agendar el evento: "+last_error()
+            do clear_exceptions()
+        }
+    }
 
     exception
     {

@@ -40,7 +40,19 @@ module ":rest"
 
 		return @null
 	}
-
+    filter_args::&record,fields
+    {
+        ref cleaned = record.copy(record,fields)
+        ref keys = list.create_from_fields(cleaned)
+        for i = 0; i < list.count(keys)
+        {
+            key = list.str(keys,i)
+            if isnull(@@(cleaned,"&"+key)) {
+                do field.remove(cleaned,key)
+            }
+        }
+        return cleaned
+    }
     ResponseText::text
     {
         // Establecer encabezado de respuesta http
@@ -53,6 +65,228 @@ module ":rest"
     //#endregion
     
     //#region insetar lead(contacto)
+    // Normalizar leadstatus: acepta texto ("oportunidad") o número (3 - "3")
+    LeadStatus :: status
+    {
+        switch tolower(trim(status))
+        {
+            case "recibido"     { return 0 }
+            case "atendido"     { return 1 }
+            case "descartado"   { return 2 }
+            case "oportunidad"  { return 3 }
+            case "ganado"       { return 4 }
+            case "perdido"      { return 5 }
+            default             { return parse.num(status) }
+        }
+    }
+    // Resolver pipeline: nombre o sys_guid -> sys_pk
+    ResolvePipelinePK :: &db, &data
+    {
+        if not(field.exist(data,"pipeline")) { return }
+        
+        pStr = trim(@@(data,"$pipeline"))
+        pNum = trun(parse.num(pStr))
+        
+        if pStr == "" { do field.remove(data,"pipeline") }
+        else if pNum > 0 { data<"pipeline"> : pNum }
+        else
+        {
+            new p { @"v": pStr }
+            sys_pk = dbr.num(db,"SELECT sys_pk FROM sales_pipeline WHERE (sys_guid=@v OR name=@v) AND ifnull(sys_deleted,0)=0 LIMIT 1",p)
+            
+            data<"pipeline"> : sys_pk
+        }
+    }
+    // Resolver stage: nombre o sys_guid -> sys_pk, filtrado por pipeline si fue resuelto.
+    ResolveStagePk :: &db, &data
+    {
+        if not(field.exist(data,"stage")) { return }
+        
+        sStr = trim(@@(data,"$stage"))
+        sNum = trun(parse.num(sStr))
+        
+        if sStr == "" { do field.remove(data,"stage") }
+        else if sNum > 0 { data<"stage"> : sNum }
+        else
+        {
+            new p
+            {
+                @"v": sStr
+                @"pipeline": @@(data,"#pipeline")
+            }
+            
+            sql = "SELECT sys_pk FROM sales_pipeline_stage WHERE (sys_guid=@v OR name=@v)"
+            if @@(data,"#pipeline") > 0 { sql = sql + " AND ref_pipeline=@pipeline" }
+            sql = sql + " AND ifnull(sys_deleted,0)=0 LIMIT 1"
+            
+            data<"stage"> : dbr.num(db,sql,p)
+        }
+    }
+    // Identificar lead existente vía 'idfield' en conjunto con 'retention' y 'subject_iskeypart'
+    IdentifyExistingLead :: &db, &data
+    {
+        new p {}
+
+        idfield = trim(@@(data,"$idfield"))
+        sql = ""
+
+        switch idfield
+        {
+            case "email"
+            {
+                p<"v"> : @@(data,"$email")
+                sql = "SELECT sys_pk FROM ut_icontact WHERE uf_email=@v"
+            }
+            case "phone"
+            {
+                p<"v"> : @@(data,"$phone")
+                sql = "SELECT sys_pk FROM ut_icontact WHERE uf_telefono=@v"
+            }
+            case "lead_guid"
+            {
+                p<"v"> : @@(data,"$lead_guid")
+                sql = "SELECT sys_pk FROM ut_icontact WHERE sys_guid=@v"
+            }
+        }
+
+        if sql != ""
+        {
+            // subject_iskeypart y retention solo aplican para email y phone
+            if idfield != "lead_guid"
+            {
+                if parse.bool(@@(data,"$subject_iskeypart"))
+                {
+                    p<"subject"> : @@(data,"$subject")
+                    sql = sql + " AND uf_interes=@subject"
+                }
+
+                retention = trun(@@(data,"$retention"))
+                if retention > 0
+                {
+                    p<"retention"> : retention
+                    sql = sql + " AND sys_dtcreated >= DATE_SUB(NOW(), INTERVAL @retention DAY)"
+                }
+            }
+
+            sql = sql + " AND ifnull(sys_deleted,0)=0 ORDER BY sys_dtcreated DESC LIMIT 1"
+            sys_pk = dbr.num(db,sql,p)
+            if sys_pk > 0 {
+                data<"sys_pk"> : sys_pk
+            }
+        }
+
+        do field.remove(data,"idfield")
+        do field.remove(data,"retention")
+        do field.remove(data,"subject_iskeypart")
+    }
+    // exclude_update_status: si el lead está en un status excluido, omitir sin error
+    ExcludeUpdateStatus :: &db, &data
+    {
+        excluded = @false
+        sys_pk = @@(data,"#sys_pk")
+        
+        if sys_pk > 0 && field.exist(data,"exclude_update_status")
+        {
+            new p { @"sys_pk": sys_pk }
+            ref exclude_status = @@(data,"&exclude_update_status")
+            curStatus = dbr.num(db,"SELECT ifnull(uf_status,0) FROM ut_icontact WHERE sys_pk=@sys_pk",p)
+            
+            for i = 0; i < list.count(exclude_status)
+            {
+                if LeadStatus(list.str(exclude_status,i)) == curStatus {
+                    excluded = @true
+                    break
+                }
+            }
+        }
+
+        do field.remove(data,"exclude_update_status")
+
+        return excluded
+    }
+    // update_rem_as_note: en actualización, registrar solo el remark como nota sin actualizar ningún campo del lead.
+    UpdateRemAsNote :: &db, &data
+    {
+        update_rem_as_note = @false
+        sys_pk = @@(data,"#sys_pk")
+        if sys_pk > 0 {
+            update_rem_as_note = parse.bool(@@(data,"$update_rem_as_note"))
+        }
+
+        if update_rem_as_note
+        {
+            // Pasamos solo sys_pk y log a _AddLead: el update resultante es vacío (solo sys_timestamp) y agregar_log registra el texto del remark como nota.
+            new remark
+            {
+                @"sys_pk": sys_pk
+                @"log": @@(data,"$remarks")
+            }
+            
+            do _AddLead(db,remark,_params())
+        }
+
+        return update_rem_as_note
+    }
+    // exclude_update_fields: quitar campos del payload antes de actualizar
+    ExcludeUpdateFields :: &data
+    {
+        if @@(data,"#sys_pk") > 0 && field.exist(data,"exclude_update_fields")
+        {
+            ref exclude_fields = split(@@(data,"$exclude_update_fields"),",")
+            for i = 0; i < list.count(exclude_fields)
+            {
+                do field.remove(data,trim(list.str(exclude_fields,i)))
+            }
+        }
+        do field.remove(data,"exclude_update_fields")
+    }
+    // 
+    PrepareCalendarData :: &data
+    {
+        ref calendar = @@(data,"&calendar")
+
+        if not(isnull(calendar)) && parse.bool(field.dstr(data,"default_participant","true"))
+        {
+            // default_participant: agregar el lead a la lista de participantes si aun no está.
+            ref participants = ifnull(@@(calendar,"&participants"),list.create())
+            lead_phone = trim(@@(data,"$phone"))
+            lead_email = trim(@@(data,"$email"))
+            exists = @false
+
+            for i = 0; i < list.count(participants)
+            {
+                ref p = list.obj(participants,i)
+
+                phone_match = lead_phone!="" && trim(@@(p,"$phone"))==lead_phone
+                email_match = lead_email!="" && trim(@@(p,"$email"))==lead_email
+
+                if phone_match || email_match {
+                    exists = @true
+                    break
+                }
+            }
+
+            if not(exists)
+            {
+                new par
+                {
+                    @"name": trim(@@(data,"name"))
+                    @"phone": lead_phone
+                    @"email": lead_email
+                    @"notes": ""
+                }
+                do list.add(participants,par)
+            }
+
+            calendar<"participants*"> : participants
+        }
+        
+        do field.remove(data,"calendar")
+        do field.remove(data,"default_participant")
+
+        return calendar
+    }
+
     AddLead::&db,&params,&data
     {
         // URL: /vendesk/_services/leads/post-lead.dkl
@@ -74,19 +308,46 @@ module ":rest"
         //     "probability": "10",
         //     "amount": "100"
         // }
+
+        ref cleaned = filter_args(@@(data,"&data"),"name,email,phone,organization,position,subject,remarks,agent_id,leadstatus,pipeline,stage,calendar,idfield,retention,default_participant,subject_iskeypart,exclude_update_fields,exclude_update_status,update_rem_as_note")
+        data<"data*"> : cleaned
         
-        ref _data=@@(data,"&data")
-        _data<"email">:trim(@@(_data,"$email"))
-        _data<"subject">:cut(@@(_data,"$subject"),150)
-        if trim(@@(_data,"$email"))==""{do rise_error(500,"No ha indicado un 'correo'")}
-        if trim(@@(_data,"$name"))==""{do rise_error(500,"No ha indicado un 'nombre'")}
+        ref _data = @@(data,"&data")
+        _data<"email"> : trim(@@(_data,"$email"))
+        _data<"subject"> : cut(@@(_data,"$subject"),150)
+        _data<"leadstatus"> : LeadStatus(@@(_data,"$leadstatus"))
+        
+        if trim(@@(_data,"$email")) == "" { do rise_error(400,"No ha indicado un 'correo'") }
+        if trim(@@(_data,"$name")) == ""{ do rise_error(400,"No ha indicado un 'nombre'") }
 
-        if trim(@@(_data,"$leadstatus"))==""{_data<"leadstatus">:0}
-        if trim(@@(_data,"$agent_id"))==""{_data<"agent_id">:"unassigned"}
+        if trim(@@(_data,"$agent_id")) == "" { _data<"agent_id"> : "unassigned" }
+        do ResolvePipelinePK(db,_data)
+        do ResolveStagePk(db,_data)
+        do IdentifyExistingLead(db,_data)
+        if ExcludeUpdateStatus(db,_data) { return "Lead no modificado: status excluido" }
+        if UpdateRemAsNote(db,_data) { return "Lead modificado: nota agregada" }
+        do ExcludeUpdateFields(_data)
 
-        do _AddLead(db,_data,params)
+        new response {}
+        ref calendar = PrepareCalendarData(_data)
+        
+        do _AddLead(db,_data,response)
+        ref lead = @@(response,"&data")
+        
+        if not(isnull(calendar))
+        {
+            // Preparar payload para agregar un evento
+            using calendar
+            {
+                @"detsrc": "DET0AF"
+                @"srcid": @@(lead,"#sys_pk")
+                @"tag": "Prospecto"
+            }
+            data<"data*"> : calendar
+            ref @pim_event_data = data
+        }
 
-        return "Se ha registrado con éxito la información de contacto"
+        return "Se ha registrado con éxito la información de contacto (lead_guid: '"+@@(lead,"$sys_guid")+"')"
     }
     //#endregion
     
