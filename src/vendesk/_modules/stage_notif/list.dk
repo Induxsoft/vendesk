@@ -64,7 +64,7 @@ module "list.dk"
         @"id": "pipeline"
         @"text_field": "name"
         @"value_field": "sys_pk"
-        @"first_text": "Pipilines"
+        @"first_text": "Pipelines"
         @"first_value": "-1"
         @"datatable*": ifnull(@("&./pipelines"), list.create())
         @"selected": @("parameters/pipeline")

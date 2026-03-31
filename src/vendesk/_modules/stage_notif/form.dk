@@ -119,7 +119,12 @@ module "form.dk"
         @"lead_name": "{{lead_name}} - Nombre del prospecto"
         @"lead_email": "{{lead_email}} - Correo del prospecto"
         @"lead_phone": "{{lead_phone}} - Teléfono del prospecto"
+        @"lead_subject": "{{lead_subject}} - Asunto/Interes del prospecto"
+        @"lead_organization": "{{lead_organization}} - Empresa del prospecto"
+        @"lead_position": "{{lead_position}} - Posición/Puesto del prospecto en su empresa"
         @"exec_name": "{{exec_name}} - Nombre del ejecutivo asignado"
+        @"pipeline_name": "{{pipeline_name}} - Nombre/Descripción del pipeline actual del prospecto"
+        @"stage_name": "{{stage_name}} - Nombre/Descripción del stage actual del prospecto"
     }
 
     ref ch_params_def = ifnull(@("&./template_controls"), record.create())
