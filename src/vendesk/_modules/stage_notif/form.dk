@@ -119,6 +119,7 @@ module "form.dk"
         @"lead_name": "{{lead_name}} - Nombre del prospecto"
         @"lead_email": "{{lead_email}} - Correo del prospecto"
         @"lead_phone": "{{lead_phone}} - Teléfono del prospecto"
+        @"exec_name": "{{exec_name}} - Nombre del ejecutivo asignado"
     }
 
     ref ch_params_def = ifnull(@("&./template_controls"), record.create())

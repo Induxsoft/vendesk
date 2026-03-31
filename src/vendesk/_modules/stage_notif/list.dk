@@ -45,7 +45,7 @@ module "list.dk"
         @"title": "Notificaciones"
         @"urlexit": "/!/vendesk/sales_pipeline/?ps=1"
         @"buttons*": buttons
-        @"main": "VC52,VC53" // Acciones que seran visibles en la navbar.
+        @"main": "VC92,VC93" // Acciones que seran visibles en la navbar.
         @"actions*": ifnull(@("&./itemactions"),list.create())
         @"reports*": ifnull(@("&./itemreports"),list.create())
         @"jscurrentcontext": "getCurrentContext"

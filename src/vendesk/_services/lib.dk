@@ -370,7 +370,9 @@ module ""
             log=log+" - amount \r\n"
         }
 
-        newEntry<"notif_automatica_activa"> : parse.bool(@@(params,"$notif_automatica_activa"))
+        if field.exist(params,"notif_automatica_activa") {
+            newEntry<"notif_automatica_activa"> : parse.bool(@@(params,"$notif_automatica_activa"))
+        }
 
         if sys_pk > 0
         {

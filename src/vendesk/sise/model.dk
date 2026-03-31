@@ -82,44 +82,59 @@ module ":rest"
     // Resolver pipeline: nombre o sys_guid -> sys_pk
     ResolvePipelinePK :: &db, &data
     {
-        if not(field.exist(data,"pipeline")) { return }
+        if @@(data,"#leadstatus") != 3
+        {
+            do field.remove(data,"pipeline")
+            return
+        }
         
         pStr = trim(@@(data,"$pipeline"))
         pNum = trun(parse.num(pStr))
         
-        if pStr == "" { do field.remove(data,"pipeline") }
-        else if pNum > 0 { data<"pipeline"> : pNum }
+        if pStr == "" && pNum < 1 { do rise_error(400,"'pipeline' es requerido en el estado de 'Oportunidad'.") }
         else
         {
-            new p { @"v": pStr }
-            sys_pk = dbr.num(db,"SELECT sys_pk FROM sales_pipeline WHERE (sys_guid=@v OR name=@v) AND ifnull(sys_deleted,0)=0 LIMIT 1",p)
-            
+            new p
+            {
+                @"s": pStr
+                @"n": pNum
+            }
+            sys_pk = dbr.num(db,"SELECT sys_pk FROM sales_pipeline WHERE (name=@s OR sys_guid=@s OR sys_pk=@n) AND IFNULL(sys_deleted,0)=0 LIMIT 1",p)
+
+            if sys_pk < 1 { do rise_error(404,"No se encontro el 'pipeline' proporcionado.") }
             data<"pipeline"> : sys_pk
         }
     }
     // Resolver stage: nombre o sys_guid -> sys_pk, filtrado por pipeline si fue resuelto.
     ResolveStagePk :: &db, &data
     {
-        if not(field.exist(data,"stage")) { return }
+        if @@(data,"#leadstatus") != 3
+        {
+            do field.remove(data,"stage")
+            return
+        }
         
         sStr = trim(@@(data,"$stage"))
         sNum = trun(parse.num(sStr))
         
-        if sStr == "" { do field.remove(data,"stage") }
-        else if sNum > 0 { data<"stage"> : sNum }
+        if sStr == "" && sNum < 1 { do rise_error(400,"'stage' es requerido en el estado de 'Oportunidad'.") }
         else
         {
             new p
             {
-                @"v": sStr
+                @"s": sStr
+                @"n": sNum
                 @"pipeline": @@(data,"#pipeline")
             }
             
-            sql = "SELECT sys_pk FROM sales_pipeline_stage WHERE (sys_guid=@v OR name=@v)"
+            sql = "SELECT sys_pk FROM sales_pipeline_stage WHERE (name=@s OR sys_guid=@s OR sys_pk=@n)"
             if @@(data,"#pipeline") > 0 { sql = sql + " AND ref_pipeline=@pipeline" }
-            sql = sql + " AND ifnull(sys_deleted,0)=0 LIMIT 1"
+            sql = sql + " AND IFNULL(sys_deleted,0)=0 LIMIT 1"
             
-            data<"stage"> : dbr.num(db,sql,p)
+            sys_pk = dbr.num(db,sql,p)
+
+            if sys_pk < 1 { do rise_error(404,"No se encontro el 'stage' para el 'pipeline' proporcionado.") }
+            data<"stage"> : sys_pk
         }
     }
     // Identificar lead existente vía 'idfield' en conjunto con 'retention' y 'subject_iskeypart'
@@ -170,9 +185,9 @@ module ":rest"
 
             sql = sql + " AND ifnull(sys_deleted,0)=0 ORDER BY sys_dtcreated DESC LIMIT 1"
             sys_pk = dbr.num(db,sql,p)
-            if sys_pk > 0 {
-                data<"sys_pk"> : sys_pk
-            }
+            
+            if sys_pk > 0 { data<"sys_pk"> : sys_pk }
+            else { data<"notif_automatica_activa"> : @true }
         }
 
         do field.remove(data,"idfield")
@@ -332,7 +347,7 @@ module ":rest"
         ref calendar = PrepareCalendarData(_data)
         
         do _AddLead(db,_data,response)
-        ref lead = @@(response,"&data")
+        ref @_lead = @@(response,"&data")
         
         if not(isnull(calendar))
         {
@@ -340,7 +355,7 @@ module ":rest"
             using calendar
             {
                 @"detsrc": "DET0AF"
-                @"srcid": @@(lead,"#sys_pk")
+                @"srcid": @@(@_lead,"#sys_pk")
                 @"tag": "Prospecto"
             }
             data<"data*"> : calendar
@@ -528,9 +543,9 @@ module ":rest"
     //#region punto de entrada
     EntryPoint::action
     {
-        ref db=GetDb()
-        ref params=_params()
-        ref data=ifnull(get_payload(),record.create())
+        ref db = GetDb()
+        ref payload = ifnull(get_payload(),record.create())
+        ref params = record.copyex(_params(), ifnull(@@(payload,"&params"),record.create()), "*", ",", "", ":")
         
         switch action
         {
