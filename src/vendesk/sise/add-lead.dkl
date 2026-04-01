@@ -43,11 +43,16 @@ module ""
 
             // Llamar a SaveEvent reutilizando el mismo contexto pero con payload.data = contenido del calendar
             evt_res = rest.SaveEvent(db, params, @pim_event_data)
-            res = res + "\r\n\r\n" + evt_res
-
             ref evtres = from.json(evt_res)
-            if @@(evtres,"#success")
+            
+            if not(@@(evtres,"#success"))
             {
+                res = res + "\r\n\r\n" + @@(evtres,"$message")
+            }
+            else
+            {
+                res = res + "\r\n\r\n" + evt_res
+
                 sql = "
                 SELECT
                     u.sys_guid AS uf_perfil,
@@ -59,14 +64,18 @@ module ""
                 WHERE c.sys_guid = @calendar_id
                 "
                 ref executive = dbr.rec(db,sql,@@(evtres,"&data"))
-
-                do dbr.update(db,"ut_icontact",executive,"sys_guid=@sys_guid",@_lead)
+                if not(isnull(executive)) {
+                    do dbr.update(db,"ut_icontact",executive,"sys_guid=@sys_guid",@_lead)
+                }
             }
         }
 
         exception
         {
-            res = res + "\r\n\r\n" + "No fue posible agendar el evento: "+last_error()
+            error = last_error()
+            if isset("evt_res") { error = evt_res +"\r\n"+ error }
+
+            res = res + "\r\n\r\n" + "No fue posible agendar el evento: "+error
             do clear_exceptions()
         }
     }

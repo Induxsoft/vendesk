@@ -362,7 +362,7 @@ module ":rest"
             ref @pim_event_data = data
         }
 
-        return "Se ha registrado con éxito la información de contacto (lead_guid: '"+@@(lead,"$sys_guid")+"')"
+        return "Se ha registrado con éxito la información de contacto (lead_guid: '"+@@(@_lead,"$sys_guid")+"')"
     }
     //#endregion
     
@@ -549,10 +549,10 @@ module ":rest"
         
         switch action
         {
-            case "add-lead"{return AddLead(db,params,data)}
-            case "open-ticket"{return OpenTicket(db,params,data)}
-            case "list-tickets"{return ListTickets(db,params,data)}
-            case "info-ticket"{return GetTicket(db,params,data)}
+            case "add-lead"{return AddLead(db,params,payload)}
+            case "open-ticket"{return OpenTicket(db,params,payload)}
+            case "list-tickets"{return ListTickets(db,params,payload)}
+            case "info-ticket"{return GetTicket(db,params,payload)}
             default{do rise_error(500,"Acción no identificada")}
         }
 
