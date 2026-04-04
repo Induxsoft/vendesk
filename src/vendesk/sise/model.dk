@@ -324,7 +324,7 @@ module ":rest"
         //     "amount": "100"
         // }
 
-        ref cleaned = filter_args(@@(data,"&data"),"name,email,phone,organization,position,subject,remarks,agent_id,leadstatus,pipeline,stage,calendar,idfield,retention,default_participant,subject_iskeypart,exclude_update_fields,exclude_update_status,update_rem_as_note")
+        ref cleaned = filter_args(@@(data,"&data"),"lead_guid,name,email,phone,organization,position,subject,remarks,agent_id,leadstatus,pipeline,stage,calendar,idfield,retention,default_participant,subject_iskeypart,exclude_update_fields,exclude_update_status,update_rem_as_note")
         data<"data*"> : cleaned
         
         ref _data = @@(data,"&data")
