@@ -332,7 +332,6 @@ module ":rest"
         _data<"subject"> : cut(@@(_data,"$subject"),150)
         _data<"leadstatus"> : LeadStatus(@@(_data,"$leadstatus"))
         
-        if trim(@@(_data,"$email")) == "" { do rise_error(400,"No ha indicado un 'correo'") }
         if trim(@@(_data,"$name")) == ""{ do rise_error(400,"No ha indicado un 'nombre'") }
 
         if trim(@@(_data,"$agent_id")) == "" { _data<"agent_id"> : "unassigned" }
