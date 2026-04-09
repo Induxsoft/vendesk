@@ -1,0 +1,92 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    @qry_stage_notifications = "
+    SELECT
+        *,
+
+        (CASE
+            WHEN t.waiting_minutes < 60 THEN CONCAT(t.waiting_minutes, ' Minutos')
+            WHEN t.waiting_minutes < 1440 THEN CONCAT(FLOOR(t.waiting_minutes / 60), ' Horas')
+            ELSE CONCAT(FLOOR(t.waiting_minutes / 1440), ' Días')
+        END) AS waiting,
+
+        DATE_FORMAT(t.entered_stage_at, '%d/%m/%Y %h:%i %p') AS entered_stage_at_fmt,
+        DATE_FORMAT(t.entered_stage_at + INTERVAL t.waiting_minutes MINUTE, '%d/%m/%Y %h:%i %p') AS scheduled_for,
+
+        DATE_FORMAT(t.sent_at,'%d/%m/%Y %h:%i %p') AS sent_at_fmt
+
+    FROM (
+        SELECT
+            c.sys_guid      AS lead_guid,
+            c.sys_pk        AS lead_pk,
+            c.uf_nombre     AS lead_name,
+            c.uf_email      AS lead_email,
+            c.uf_telefono   AS lead_phone,
+            c.uf_interes    AS lead_subject,
+            c.uf_empresa    AS lead_organization,
+            c.uf_puesto     AS lead_position,
+            IFNULL(a.sys_pk,0) AS exec_pk,
+            IFNULL(a.nombre,'') AS exec_name,
+
+            s.sys_guid      AS stage_guid,
+            s.sys_pk        AS stage_pk,
+            s.name          AS stage_name,
+            p.name          AS pipeline_name,
+
+            n.sys_guid      AS notif_guid,
+            n.sys_pk        AS notif_pk,
+            n.waiting_minutes,
+            ch.name AS channel_name,
+
+            COALESCE(
+                (SELECT MAX(lsl.transition_date) FROM lead_stage_log lsl WHERE lsl.lead_id = c.sys_guid AND lsl.stage_id = s.sys_guid),
+                c.sys_timestamp
+            ) AS entered_stage_at,
+
+            l.`status`,
+            l.sent_at,
+            l.error_detail
+
+        FROM ut_icontact c
+            JOIN sales_pipeline_stage s ON s.sys_pk = c.uf_stage
+            JOIN sales_pipeline p ON s.ref_pipeline = p.sys_pk
+            JOIN stage_notif n ON n.stage = s.sys_pk AND n.enabled = TRUE
+            JOIN snd_channel ch ON n.template = ch.sys_pk
+            LEFT JOIN agente a ON c.uf_iejecutivo = a.sys_pk
+            LEFT JOIN stage_notif_log l 
+                ON l.lead_id = c.sys_guid 
+                AND l.stage_id = s.sys_guid 
+                AND l.notif_id = n.sys_guid
+
+        WHERE
+            c.notif_automatica_activa = TRUE
+            AND c.uf_status NOT IN (2, 4, 5)
+            AND (IFNULL(@pipeline,-1) < 1 OR p.sys_pk = @pipeline)
+            AND (IFNULL(@stage,-1) < 1 OR s.sys_pk = @stage)
+            AND (IFNULL(@channel,-1) < 1 OR n.template = @channel)
+            AND (
+                CASE IFNULL(@status,'')
+                    WHEN '' THEN TRUE
+                    WHEN 'pending' THEN IFNULL(l.`status`,'') IN ('','pending')
+                    ELSE l.`status` = @status
+                END
+            )
+            AND (
+                IFNULL(@search,'') = ''
+                OR c.uf_nombre LIKE CONCAT('%', @search, '%')
+                OR c.uf_email LIKE CONCAT('%', @search, '%')
+                OR c.uf_telefono LIKE CONCAT('%', @search, '%')
+            )
+            AND n.enabled = TRUE
+    ) t
+
+    WHERE
+        (@fi = '' OR DATE(t.entered_stage_at) >= DATE(@fi))
+        AND (@ff = '' OR DATE(t.entered_stage_at) <= DATE(@ff))
+
+    ORDER BY
+        t.entered_stage_at;
+    "
+}

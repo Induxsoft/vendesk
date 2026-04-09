@@ -1,0 +1,213 @@
+#include "dkli.dkh"
+#!
+module "Notificaciones de etapas"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+    #include "vendesk/config.dkl"
+
+    @title = "Notificaciones de etapas"
+    @urlexit = @VDK_PROSPECTO
+    @container_class = "container-fluid"
+
+    printFilters ::
+    {
+        new pipeline_select
+        {
+            @"id": "pipeline"
+            @"value_field": "sys_pk"
+            @"text_field": "name"
+            @"first_value": "-1"
+            @"first_text": "Todos los pipelines"
+            @"datatable*": ifnull(@("&./pipelines"),list.create())
+            @"selected": @("#parameters/pipeline")
+            member "attributes"
+            {
+                @"class": "form-select rounded-0"
+                @"name": "pipeline"
+                @"onchange": "filter(this)"
+            }
+        }
+
+        new stage_select
+        {
+            @"id": "stage"
+            @"value_field": "sys_pk"
+            @"text_field": "name"
+            @"first_value": "-1"
+            @"first_text": "Todos los stages"
+            @"datatable*": ifnull(@("&./stages"),list.create())
+            @"selected": @("#parameters/stage")
+            member "attributes"
+            {
+                @"class": "form-select rounded-0"
+                @"name": "stage"
+                @"onchange": "filter(this)"
+            }
+        }
+
+        new channel_select
+        {
+            @"id": "channel"
+            @"value_field": "sys_pk"
+            @"text_field": "name"
+            @"first_value": "-1"
+            @"first_text": "Todos los canales"
+            @"datatable*": ifnull(@("&./channels"),list.create())
+            @"selected": @("#parameters/channel")
+            member "attributes"
+            {
+                @"class": "form-select rounded-0"
+                @"name": "channel"
+                @"onchange": "filter(this)"
+            }
+        }
+
+        new status_select
+        {
+            @"id": "status"
+            @"value_field": "id"
+            @"text_field": "const"
+            @"datatable*": from.json('[
+                { "id":"",          "const":"Todos los estados" },
+                { "id":"pending",   "const":"Pendiente" },
+                { "id":"sent",      "const":"Enviado" },
+                { "id":"failed",    "const":"Fallido" },
+                { "id":"cancelled", "const":"Cancelado" }
+            ]')
+            @"selected": @("$parameters/status")
+            member "attributes"
+            {
+                @"class": "form-select rounded-0"
+                @"name": "status"
+                @"onchange": "filter(this)"
+            }
+        }
+
+        new dr_init
+        {
+            @"start": @("$parameters/fi")
+            @"end": @("$parameters/ff")
+        }
+        
+        #$
+        div(class="d-flex align-items-center gap-1 flex-wrap mb-1")
+        {
+            // Filtro por calendarios
+            div
+            {
+                #!
+                do uie.dbSelect(pipeline_select)
+                #$
+            }
+            // Filtro por tipos de eventos
+            div
+            {
+                #!
+                do uie.dbSelect(stage_select)
+                #$
+            }
+            // Filtro por canales
+            div
+            {
+                #!
+                do uie.dbSelect(channel_select)
+                #$
+            }
+            // Filtro por estados
+            div
+            {
+                #!
+                do uie.dbSelect(status_select)
+                #$
+            }
+            // Filtro por rango de fechas
+            div
+            {
+                "date-range"(class="w-100" "hidden-input-name-start"="fi" "hidden-input-name-end"="ff" data='#<to.json(dr_init)>' id="date_range"){""}
+            }
+        }
+        div(class="d-flex align-items-center gap-1 flex-wrap")
+        {
+            // div(class="d-flex gap-1"){}
+            // Búsqueda por destinatario
+            div(class="flex-grow-1")
+            {
+                "filter-text"(class="w-100" "text-field"="search" value="#<@('$parameters/search')>" placeholder="Buscar por destinatario..." "form"="#form-filter" "auto-submit"="true"){""}
+            }
+        }
+        #!
+    }
+
+    printContent ::
+    {
+        #$
+        table(class="table table-sm table-bordered my-2")
+        {
+            thead
+            {
+                tr(class="bg-light-gray")
+                {
+                    th(class="text-center"){$"Pipeline"}
+                    th(class="text-center"){$"Stage"}
+                    th(class="text-center"){$"Destinatario"}
+                    th(class="text-center"){$"Correo"}
+                    th(class="text-center"){$"Teléfono"}
+                    th(class="text-center"){$"Entro en etapa en"}
+                    th(class="text-center"){$"Espera"}
+                    th(class="text-center"){$"Programado para"}
+                    th(class="text-center"){$"Canal"}
+                    th(class="text-center"){$"Estado"}
+                    th(class="text-center"){$"Enviado en"}
+                    th(class="text-center"){$"Ult. Error"}
+                }
+            }
+            tbody
+            {""
+                #!
+                for i = 0; i < list.count(@data)
+                {
+                    ref obj = list.obj(@data,i)
+                    
+                    #$
+                    tr
+                    {
+                        td(class=""){$"#<@@(obj,'$pipeline_name')>"}
+                        td(class=""){$"#<@@(obj,'$stage_name')>"}
+                        td(class=""){$"#<@@(obj,'$lead_name')>"}
+                        td(class=""){$"#<@@(obj,'$lead_email')>"}
+                        td(class=""){$"#<@@(obj,'$lead_phone')>"}
+                        td(class=""){$"#<@@(obj,'$entered_stage_at_fmt')>"}
+                        td(class="text-center"){$"#<@@(obj,'$waiting')>"}
+                        td(class="text-center"){$"#<@@(obj,'$scheduled_for')>"}
+                        td(class=""){$"#<@@(obj,'$channel_name')>"}
+                        td(class="text-center"){$"#<@@(obj,'$status')>"}
+                        td(class="text-center"){$"#<@@(obj,'$sent_at_fmt')>"}
+                        td(class="text-center"){$"#<@@(obj,'$error_detail')>"}
+                    }
+                    #!
+                }
+                #$
+            }
+        }
+        #!
+    }
+
+    printJavaScript ::
+    {
+        #$
+        script(type="text/javascript")
+        {$'
+            document.addEventListener("DOMContentLoaded", () => {
+                const date_range = document.querySelector("date-range");
+
+                date_range.onChanging = (oldData,newData) => { date_range.setData(newData) };
+                date_range.onChange = (data) => { filter(date_range._hiddenInputStr) };
+            });
+        '}
+        #!
+    }
+
+    #include "pim/_lib/common.list.dk"
+}

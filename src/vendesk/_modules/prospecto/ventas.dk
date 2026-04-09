@@ -40,9 +40,11 @@ module "ventas"
 
 	buttons::
 	{
+		cls = "btn btn-sm border-secondary induxsoft-corners btn-main-action no-print v12-context-act-0 list-action"
 		#$
-		a(href="_new/" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print v12-context-act-0 list-action"){$'Agregar'}
-		a(href="reporte-oportunidad/" class="btn btn-sm border-secondary induxsoft-corners btn-main-action no-print v12-context-act-0 list-action"){$'Reporte'}
+		a(href="_new/" class="#<cls>"){$'Agregar'}
+		a(href="reporte-oportunidad/" class="#<cls>"){$'Reporte'}
+		a(href="/!/vendesk/reports/notificaciones-de-etapas/" class="#<cls>"){$'Notificaciones de etapas'}
 		#!
 	}
 	point buttons to buttons

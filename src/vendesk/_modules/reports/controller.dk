@@ -1,0 +1,18 @@
+#include "dkli.dkh"
+#!
+module "ReportController"
+{
+    switch @@(@http_context,"$request/get/_entity_id")
+    {
+        case "notificaciones-de-etapas"
+        {
+            @form_view = "stage.notifications.dk"
+            point @read to vendesk.report.stageNotifications
+            break
+        }
+        default
+        {
+            point @read to vendesk.report.NotImplemented
+        }
+    }
+}

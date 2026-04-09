@@ -1,0 +1,91 @@
+#include "dkli.dkh"
+#!
+module ":vendesk.report"
+{
+    #include "./list.queries.dk"
+
+
+    prepareDefaultReportData :: &db, &data
+    {
+        using data
+        {
+            member @"titles"
+            {
+                @"title": dbr.vars.getd(db,"FXCA108","")
+                @"subtitle": dbr.vars.getd(db,"FXCA109","")
+                @"subtitle_2": dbr.vars.getd(db,"FXCA110","")
+                @"footer": dbr.vars.getd(db,"FXCA111","")
+            }
+        }
+    }
+
+    prepareView :: &db, &params, &data
+    {
+        pipeline = @@(params,"#pipeline")
+        stage = @@(params,"#stage")
+
+        if stage < 1 { stage = @@(data,"#stage") }
+        if stage > 0 { params<"stage"> : stage }
+
+        if pipeline < 1 { pipeline = dbr.num(db,"select ref_pipeline from sales_pipeline_stage where sys_pk=@stage",params) }
+        if pipeline > 0 { params<"pipeline"> : pipeline }
+
+        sql_pipelines = "select sys_pk, name from sales_pipeline where not ifnull(sys_deleted,0)"
+        sql_stages = "select sys_pk, name from sales_pipeline_stage where not ifnull(sys_deleted,0) and ref_pipeline=@pipeline"
+        sql_channels = "select sys_pk, name from snd_channel where not ifnull(sys_deleted,0)"
+
+        switch @@(params,"$_entity_id")
+        {
+            case "notificaciones-de-etapas"
+            {
+                using data
+                {
+                    @"pipelines*": dbr.list(db,sql_pipelines,@null)
+                    @"stages*": dbr.list(db,sql_stages,params)
+                    @"channels*": dbr.list(db,sql_channels,@null)
+                }
+                break
+            }
+        }
+
+        do prepareDefaultReportData(db,data)
+    }
+
+    stageNotifications :: &db, &params
+    {
+        // do dbr.apps.action.grant("VC90")
+        
+        using params
+        {
+            @"pipeline": @@(params,"#pipeline")
+            @"stage": @@(params,"#stage")
+            @"channel": @@(params,"#channel")
+        }
+        if not(field.exist(params,"fi")) { params<"fi"> : date_str(now(),"yyyy-MM-dd") }
+        if not(field.exist(params,"ff")) { params<"ff"> : date_str(now(),"yyyy-MM-dd") }
+
+        new data
+        {
+            @"data*": dbr.list(db,ftext(@qry_stage_notifications),params)
+        }
+        do prepareView(db,params,data)
+        return data
+
+        exception{ do catch() }
+    }
+
+    NotImplemented :: &db, &params
+    {
+        do rise_error(501,"No implementado")
+    }
+
+    catch::
+    {
+        do errordet(@false)
+        code = last_error_code()
+        error = last_error()
+
+        if isset("@@_action_context"){ do dbr.apps.action.log() }
+        do rise_error(code,error)
+    }
+}
