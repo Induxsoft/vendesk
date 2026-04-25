@@ -10,7 +10,6 @@ program ""
     }
     #include "webcl.dkh"
     #include "v12.com.dkl"
-    #include "dbext.induxsoft.dk"
 
     //#region >SETTINGS
     do errordet(@false)
@@ -195,7 +194,8 @@ program ""
             LEFT JOIN agente a          ON c.uf_iejecutivo = a.sys_pk
 
         WHERE
-            c.notif_automatica_activa = TRUE
+            NOT IFNULL(c.sys_deleted,0)
+            AND c.notif_automatica_activa = TRUE
             AND c.uf_status NOT IN (2, 4, 5)
             AND (
                 COALESCE(
