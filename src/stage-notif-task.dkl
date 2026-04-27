@@ -195,7 +195,7 @@ program ""
 
         WHERE
             NOT IFNULL(c.sys_deleted,0)
-            AND c.notif_automatica_activa = TRUE
+            AND IFNULL(c.notif_automatica_activa,1) = TRUE
             AND c.uf_status NOT IN (2, 4, 5)
             AND (
                 COALESCE(

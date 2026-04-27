@@ -346,7 +346,8 @@ module "condif lead"
 								div(class="col-auto align-self-end pt-2")
 								{
 									#!
-									checked = ifstr(@("#./notif_automatica_activa") || @("#./sys_pk") < 1, "checked", "")
+									notif_automatica_activa = (isnull(@("&./notif_automatica_activa")) || @("#./notif_automatica_activa") || @("#./sys_pk") < 1)
+									checked = ifstr(notif_automatica_activa, "checked", "")
 									#$
 									div(class="form-check")
 									{
