@@ -226,15 +226,15 @@ var controller = {
 
     var stg = stage.getAttribute("stage");
     var elements = document.querySelectorAll(`#${stage.id} input`);
-    var input = elements[0];
-    var inp_prob = elements[1];
-    var check = elements[2];
+    
     var data =
     {
       sequence: views.getpositionStageByid(stage.id),
-      name: input.value,
-      probability: inp_prob.value,
-      stuck_in_days: Number(check.value??0)
+      name: (elements[0]?.value ?? ""),
+      probability: Number(elements[1]?.value ?? 0),
+      stuck_in_days: Number(elements[2]?.value ?? 0),
+      stage_stuck_days: Number(elements[3]?.value ?? 0),
+      stage_stuck_action: (elements[4]?.value ?? "")
     }
 
     var data_pipeline =
@@ -256,7 +256,17 @@ var controller = {
     model.invoke_service(uri, data, function (data) {
       controller.save_secuences(true);
 
-      views.edit_view(data[0]);
+      const pip = data[0];
+      const stg = pip.stages[0];
+
+      if (method == "POST") views._pipeline_stages.push(stg);
+      else
+      {
+        const index = views._pipeline_stages.findIndex(s => s.sys_pk == stg.sys_pk);
+        views._pipeline_stages[index] = stg;
+      }
+      
+      views.edit_view(pip);
       views.edit_stage(id, null, true);
       views.view_new(true);
       controller.in_modify(false);

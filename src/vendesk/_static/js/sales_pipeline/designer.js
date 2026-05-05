@@ -132,6 +132,7 @@ function onDrop(event, iddest) {
 
     draggableElement.remove();
 }
+
 function stage(data = null, showcancel = true) {
     if (data == null)
         data = {
@@ -203,16 +204,26 @@ function stage(data = null, showcancel = true) {
             </div>
             <div class="container1">
                 <div class="ps-4 pe-3 pb-0 pt-0 grid-item grid-item-2  active" id="form">
-                    <div class="mt-2">
+                    <div class="mb-3">
                         <label for="" class="label"><small class="text-secondary">Nombre</small></label>
-                        <input class="inputs mb-4" onkeyup="views.txtchange('input${uuid}','${uuid}')" id="input${uuid}" type="text" placeholder="Cualificado" value="${data.name}" maxlength="50">
+                        <input class="inputs" type="text" name="name" onkeyup="views.txtchange('input${uuid}','${uuid}')" id="input${uuid}" placeholder="Cualificado" value="${data.name}" maxlength="50">
+                    </div>
+                    <div class="mb-3">
                         <label for="" class="label"><small class="text-secondary">Probabilidad</small></label>
                         ${views.message(uuid, "prob")}
-                        <input class="inputs mb-4" type="number" placeholder="100" value="${data.probability}" value="0" min="0" max="100">
+                        <input class="inputs" type="number" name="probability" placeholder="100" value="${data.probability}" value="0" min="0" max="100">
                     </div>
-                    <label dkli-for="" class="label"><small class="text-secondary">Estancado en (dias)</small></label>
-                    ${views.message(uuid, "est")}
-                    <input type="number" value="${data.stuck_in_days ?? 0}" class="inputs">
+                    <div class="mb-3">
+                        <label for="" class="label"><small class="text-secondary">Estancado en (días)</small></label>
+                        ${views.message(uuid, "est")}
+                        <input type="number" name="stuck_in_days" value="${data.stuck_in_days ?? 0}" class="inputs">
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-primary py-0 px-1" onclick="views.show_stage_stuck_condition('${uuid}', ${data.sys_pk})"><small>Condición</small></button>
+
+                        <input type="hidden" name="stage_stuck_days" value="${data.stage_stuck_days ?? 0}">
+                        <input type="hidden" name="stage_stuck_action" value="${data.stage_stuck_action ?? ""}">
+                    </div>
                 </div>
             </div>
             <div class="botn-delete p-1 mt-5">

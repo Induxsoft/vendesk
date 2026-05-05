@@ -45,6 +45,7 @@ module "ventas"
 		a(href="_new/" class="#<cls>"){$'Agregar'}
 		a(href="reporte-oportunidad/" class="#<cls>"){$'Reporte'}
 		a(href="/!/vendesk/reports/notificaciones-de-etapas/" class="#<cls>"){$'Notificaciones de etapas'}
+		button(class="#<cls>" type="button" onclick="model.refresh_leads()"){$"#<@ICON_ARROW_CLOCKWISE>"}
 		#!
 	}
 	point buttons to buttons
@@ -56,6 +57,8 @@ module "ventas"
         @"jscurrentcontext": ""
 		member @"hidden"
 		{
+			@"send": @true
+			@"refresh": @true
 			@"print":@true
 			@"csv":@true
 			@"copy":@true

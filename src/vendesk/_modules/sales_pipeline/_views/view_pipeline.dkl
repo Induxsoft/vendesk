@@ -60,15 +60,15 @@ module "body"
                 }
                 
             }
-        }        
+        }
 
         div(class="body-padre ps-5 pe-5 pt-5")
         {
             h6(class="text-secondary mb-2"){$"Stages"}
             div(class="container p-3" id="conten-padre" style="margin-left:0 !important;min-width: 100%;")
-            {       
+            {
                 div(class="container-pruebas" id="first_stage")
-                {  
+                {
                     div(class="head" draggable="true" id="head"){$""}
                     div(class="container1"){
                         div(class="grid-item grid-item-2  active" id="form" ){

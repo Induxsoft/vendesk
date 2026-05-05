@@ -1,0 +1,279 @@
+#include "dkli.dkh"
+#!
+program "stage-stuck-task"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+
+    // Tarea para tomar acciones cuando un prospecto se encuentra atascado en una etapa
+
+    //#region FUNCTIONS
+    print_error :: error
+    {
+        do print("")
+        do print("-  ERROR -")
+        do print(error)
+        do print("------------------------------------------------------------")
+        do print("")
+        do print("- USO DE LA HERRAMIENTA -")
+        do print('./dkl stage-notif-task db="nombrebd@grupodeapps"')
+        do print("")
+        do print("Donde:")
+        do print("db=Nombre cualificado de conexión a la base de datos.")
+        do print("------------------------------------------------------------")
+    }
+
+    Log :: tab, text
+    {
+        if isset("@orchestrator_context") {/*ignore*/}
+        else if isset("@batch_context") { do batch.saveLog(@("$job/token"),text) }
+        else
+        {
+            text = padleft("",tab * 4," ") + text
+            do print(text)
+        }
+    }
+
+    SetTimeZone :: &db
+    {
+        ref var = dbr.rec(db,"select vardefault, varvalue from globalvar where varname='FXTZ001'",@null)
+        // Si no existe la variable de configuración, no se cambia la zona
+        if isnull(var) { return }
+
+        cfg = @@(var,"$varvalue")
+        if cfg == "" { cfg = @@(var,"$vardefault") }
+        ref tz = split(cfg,"|")
+
+        var<"tz_name"> : list.str(tz,0)
+        var<"tz_offset"> : list.str(tz,1)
+
+        has_tz = dbr.num(db,"SELECT CONVERT_TZ('2000-01-01 00:00:00', 'UTC', @tz_name) IS NOT NULL;",var)
+        if has_tz
+        {
+            // Si la zona a usar esta cargada
+            do dbr.execute(db,"SET time_zone = @tz_name",var)
+        }
+        else
+        {
+            // No hay zonas (o no reconoce esa zona)
+            do dbr.execute(db,"SET time_zone = @tz_offset",var)
+        }
+
+        exception{ do clear_exceptions() }
+    }
+
+    CheckStageStuckFields :: &db
+    {
+        table = dbr.str(db,"SHOW TABLES LIKE 'sales_pipeline_stage';",@null)
+        if table == "" { return @false }
+
+        ref field = dbr.rec(db,"SHOW COLUMNS FROM sales_pipeline_stage WHERE field = 'stage_stuck_action';",@null)
+        if isnull(field)
+        {
+            sql = "
+            ALTER TABLE sales_pipeline_stage
+            ADD stage_stuck_days INT,
+                stage_stuck_action VARCHAR(25);
+            "
+            do dbr.execute(db,sql,@null)
+        }
+
+        return @true
+
+        exception
+        {
+            do pop_exception()
+            return @false
+        }
+    }
+
+    FindStuckLeads :: &db
+    {
+        sql = "
+        SELECT
+            c.sys_pk AS lead_pk,
+            c.sys_guid AS lead_guid,
+            c.uf_nombre AS lead_name,
+            
+            s.stage_stuck_action
+        
+        FROM ut_icontact c
+            JOIN sales_pipeline_stage s ON c.uf_stage = s.sys_pk
+        
+        WHERE
+            NOT IFNULL(c.sys_deleted,0)
+            AND c.uf_status NOT IN (2, 4, 5)
+            AND IFNULL(s.stage_stuck_days,0) > 0
+            AND IFNULL(s.stage_stuck_action,'') <> ''
+            AND (
+                IFNULL(
+                    (SELECT MAX(lsl.transition_date)
+                     FROM lead_stage_log lsl
+                     WHERE lsl.lead_id = c.sys_guid AND lsl.stage_id = s.sys_guid),
+                    c.sys_timestamp
+                ) + INTERVAL s.stage_stuck_days DAY
+            ) <= NOW()
+        "
+
+        return dbr.list(db,sql,@null)
+    }
+
+    LogLeadStageTransition :: &db, lead_guid, stage_guid, username
+    {
+        new entry
+        {
+            @"sys_guid": uuid()
+            @"sys_dtcreated*": dbr.sql("now()")
+            @"sys_timestamp*": dbr.sql("now()")
+            @"sys_recver": 0
+
+            @"lead_id": lead_guid
+            @"stage_id": stage_guid
+            @"transition_date*": dbr.sql("now()")
+            @"username": username
+        }
+        do dbr.insert(db,"lead_stage_log",entry)
+    }
+
+    LogLeadUpdate :: &db, lead_pk, log, username
+    {
+        new note
+        {
+            @"uf_tiempo*": dbr.sql("NOW()")
+            @"uf_iicontact": lead_pk
+            @"uf_mensaje": log
+            @"uf_usuario": cut(username,50)
+        }
+        do dbr.insert(db,"xt_biticontact",note)
+    }
+
+    ChangeLeadStatus :: &db, &lead, istatus
+    {
+        // Posibles estados para los prospectos
+        new uf_status
+        {
+            @"0": "Recibido"
+            @"1": "Atendido"
+            @"2": "Descartado"
+            @"3": "Oportunidad"
+            @"4": "Ganado :)"
+            @"5": "Perdido :("
+        }
+        cstatus = field.dstr(uf_status, istatus, str(istatus)+" (Indefinido)")
+
+        sql = ftext("UPDATE ut_icontact SET sys_timestamp = now(), uf_status = #<istatus> WHERE sys_pk = @lead_pk")
+        do dbr.execute(db,sql,lead)
+
+        note = "Establecido como: "+cstatus
+        do LogLeadUpdate(db, lead.lead_pk, note, "system")
+
+        do Log(2, "+ "+note)
+    }
+
+    ChangeLeadStage :: &db, &lead, istage
+    {
+        ref stage = dbr.rec(db,ftext("SELECT sys_guid, name FROM sales_pipeline_stage WHERE sys_pk = #<istage>"),@null)
+        if isnull(stage) {
+            do Log(2, "- No se encontro la etapa al que se intenta mover.")
+            return
+        }
+
+        sql = ftext("UPDATE ut_icontact SET sys_timestamp = now(), uf_stage = #<istage> WHERE sys_pk = @lead_pk")
+        do dbr.execute(db,sql,lead)
+
+        note = "Movido a: "+stage.name
+        do LogLeadUpdate(db, lead.lead_pk, note, "system")
+        do LogLeadStageTransition(db, lead.lead_guid, stage.sys_guid, "system")
+
+        do Log(2, "+ "+note)
+    }
+
+    LeadStuckAction :: &db, &lead
+    {
+        ref parts = split(@@(lead,"$stage_stuck_action"),":")
+        if list.count(parts) < 2 {
+            do Log(2, "- Acción inválida")
+            return
+        }
+
+        switch list.str(parts,0)
+        {
+            case "status"
+            {
+                do ChangeLeadStatus(db, lead, list.num(parts,1))
+                break
+            }
+            case "stage"
+            {
+                do ChangeLeadStage(db, lead, list.num(parts,1))
+                break
+            }
+        }
+    }
+    //#endregion
+
+    //#region MAIN
+    if isset("@orchestrator_context")
+    {
+        ref args = @orchestrator_context
+        ref db   = dbr.open(@@(args,"$db"))
+    }
+    else if isset("@batch_context")
+    {
+        ref args = @("&params")
+        ref db   = @("&database")
+    }
+    else
+    {
+        ref args = commandline("=")
+
+        if @@(args,"$db") == "" { do rise_error(400,"Nombre cualificado de conexión es requerido.") }
+        ref db = dbr.open(@@(args,"$db"))
+    }
+
+    total = 0
+
+    if CheckStageStuckFields(db)
+    {
+        do SetTimeZone(db)
+
+        ref stuck_leads = FindStuckLeads(db)
+        total = list.count(stuck_leads)
+
+        do Log(0,":: PROSPECTOS DETENIDOS EN ETAPA ::")
+        do Log(0,"Prospectos encontrados: " + str(total))
+    }
+
+    for i = 0; i < total
+    {
+        ref lead = list.obj(stuck_leads,i)
+
+        do Log(1,"> [" + str(i+1) + "/" + str(total) + "] " + lead.lead_name)
+
+        do dbr.begin(db)
+        do LeadStuckAction(db,lead)
+        do dbr.commit(db)
+
+        exception
+        {
+            do dbr.rollback(db)
+            do Log(2,"* Error: " + last_error())
+            do pop_exception()
+        }
+    }
+
+    exception
+    {
+        if isset("@batch_context") || isset("@orchestrator_context") { do Log(0,last_error()) }
+        else { do print_error(last_error()) }
+        do clear_exceptions()
+    }
+    if isset("db")
+    {
+        if dbr.in_transaction(db) { do dbr.rollback(db) }
+        if not(isset("@batch_context")) { do dbr.close(db) }
+    }
+    if isset("@orchestrator_context") { @orchestrator_context.status := "finished" }
+    //#endregion
+}

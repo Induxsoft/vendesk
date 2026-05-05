@@ -37,8 +37,35 @@ module "modal"
                 button(id="modal_acept" onclick="controller.save_pieline()"){"Aceptar"}
                 button(id="modal_cancel" onclick="controller.close_modal()"){"Cancelar"}
             }
-
         }
-    
+
+        div(class="user_modal hidde_control" id="modal-stage-stuck-condition")
+        {
+            div(class="modal_info")
+            {
+                h5{"Condición de estancamiento"}
+            }
+            div(class="modal_content")
+            {
+                div(class="d-flex flex-wrap gap-2")
+                {
+                    label(class="" "for"="stage_stuck_days"){"Si un prospecto ya estuvo mas de"}
+                    input(class="inputs" type="number" id="stage_stuck_days" placeholder="0" style="width:4rem;")
+                    label(class="" "for"="stage_stuck_days"){"días en esta etapa. "}
+                }
+
+                select(class="inputs" id="stage_stuck_action")
+                {
+                    option(value=""){"(No hacer nada)"}
+                }
+
+                small(class="text-muted"){"La acción aplica cuando N días es mayor a 0"}
+            }
+            div(class="modal_controls")
+            {
+                button(class="btn-primary" id="btn-stuck-condition-accept" onclick=""){"Aceptar"}
+                button(id="btn-stuck-condition-cancel" onclick="views.close_modal('modal-stage-stuck-condition')"){"Cancelar"}
+            }
+        }
     }    
 }

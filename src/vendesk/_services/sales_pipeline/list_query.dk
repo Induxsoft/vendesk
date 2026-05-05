@@ -17,7 +17,7 @@ module "lista de consultas"
 	//variables para usar la sentencia update
 	
 	@update_pipeline="update sales_pipeline set name=@name,probability=@probability where #<@keyfield>=@pipeline_id"
-	@update_stage="update sales_pipeline_stage set name=@name,probability=@probability,stuck_in_days=@stuck_in_days where #<@keyfield>=@pipeline_id and sys_pk=@stage_id"
+	@update_stage="update sales_pipeline_stage set name=@name, probability=@probability, stuck_in_days=@stuck_in_days, stage_stuck_days=ifnull(@stage_stuck_days,stage_stuck_days), stage_stuck_action=ifnull(@stage_stuck_action,stage_stuck_action) where #<@keyfield>=@pipeline_id and sys_pk=@stage_id"
 	@update_sequences="update sales_pipeline_stage set sequence=@sequence where sys_pk=@sys_pk"
 
 	@delete_stage="delete from sales_pipeline_stage where ref_pipeline=@pipeline_id and sys_pk=@stage_id"

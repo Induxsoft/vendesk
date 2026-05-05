@@ -23,10 +23,15 @@ window.addEventListener("load", (event) => {
 
 
 var views = {
+
+    _pipeline_stages: [],
+
     module_newetapa: null,
+
     init: function () {
         module_newetapa = document.querySelector(".nuevo");
     },
+
     select: function (id, data) {
         var select = "";
         for (var i = 0; i < data.length; i++) {
@@ -41,7 +46,20 @@ var views = {
             sel.innerHTML = select;
         }
     },
+
+    fill_stage_stuck_action_select() {
+        const select = document.getElementById('stage_stuck_action');
+        let options = `<option value="">(No hacer nada)</option><option value="status:5">Poner como "Perdido"</option>`;
+
+        for (const stage of this._pipeline_stages) {
+            options += `<option value="stage:${stage.sys_pk}">Mover a: ${stage.name}</option>`;
+        }
+        
+        select.innerHTML = options;
+    },
     print_stages: function (data) {
+        this._pipeline_stages = (Array.isArray(data?.stages)) ? data.stages : [];
+        
         var stages = "";
         if (data != null) {
             for (var j = 0; j < data.stages.length; j++) {
@@ -50,11 +68,38 @@ var views = {
             }
         }
 
-
         var sel = document.querySelector("#conten-padre");
-        if (sel)
-            sel.innerHTML = stages;
-        views.module_newstage();
+        if (sel) sel.innerHTML = stages;
+        
+        this.module_newstage();
+        this.fill_stage_stuck_action_select();
+    },
+    show_stage_stuck_condition(stage_id, stage_pk) {
+        const stage_stuck_days = document.getElementById('stage_stuck_days');
+        const stage_stuck_action = document.getElementById('stage_stuck_action');
+        const accept = document.getElementById('btn-stuck-condition-accept');
+
+        const data = this._pipeline_stages.find(s => s.sys_pk === stage_pk);
+        
+        stage_stuck_days.value = data?.stage_stuck_days ?? 0;
+        stage_stuck_action.value = data?.stage_stuck_action ?? "";
+        accept.setAttribute('onclick',`views.accept_stage_stuck_condition('${stage_id}',${stage_pk})`);
+
+        this.show_modal('modal-stage-stuck-condition');
+    },
+    accept_stage_stuck_condition(stage_id, stage_pk) {
+        const stage = document.getElementById(stage_id);
+        const _stuck_days = stage.querySelector('input[name="stage_stuck_days"]');
+        const _stuck_action = stage.querySelector('input[name="stage_stuck_action"]');
+        
+        const stage_stuck_days = document.getElementById('stage_stuck_days');
+        const stage_stuck_action = document.getElementById('stage_stuck_action');
+
+        _stuck_days.value = stage_stuck_days.value;
+        _stuck_action.value = stage_stuck_action.value;
+
+        controller.save_stage(stage_id, stage_pk);
+        views.close_modal('modal-stage-stuck-condition');
     },
 
     show_modal: function (idmodal) {
@@ -84,6 +129,7 @@ var views = {
         var name = document.getElementById("txt_name");
         var sys_pk = document.getElementById("inpu_syspk");
         var probability = document.getElementById("pipeline_probability");
+        
         if (data && data.length > 0) {
             name.value = data[0].name;
             sys_pk.value = data[0].sys_pk;

@@ -177,6 +177,9 @@ model "erp.vendesk"
         @"name" string(50) required
         @"probability" decimal(4,1)
         @"stuck_in_days" int
+        // Condición de estancamiento
+        @"stage_stuck_days" int // Si un prospecto ya estuvo mas de N días en esta etapa, ...
+        @"stage_stuck_action" string(25) // "" (no hacer nada) | status:{{istatus}} (cambiar estado) | stage:{{istage}} (cambiar etapa)
     }
     // Configuración de notificaciones por etapas del pipeline
     entity "stage_notif" : "TableModel"
@@ -282,6 +285,17 @@ model "erp.vendesk"
         @"uf_probability" decimal(6,4)
         @"uf_amount" decimal(12,4)
         @"notif_automatica_activa" bool  // interruptor por lead; si false, el task lo ignora
+
+        /**
+         * Posibles estados de los leads (uf_status)
+         * 0-Recibido
+         * 1-Atendido
+         * 2-Descartado
+         * 3-Oportunidad
+         * 4-Ganado :)
+         * 5-Perdido :(
+         *  -Otro
+         */
     }
     /* uod.xt_biticontact */
     entity "xt_biticontact"
