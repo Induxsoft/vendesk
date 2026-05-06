@@ -18,6 +18,7 @@ var stage_notif = {
         channel.addEventListener('change', e => this.reload());
 
         this.initTableVars();
+        this.initSuggestMarks();
     },
 
     initTableVars()
@@ -43,6 +44,40 @@ var stage_notif = {
         }
     },
 
+    initSuggestMarks()
+    {
+        macros.vars = {
+            lead_name: {
+                label: "Nombre del prospecto"
+            },
+            lead_email: {
+                label: "Correo del prospecto"
+            },
+            lead_phone: {
+                label: "Teléfono del prospecto"
+            },
+            lead_subject: {
+                label: "Asunto/Interes del prospecto"
+            },
+            lead_organization: {
+                label: "Empresa del prospecto"
+            },
+            lead_position: {
+                label: "Posición/Puesto del prospecto en su empresa",
+            },
+            exec_name: {
+                label: "Nombre del ejecutivo asignado al prospecto"
+            },
+            pipeline_name: {
+                label: "Nombre/Descripción del pipeline actual del prospecto",
+            },
+            stage_name: {
+                label: "Nombre/Descripción del stage actual del prospecto"
+            }
+        };
+        macros.suggest("#form-params");
+    },
+
     formObj(formOrId) {
         const form = (typeof formOrId === "string") ? document.getElementById(formOrId) : formOrId;
         return Object.fromEntries(new FormData(form).entries());
@@ -50,10 +85,10 @@ var stage_notif = {
 
     reload()
     {
-        let url = window.location.href;
+        let url = window.location.href.split('?')[0];
         let qry = (new URLSearchParams(this.formObj(this.form_id))).toString();
 
-        window.location.href = url + (url.includes('?') ? '&' : '?') + qry;
+        window.location.href = url + '?' + qry;
     },
 
     _submit(form)

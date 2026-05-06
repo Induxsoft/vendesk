@@ -269,6 +269,7 @@ var controller = {
       views.edit_view(pip);
       views.edit_stage(id, null, true);
       views.view_new(true);
+      views.fill_stage_stuck_action_select();
       controller.in_modify(false);
     },
       function (error) {

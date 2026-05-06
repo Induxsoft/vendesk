@@ -74,13 +74,25 @@ module "listar-prospectos"
 
     switch field.dstr(params,"agent_filter","all")
     {
+        case ""
+        {
+            sqlWhere = ifstr(trim(sqlWhere)!="", sqlWhere + " AND TRUE ", " TRUE ")
+            break
+        }
+        case "assigned"
+        {
+            sqlWhere=ifstr(trim(sqlWhere)!="",sqlWhere + " AND ","") + " ifnull(uf_perfil,'')<>'' and (ifnull(uf_iejecutivo,0)>0 and ifnull(uf_perfil,'')<>'') "
+            break
+        }
         case "unassigned"
         {
             sqlWhere=ifstr(trim(sqlWhere)!="",sqlWhere + " AND ","") + " ifnull(uf_perfil,'')='' and (ifnull(uf_iejecutivo,0)=0 and ifnull(uf_perfil,'')='') "
+            break
         }
         case "all"
         {
             sqlWhere=ifstr(trim(sqlWhere)!="",sqlWhere + " AND ","") + " (ifnull(uf_iejecutivo,0)<>0 or ifnull(uf_perfil,'')<>'') "
+            break
         }
         default
         {
@@ -177,6 +189,7 @@ module "listar-prospectos"
     "+sqlWhere+" 
     order by "+sqlOrder+" limit @limit;
     "
+    do file.wtext("C:/Devkron/_tests/logs/leads.list.sql",sql)
 
     ref t=dbr.table(db,sql,params)
 

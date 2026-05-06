@@ -226,12 +226,12 @@ var model =
 
     var params = 
     {
-      agent_filter: cbAgentes.value == "" ? "unassigned" : cbAgentes.value,
+      agent_filter: cbAgentes.value,
       color_filter: Number(color.value??0),
       status_filter: status.value == "" ? "999" : status.value,
-      pipeline:this.cmpipelines?.value??0,
-      stage:this.cbStages?.value??0,
-      ordeby:orderby?.value??""
+      pipeline: this.cmpipelines?.value??0,
+      stage: this.cbStages?.value??0,
+      ordeby: orderby?.value ?? ""
     }
     return params;
   },
@@ -442,7 +442,15 @@ var model =
 
     model.invoke_service(model.url_vendesk + "leads/list-agents.dkl", data, function (data) 
     {
-      model.load_cb(data, "id", "name", idsag,"",model.agente?.codigo??"",fvalue,ftext);
+      const agents_list = [
+        { id:"", name:"(Todos)" },
+        { id:"assigned", name:"(Asignados)" },
+        { id:"unassigned", name:"(Sin asignar)" },
+        { id:"all", name:"(Todos los agentes)" },
+        ...data
+      ];
+      model.load_cb(agents_list, "id", "name", idsag, "", model.agente?.codigo??"", fvalue, ftext);
+
       if(model.agente)model.filters_leads(model.getDataFilters());
       if(this.mdl_cbAgentes)model.load_cb(data, "id", "name", "#"+this.mdl_cbAgentes.id);
     },
@@ -765,6 +773,8 @@ var model =
 
     let enlaces=this.CreateDropDown(li);
 
+    // onclick="${this.IsFreezer?"":`model.redirec('./${itm.sys_pk}/?_filter=${tools.url_encode(JSON.stringify(model.GetFieldsFilter()))}')`}"
+
     return `<div class="card bg-white shadow shadow-sm">
               <div class="d-flex" id="dv-color_${itm.sys_pk}" style="padding-left: 1rem !important;padding-right: .5rem !important;${model.getColor(itm.color)}">
                 <div class="flex-grow-1">
@@ -776,7 +786,7 @@ var model =
                 </div>
               </div>
                 <hr style="margin: 0;"></hr>
-                    <div class="card-body ${this.IsFreezer?"":"pointer"}" style="overflow:auto;display: flex;flex-direction: column;" onclick="${this.IsFreezer?"":`model.redirec('./${itm.sys_pk}/?_filter=${tools.url_encode(JSON.stringify(model.GetFieldsFilter()))}')`}">
+                    <div class="card-body ${this.IsFreezer?"":"pointer"}" style="overflow:auto; display:flex; flex-direction:column;">
                       <div class="justify-items-center ${this.IsFreezer?"":"pointer"} flex-grow-1" >
                         <b><smal>${itm.name}</smal> </b><br>
                         <smal>${itm.phone}</smal>${itm.phone == "" ? "" : "<br>"}
@@ -1084,13 +1094,13 @@ var model =
     var select = document.querySelector(idselect);
     if(!select)return;
 
-    var options = (idselect == "#cbAgentes"  || idselect=="#cbPropietario")?`<option value="unassigned">(Sin asignar)</option>`:"";
-    if(fisrt_value)options+=`<option value="${fisrt_value}">${fisrt_text}</option>`;
+    var options = (/*idselect=="#cbAgentes" || */idselect=="#cbPropietario") ? `<option value="unassigned">(Sin asignar)</option>` : "";
+    if (fisrt_value) options += `<option value="${fisrt_value}">${fisrt_text}</option>`;
 
-    if (idselect == "#cbAgentes") 
-    {
-      options += `<option value="all" ${optselected=="all"?"selected":""}>(Todos los agentes)</option>`;
-    }
+    // if (idselect == "#cbAgentes") 
+    // {
+    //   options += `<option value="all" ${optselected=="all"?"selected":""}>(Todos los agentes)</option>`;
+    // }
     var slected = "";
 
     for (var i = 0; i < data.length; i++) 
