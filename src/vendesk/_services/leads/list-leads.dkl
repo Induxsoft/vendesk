@@ -189,7 +189,6 @@ module "listar-prospectos"
     "+sqlWhere+" 
     order by "+sqlOrder+" limit @limit;
     "
-    do file.wtext("C:/Devkron/_tests/logs/leads.list.sql",sql)
 
     ref t=dbr.table(db,sql,params)
 
