@@ -786,8 +786,8 @@ var model =
                 </div>
               </div>
                 <hr style="margin: 0;"></hr>
-                    <div class="card-body ${this.IsFreezer?"":"pointer"}" style="overflow:auto; display:flex; flex-direction:column;">
-                      <div class="justify-items-center ${this.IsFreezer?"":"pointer"} flex-grow-1" >
+                    <div class="card-body" style="overflow:auto; display:flex; flex-direction:column;">
+                      <div class="justify-items-center flex-grow-1" >
                         <b><smal>${itm.name}</smal> </b><br>
                         <smal>${itm.phone}</smal>${itm.phone == "" ? "" : "<br>"}
                         <smal>${email}</smal>${email == "" ? "" : "<br>"}
