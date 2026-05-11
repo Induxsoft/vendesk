@@ -15,7 +15,7 @@ module "listar-prospectos"
     do cors_xhr()
     if @@(@http_context,"request/headers/REQUEST_METHOD")=="OPTIONS"{return}
     
-    max_rows=250 // Máximo de registros a devolver
+    max_rows=500 // Máximo de registros a devolver
 
     new response
     {
@@ -153,6 +153,15 @@ module "listar-prospectos"
         if @@(params,"#pipeline")> 0{sqlWhere=sqlWhere + " AND uf_pipeline=@pipeline"}
         if @@(params,"#stage")> 0{sqlWhere=sqlWhere + " AND uf_stage=@stage"}
     }
+    if @@(params,"$search") != "" {
+        sqlWhere = sqlWhere + " AND (
+            uf_nombre LIKE CONCAT('%',@search,'%') OR
+            uf_email LIKE CONCAT('%',@search,'%') OR
+            uf_telefono LIKE CONCAT('%',@search,'%') OR
+            uf_empresa LIKE CONCAT('%',@search,'%') OR
+            uf_interes LIKE CONCAT('%',@search,'%')
+        )"
+    }
     //si la sys_pk > 0 , reseteamos las condiciones
     if @@(params,"$sys_pk")!=""{sqlWhere =" WHERE ifnull(sys_deleted,0)=0 and sys_pk=@sys_pk "}
 
@@ -189,7 +198,7 @@ module "listar-prospectos"
     "+sqlWhere+" 
     order by "+sqlOrder+" limit @limit;
     "
-
+    // do file.wtext("C:/Devkron/_tests/logs/leads.list.sql",sql)
     ref t=dbr.table(db,sql,params)
 
     ref l=list.create()

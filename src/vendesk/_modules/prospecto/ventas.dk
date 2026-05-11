@@ -103,7 +103,7 @@ module "ventas"
 			
 			div(class="collapse module-filter show" id="module-filter")
 			{
-				div(class="row gx-1")
+				form(class="row gx-1" action="#" method="GET" id="form-leads-filter")
 				{
 					div(class="col-lg-2 col-md-3 mb-1")
 					{
@@ -125,10 +125,12 @@ module "ventas"
 						label{"Ordenar por:"}
 						select(class="form-select form-select-sm induxsoft-corners no-shadow" id="sOrderBy" name="sOrderBy" value="#<@@(filter,'$sOrderBy')>"){$""}
 					}
-					div(class="col-lg-4 col-md-8 mb-1")
+					div(class="col-lg-4 col-md-8 mb-1 align-self-end")
 					{
-						label(class="" "for"="txtFilter"){"Filtrar:"}
-						input(type="text" class="form-control form-control-sm induxsoft-corners no-shadow" "aria-label"="Small" "aria-describedby"="inputGroup-sizing-sm" id="txtFilter" placeholder="Filtrar..."  onkeyup="model.filter_table_text();" name="txtFilter")
+						// label(class="" "for"="txtFilter"){"Filtrar:"}
+						// input(type="text" class="form-control form-control-sm induxsoft-corners no-shadow" "aria-label"="Small" "aria-describedby"="inputGroup-sizing-sm" id="txtFilter" placeholder="Filtrar..."  onkeyup="model.filter_table_text();" name="txtFilter")
+
+						"filter-text"("text-field"="search" id="txtFilter" value="#<@('$parameters/search')>" placeholder="Buscar ..." form="#form-leads-filter" "auto-submit"="true"){""}
 					}
 					div(class="col-lg-2 col-md-4 mb-1 d-flex align-items-end")
 					{
@@ -199,16 +201,49 @@ module "ventas"
 		}
 		#$
 		style
-		{
-			$'
+		{$'
 			.toggle-icon svg 
 			{
 				width: 25px;
 				height: 25px;
 			}
 			.toggle-icon .up { display: none; } /* ocultar el icono arriba al inicio */
-			'
-		}
+
+			.action-buttons .action-btn {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				/* border-radius: .5rem;
+				min-width: 42px;
+				height: 42px;
+				padding: .5rem .75rem; */
+			}
+
+			/* MOBILE */
+			@media (max-width: 767.98px) {
+
+				.action-buttons .action-btn {
+					width: 48px;
+					height: 48px;
+					padding: 0;
+					font-size: 1.1rem;
+				}
+
+				.action-buttons .dropdown-toggle::after {
+					display: none;
+				}
+
+				.action-buttons svg {
+					width: 24px;
+					height: 24px;
+				}
+			}
+
+			/* DESKTOP */
+			@media (min-width: 768px) {
+				/* ...css */
+			}
+		'}
 		script
 		{
 			$'

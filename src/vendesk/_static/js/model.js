@@ -221,17 +221,19 @@ var model =
     var color = document.querySelector("#cbColors");
     var status = document.querySelector("#cbStatus");
     var orderby = document.querySelector("#sOrderBy");
+    var txtFilters = document.querySelector('input[name="search"]');
 
     if(!cbAgentes || !color || !status)return;
 
     var params = 
     {
       agent_filter: cbAgentes.value,
-      color_filter: Number(color.value??0),
+      color_filter: Number(color.value ?? 0),
       status_filter: status.value == "" ? "999" : status.value,
-      pipeline: this.cmpipelines?.value??0,
-      stage: this.cbStages?.value??0,
-      ordeby: orderby?.value ?? ""
+      pipeline: this.cmpipelines?.value ?? 0,
+      stage: this.cbStages?.value ?? 0,
+      ordeby: orderby?.value ?? "",
+      search: txtFilters?.value ?? ""
     }
     return params;
   },
@@ -277,6 +279,17 @@ var model =
       source: model.source,
       storeid: model.sourceId
     }
+
+    const form_leads_filter = document.getElementById("form-leads-filter");
+    const text_filter = document.getElementById("txtFilter");
+
+    if (text_filter) {
+      text_filter.dispatch_submit = true;
+    }
+    if (form_leads_filter) form_leads_filter.addEventListener('submit', (e) => {
+      e.preventDefault();
+      model.filters_leads(model.getDataFilters());
+    });
 
     model.load_status(data,false,(this._filter?.cbStatus??"999"));
     model.load_pipelines((this._filter?.cbPipeline??""),(data)=>
@@ -643,7 +656,7 @@ var model =
       this.RemoveLabelSn(row.stage);
       
       let id=tools.uuid();
-      let html=`<div class="pt-2 w-row-stage-all stage_parent_${row.stage}" draggable="true" id="${id}" prospecto="${row.sys_pk}" stage="${row.stage}" pipeline="${current_pipeline}">
+      let html=`<div class="pt-2 w-row-stage-all stage_parent_${row.stage}" draggable="false" id="${id}" prospecto="${row.sys_pk}" stage="${row.stage}" pipeline="${current_pipeline}">
               ${this.CreateItem(row)}
             </div>`;
             
@@ -729,12 +742,12 @@ var model =
   {
     return `
     <div class="dropdown">
-      <button class="btn ${_class} btn-secondary shadow-none dropdown-toggle" type="button" id="dmb-event-links" data-bs-toggle="dropdown" aria-expanded="true" onclick="event.stopPropagation();">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-link-45deg" viewBox="0 0 16 16">
+      <button class="btn ${_class} btn-secondary action-btn dropdown-toggle" type="button" id="dmb-event-links" data-bs-toggle="dropdown" aria-expanded="true" onclick="event.stopPropagation();">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-link-45deg d-md-none" viewBox="0 0 16 16">
           <path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1 1 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4 4 0 0 1-.128-1.287z"/>
           <path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/>
       </svg>
-      Enlaces
+      <span class="d-none d-md-inline ms-1">Enlaces</span>
       </button>
       <ul class="dropdown-menu" aria-labelledby="dmb-event-links"
           style="position: absolute; inset: 0px auto auto 0px; margin: 0px; transform: translate(0px, 33px);"
@@ -775,83 +788,81 @@ var model =
 
     // onclick="${this.IsFreezer?"":`model.redirec('./${itm.sys_pk}/?_filter=${tools.url_encode(JSON.stringify(model.GetFieldsFilter()))}')`}"
 
-    return `<div class="card bg-white shadow shadow-sm">
-              <div class="d-flex" id="dv-color_${itm.sys_pk}" style="padding-left: 1rem !important;padding-right: .5rem !important;${model.getColor(itm.color)}">
-                <div class="flex-grow-1">
-                  <h6>${itm.subject == null || itm.subject == "" ? "(Sin asunto)" : itm.subject}</h6>
-                </div>
-               <div class="d-flex gap-2 align-items-center">
-                  <smal>${itm.leadstatus_text}</smal>
-                  <input type="checkbox" id="check_action_${itm.sys_pk}" value="${itm.sys_pk}" class="form-check-input" style="transform: scale(1.2);" />
-                </div>
-              </div>
-                <hr style="margin: 0;"></hr>
-                    <div class="card-body" style="overflow:auto; display:flex; flex-direction:column;">
-                      <div class="justify-items-center flex-grow-1" >
-                        <b><smal>${itm.name}</smal> </b><br>
-                        <smal>${itm.phone}</smal>${itm.phone == "" ? "" : "<br>"}
-                        <smal>${email}</smal>${email == "" ? "" : "<br>"}
-                        <smal>${org}</smal>${org == "" ? "" : "<br>"}
-                        <smal>${pos}</smal>${pos == "" ? "" : "<br>"}
-                        ${ps}
-                      </div>
+    return `
+    <div class="card bg-white shadow shadow-sm">
+      <div class="d-flex align-items-center py-1 px-2" id="dv-color_${itm.sys_pk}" style="padding-left:1rem !important; padding-right:.5rem !important; cursor:move; ${model.getColor(itm.color)}" draggable="true">
+        <div class="flex-grow-1">
+          <h6 class="m-0">${itm.subject == null || itm.subject == "" ? "(Sin asunto)" : itm.subject}</h6>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+          <smal>${itm.leadstatus_text}</smal>
+          <input type="checkbox" id="check_action_${itm.sys_pk}" value="${itm.sys_pk}" class="form-check-input" style="transform: scale(1.2);" />
+        </div>
+      </div>
+      <hr style="margin: 0;"></hr>
+      <div class="card-body p-2" style="overflow:auto; display:flex; flex-direction:column;">
+        <div class="justify-items-center flex-grow-1" >
+          <b><smal>${itm.name}</smal> </b><br>
+          <smal>${itm.phone}</smal>${itm.phone == "" ? "" : "<br>"}
+          <smal>${email}</smal>${email == "" ? "" : "<br>"}
+          <smal>${org}</smal>${org == "" ? "" : "<br>"}
+          <smal>${pos}</smal>${pos == "" ? "" : "<br>"}
+          ${ps}
+        </div>
+        <div class="">
+          <div>
+            ${itm.next_contact == null || itm.next_contact == "" ? "" : `<svg xmlns="http://www.w3.org/2000/svg" class="" style="margin-right: 4px;" title="Próximo evento" width="25" height="25" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022l-.074.997zm2.004.45a7.003 7.003 0 0 0-.985-.299l.219-.976c.383.086.76.2 1.126.342l-.36.933zm1.37.71a7.01 7.01 0 0 0-.439-.27l.493-.87a8.025 8.025 0 0 1 .979.654l-.615.789a6.996 6.996 0 0 0-.418-.302zm1.834 1.79a6.99 6.99 0 0 0-.653-.796l.724-.69c.27.285.52.59.747.91l-.818.576zm.744 1.352a7.08 7.08 0 0 0-.214-.468l.893-.45a7.976 7.976 0 0 1 .45 1.088l-.95.313a7.023 7.023 0 0 0-.179-.483zm.53 2.507a6.991 6.991 0 0 0-.1-1.025l.985-.17c.067.386.106.778.116 1.17l-1 .025zm-.131 1.538c.033-.17.06-.339.081-.51l.993.123a7.957 7.957 0 0 1-.23 1.155l-.964-.267c.046-.165.086-.332.12-.501zm-.952 2.379c.184-.29.346-.594.486-.908l.914.405c-.16.36-.345.706-.555 1.038l-.845-.535zm-.964 1.205c.122-.122.239-.248.35-.378l.758.653a8.073 8.073 0 0 1-.401.432l-.707-.707z"></path>
+              <path d="M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0v1z"></path>
+              <path d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5z"></path>
+            </svg><smal style="${style}">` + itm.next_contact}</smal>
+          </div>
+          <smal style="font-size: 12px;">${itm.user_name}</smal><br>
+          <div class="d-flex justify-content-end">
+              <b><smal>${itm.agent_name}</smal></b><br>
+          </div>
+          <div class="d-flex justify-content-end">
+              <b></b><smal title="Creación">${itm.sys_dtcreated}</smal>
+          </div>
+          <div class="d-flex justify-content-end gap-1 action-buttons">
+            ${enlaces}
 
-                      <div class="">
-                         <div>
-                            ${itm.next_contact == null || itm.next_contact == "" ? "" : `<svg xmlns="http://www.w3.org/2000/svg" class="" style="margin-right: 4px;" title="Próximo evento" width="25" height="25" fill="currentColor" viewBox="0 0 16 16">
-                             <path d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022l-.074.997zm2.004.45a7.003 7.003 0 0 0-.985-.299l.219-.976c.383.086.76.2 1.126.342l-.36.933zm1.37.71a7.01 7.01 0 0 0-.439-.27l.493-.87a8.025 8.025 0 0 1 .979.654l-.615.789a6.996 6.996 0 0 0-.418-.302zm1.834 1.79a6.99 6.99 0 0 0-.653-.796l.724-.69c.27.285.52.59.747.91l-.818.576zm.744 1.352a7.08 7.08 0 0 0-.214-.468l.893-.45a7.976 7.976 0 0 1 .45 1.088l-.95.313a7.023 7.023 0 0 0-.179-.483zm.53 2.507a6.991 6.991 0 0 0-.1-1.025l.985-.17c.067.386.106.778.116 1.17l-1 .025zm-.131 1.538c.033-.17.06-.339.081-.51l.993.123a7.957 7.957 0 0 1-.23 1.155l-.964-.267c.046-.165.086-.332.12-.501zm-.952 2.379c.184-.29.346-.594.486-.908l.914.405c-.16.36-.345.706-.555 1.038l-.845-.535zm-.964 1.205c.122-.122.239-.248.35-.378l.758.653a8.073 8.073 0 0 1-.401.432l-.707-.707z"></path>
-                             <path d="M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0v1z"></path>
-                             <path d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5z"></path>
-                           </svg><smal style="${style}">` + itm.next_contact}</smal>
-                          </div>
-                          <smal style="font-size: 12px;">${itm.user_name}</smal><br>
-                          <div class="d-flex justify-content-end">
-                              <b><smal>${itm.agent_name}</smal></b><br>
-                          </div>
-                          <div class="d-flex justify-content-end">
-                              <b></b><smal style="font-size: small;">${itm.sys_dtcreated}</smal>
-                          </div>
-                          
-                          <div class="d-flex justify-content-end p-2">
-                              ${enlaces}
+            <a class="btn btn-sm btn-primary action-btn" href="./${itm.sys_pk}/?_filter=${tools.url_encode(JSON.stringify(model.GetFieldsFilter()))}" style="">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil d-md-none" viewBox="0 0 16 16">
+                <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"></path>
+              </svg>
+              <span class="d-none d-md-inline ms-1">Editar</span>
+            </a>
 
-                            <a class="btn btn-sm btn-primary mx-1" href="./${itm.sys_pk}/?_filter=${tools.url_encode(JSON.stringify(model.GetFieldsFilter()))}" style="">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
-                                <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293l6.5-6.5zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325z"></path>
-                              </svg>
-                              Editar
-                            </a>
-                            <a class="btn btn-sm btn-danger" href="#" style="" onclick="model.deleteLead(${itm.sys_pk},event)">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
-                                <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6Z"/>
-                                <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1ZM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118ZM2.5 3h11V2h-11v1Z"/>
-                              </svg>
-                              Eliminar
-                            </a>
-                          </div>
+            <a class="btn btn-sm btn-danger action-btn" href="#" style="" onclick="model.deleteLead(${itm.sys_pk},event)">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash d-md-none" viewBox="0 0 16 16">
+                <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5Zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6Z"/>
+                <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1ZM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118ZM2.5 3h11V2h-11v1Z"/>
+              </svg>
+              <span class="d-none d-md-inline ms-1">Eliminar</span>
+            </a>
+          </div>
 
-                          <div class="card-footer header-items-center ${this.IsFreezer?"d-none":""}" style="padding: 0; cursor: default;">
-                            <div class="btn-group d-inline-block flex-wrap mt-1 flex-grow-1" id="group-colors">
-                              <button type="button" onclick="model.setColor(${itm.sys_pk},0,event);" style="background-color:#FFFFFF;" title="Sin color" class="color border"></button>
-                              <button type="button" onclick="model.setColor(${itm.sys_pk},1,event);" style="background-color:#fd7e14;" title="${model.text_color_n}" class="color border"></button>
-                              <button type="button" onclick="model.setColor(${itm.sys_pk},2,event);" style="background-color:#28a745;" title="Verde" class="color border"></button>
-                              <button type="button" onclick="model.setColor(${itm.sys_pk},3,event);" style="background-color:#007bff;" title="Azul" class="color border border"></button>
-                              <button type="button" onclick="model.setColor(${itm.sys_pk},4,event);" style="background-color:#6f42c1;" title="Morado" class="color border"></button>
-                              <button type="button" onclick="model.setColor(${itm.sys_pk},5,event);" style="background-color:#ffc107;" title="Amarillo" class="color border"></button>
-                            </div>
-                          </div>
-                          ${itm.sys_info=="freezer" && this.OnlyRows ? `
-                          <div class="card-footer header-items-center border-0 mb-2" style="padding: 0; cursor: default;padding-bottom: 8px; padding-top:6px" title="Descongelar">
-                              <button onclick="model.UnFreezer(${itm.sys_pk},event)" class="border-0">
-                              <img src="/$/vendesk/img/icons/restore-freezer.png" style="width: 25px;height: 25px;" /> 
-                            </button>
-                          </div>`:""}
-                          
-                        </div>
-
-                      </div>
-                     
-                </div>`;
+          <div class="card-footer header-items-center ${this.IsFreezer?"d-none":""}" style="padding: 0; cursor: default;">
+            <div class="btn-group d-inline-block flex-wrap mt-1 flex-grow-1" id="group-colors">
+              <button type="button" onclick="model.setColor(${itm.sys_pk},0,event);" style="background-color:#FFFFFF;" title="Sin color" class="color border"></button>
+              <button type="button" onclick="model.setColor(${itm.sys_pk},1,event);" style="background-color:#fd7e14;" title="${model.text_color_n}" class="color border"></button>
+              <button type="button" onclick="model.setColor(${itm.sys_pk},2,event);" style="background-color:#28a745;" title="Verde" class="color border"></button>
+              <button type="button" onclick="model.setColor(${itm.sys_pk},3,event);" style="background-color:#007bff;" title="Azul" class="color border border"></button>
+              <button type="button" onclick="model.setColor(${itm.sys_pk},4,event);" style="background-color:#6f42c1;" title="Morado" class="color border"></button>
+              <button type="button" onclick="model.setColor(${itm.sys_pk},5,event);" style="background-color:#ffc107;" title="Amarillo" class="color border"></button>
+            </div>
+          </div>
+          ${itm.sys_info=="freezer" && this.OnlyRows ? `
+          <div class="card-footer header-items-center border-0 mb-2" style="padding: 0; cursor: default;padding-bottom: 8px; padding-top:6px" title="Descongelar">
+              <button onclick="model.UnFreezer(${itm.sys_pk},event)" class="border-0">
+              <img src="/$/vendesk/img/icons/restore-freezer.png" style="width: 25px;height: 25px;" /> 
+            </button>
+          </div>`:""}
+        </div>
+      </div>  
+    </div>
+    `;
   },
   Transferir(show=true)
   {
@@ -1937,10 +1948,12 @@ var model =
     },
     onDragStart(event, stage) 
     {
+      const row = event.target.closest('.w-row-stage-all');
+      
       this.DeleteClass();
       event
           .dataTransfer
-          .setData('text/plain', event.target.id);
+          .setData('text/plain', row.id); //event.target.id
     },
     onDragOver(event, stage) 
     {
