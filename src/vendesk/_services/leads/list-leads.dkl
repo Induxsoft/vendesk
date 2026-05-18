@@ -2,251 +2,435 @@
 #!
 module "listar-prospectos"
 {
-	#include "functions.dkh"
-	#include "dbr.dkh"
-	#include "serialize.dkh"
+    #include "functions.dkh"
+    #include "dbr.dkh"
+    #include "serialize.dkh"
     #include "webcl.dkh"
     #include "website.dkl"
     #include "dbr.security.dkl"
-	#include "dbr.events.dkl"
+    #include "dbr.events.dkl"
     #include "dbr.vars.dkl"
-	#include "dbr.apps.dkl"
-    
+    #include "dbr.apps.dkl"
+
     do cors_xhr()
-    if @@(@http_context,"request/headers/REQUEST_METHOD")=="OPTIONS"{return}
-    
-    max_rows=500 // Máximo de registros a devolver
+    if @@(@http_context,"request/headers/REQUEST_METHOD") == "OPTIONS" { return }
 
-    new response
+    //#region >Contentes
+    do errordet(@false)
+
+    MAX_ROWS = 250
+    //#endregion
+
+    //#region >Funciones
+
+    SetHTTPResponse :: &response
     {
-        @"success":@false
-        
+        @http_context<"response/headers/Content-Type"> : "application/json; charset=utf-8"
+        @http_context<"response/output"> : "text"
+        @http_context<"response/text"> : to.json(response)
     }
 
-    ref params=from.json(field.dstr(@http_context,"request/post_string","{}"))
-
-    
-    ref db=@@(@http_context,"&session/idp/database")
-    ref user=@@(@http_context,"&session/user")
-
-    //verifica y agrega tablas y campos, solo se necesita cuando la bd se creó con PlazaMundial
-    do checkDBStruct(db)
-    ///////////////////////////////////////////////////////////////////////////////////////////
-
-    ref dic_agentes=record.create()
-    
-    sql="select c.codigo id,c.sys_pk, c.nombre `name`,t.username `nameusr` 
-    from agente c 
-    left join tuser t on c.uf_iuser=t.sys_pk
-        where ifnull(c.sys_deleted,0)=0"
-    
-    ref tagentes=dbr.table(db,sql,@null)
-
-    for i=0;i<@count(tagentes)
+    DateFormat :: dtm, fmt
     {
-        ref ra=row.get(tagentes,i)
-        dic_agentes<"cod_"+@@(ra,"$sys_pk")>:@@(ra,"id")
-        dic_agentes<"usr_"+@@(ra,"$sys_pk")>:trim(@@(ra,"$nameusr"))
-        dic_agentes<"id_"+@@(ra,"$sys_pk")>:@@(ra,"$name")
-    }
-    
-    sqlWhere=""
-    sqlOrder=" ifnull(uf_fecha,sys_dtcreated) desc "
+        if dtm == "" { return "" }
+        if fmt == "" { fmt = "yyyy-MM-dd HH:mm:ss" }
 
-    permiso=@false
-    module "check privileges"
-    {
-        do dbr.apps.action.grant("VC84")
-        permiso=@true
-        exception{}
-    }
-    if not(permiso)
-    {
-        yoagentes=dbr.str(db,"SELECT GROUP_CONCAT(a.sys_pk) FROM agente a 
-                    INNER JOIN tuser t ON a.uf_iuser=t.sys_pk WHERE t.userid=@uid",user)
+        fecha = date_str(str2dt(dtm),fmt)
+        return fecha
 
-        yoagentes=to.json(split(yoagentes,","))
-        yoagentes=replace(yoagentes,"[","")
-        yoagentes=replace(yoagentes,"]","")
-        
-        sqlWhere="ifnull(uf_iejecutivo,0) in("+yoagentes+")"
-    }
-
-    switch field.dstr(params,"agent_filter","all")
-    {
-        case ""
+        exception
         {
-            sqlWhere = ifstr(trim(sqlWhere)!="", sqlWhere + " AND TRUE ", " TRUE ")
-            break
-        }
-        case "assigned"
-        {
-            sqlWhere=ifstr(trim(sqlWhere)!="",sqlWhere + " AND ","") + " ifnull(uf_perfil,'')<>'' and (ifnull(uf_iejecutivo,0)>0 and ifnull(uf_perfil,'')<>'') "
-            break
-        }
-        case "unassigned"
-        {
-            sqlWhere=ifstr(trim(sqlWhere)!="",sqlWhere + " AND ","") + " ifnull(uf_perfil,'')='' and (ifnull(uf_iejecutivo,0)=0 and ifnull(uf_perfil,'')='') "
-            break
-        }
-        case "all"
-        {
-            sqlWhere=ifstr(trim(sqlWhere)!="",sqlWhere + " AND ","") + " (ifnull(uf_iejecutivo,0)<>0 or ifnull(uf_perfil,'')<>'') "
-            break
-        }
-        default
-        {
-            sql="SELECT a.codigo,a.sys_pk pk_agente,a.nombre,t.sys_guid
-                from agente a
-                LEFT JOIN tuser t ON a.uf_iuser=t.sys_pk
-                WHERE a.codigo=@agent_filter"
-    
-            ref _agente_usr=dbr.rec(db,sql,params)
-            
-            params<"guid_user">:trim(@@(_agente_usr,"$sys_guid"))
-            params<"pk_agente">:@@(_agente_usr,"#pk_agente")
-            
-            sqlWhere=ifstr(trim(sqlWhere)!="",sqlWhere + " AND ","") + " ((ifnull(uf_iejecutivo,0)=@pk_agente or 
-            ifnull(uf_perfil,'')=@guid_user) and not (ifnull(uf_iejecutivo,0)=0 and ifnull(uf_perfil,'')='')) "
+            do pop_exception()
+            return ""
         }
     }
 
-    if sqlWhere!="" { sqlWhere=" WHERE ifnull(sys_deleted,0)=0 and LOWER(ifnull(uf_perfil,''))<>'freezer' and "+sqlWhere}
-
-    if field.dnum(params,"status_filter",-1)>=0 && field.dnum(params,"status_filter",-1)<999 { sqlWhere=sqlWhere+" and uf_status=@status_filter"}
-    else
+    // EnrichLead: resuelve agente, nombre de usuario y texto de estado
+    //   Parámetros:
+    //     rw          — registro de la fila del lead (modificado in-place)
+    //     dic_agentes — diccionario precargado de agentes
+    EnrichLead :: &rw, &dic_agentes
     {
-        //Status especiales
-        switch field.dnum(params,"status_filter",-1)
+        pk_str = @@(rw,"$uf_iejecutivo")
+
+        // Si el lead está en freezer, el agent_id real está en sys_info
+        if tolower(@@(rw,"$agent_id")) == "freezer"
         {
-            case 999
-            {
-                sqlWhere=sqlWhere+" and (uf_status=0 or (uf_status=3 and not isnull(uf_proxcontac)) and not isnull(uf_perfil) )"
-                sqlOrder=" uf_proxcontac, ifnull(uf_fecha,sys_dtcreated) desc "
-            }
+            rw<"agent_id">: @@(rw,"$sys_info")
         }
-    }
 
-    if field.dnum(params,"color_filter",-1)>=0 { sqlWhere=sqlWhere+" and uf_color=@color_filter"}
-    
-    if @@(params,"$text")!=""
-    {
-        if tolower(@@(params,"$special"))=="freezer"
-        {
-            sqlWhere=" where (uf_interes like '%@{text}%' or uf_nombre like '%@{text}%' or uf_email like '%@{text}%' or uf_telefono like '%@{text}%' or uf_empresa like '%@{text}%') and LOWER(uf_perfil)=LOWER(@special)"
-            if @@(params,"$agent_filter")!=""
-            {
-                params<"agent_filter">:cut(trim(@@(params,"$agent_filter")),32)
-                sqlWhere =sqlWhere + " and sys_info=@agent_filter "
-            }
-        }
-        else if tolower(@@(params,"$special"))=="deleted"
-        {
-            sqlWhere=" where ifnull(sys_deleted,0)=1 and (uf_interes like '%@{text}%' or uf_nombre like '%@{text}%' or uf_email like '%@{text}%' or uf_telefono like '%@{text}%' or uf_empresa like '%@{text}%')"
-            if @@(params,"$agent_filter")!=""{sqlWhere =sqlWhere + " and uf_perfil=@agent_filter "}
-        }
-        else{sqlWhere=sqlWhere+" and (uf_interes like '%@{text}%' or uf_nombre like '%@{text}%' or uf_email like '%@{text}%' or uf_telefono like '%@{text}%' or uf_empresa like '%@{text}%') "}
-        
-    }
-    if @@(params,"#status_filter") == 3
-    {
-        if @@(params,"#pipeline")> 0{sqlWhere=sqlWhere + " AND uf_pipeline=@pipeline"}
-        if @@(params,"#stage")> 0{sqlWhere=sqlWhere + " AND uf_stage=@stage"}
-    }
-    if @@(params,"$search") != "" {
-        sqlWhere = sqlWhere + " AND (
-            uf_nombre LIKE CONCAT('%',@search,'%') OR
-            uf_email LIKE CONCAT('%',@search,'%') OR
-            uf_telefono LIKE CONCAT('%',@search,'%') OR
-            uf_empresa LIKE CONCAT('%',@search,'%') OR
-            uf_interes LIKE CONCAT('%',@search,'%')
-        )"
-    }
-    //si la sys_pk > 0 , reseteamos las condiciones
-    if @@(params,"$sys_pk")!=""{sqlWhere =" WHERE ifnull(sys_deleted,0)=0 and sys_pk=@sys_pk "}
+        // Resolver código, nombre y usuario del agente desde el diccionario
+        rw<"agent_id">:   @@(dic_agentes,"$cod_"+pk_str)
+        rw<"agent_name">: ifstr(@@(dic_agentes,"$id_"+pk_str) != "","Sin asignar",@@(dic_agentes,"$id_"+pk_str))
+        rw<"user_name">:  @@(dic_agentes,"$usr_"+pk_str)
 
-    if not(field.exist(params,"limit")) { params<"limit">:max_rows }
-    
-    if trim(@@(params,"$ordeby"))!=""{sqlOrder=@@(params,"$ordeby") + ifstr(@@(params,"$ordeby")=="uf_ultimocontac"," ASC "," DESC ")}
-    
-    sql="
-    select sys_pk,sys_user fuser,ifnull(sys_info,'')sys_info,
-    date_format(sys_dtcreated,'%Y-%m-%dT%T') sys_dtcreated,
-    date_format(sys_timestamp,'%Y-%m-%dT%T') sys_timestamp, 
-    sys_guid, 
-    if(isnull(uf_fecha),date_format(sys_dtcreated,'%Y-%m-%dT%T'),date_format(uf_fecha,'%Y-%m-%dT%T')) recived,
-    if(isnull(uf_proxcontac),'',date_format(uf_proxcontac,'%Y-%m-%dT%T')) next_contact,
-    if(not ifnull(uf_contactado,0),'', if(isnull(uf_ultimocontac),'',date_format(uf_ultimocontac,'%Y-%m-%dT%T'))) last_contact,
-    if(isnull(uf_ultimointento),'',date_format(uf_ultimointento,'%Y-%m-%dT%T')) last_attempt,
-    if(ifnull(uf_perfil,'')='','unassigned',uf_perfil) agent_id, 
-    ifnull(uf_status,0) leadstatus,
-    uf_interes subject,
-    uf_color color, 
-    uf_nombre name, 
-    uf_email email, 
-    uf_telefono phone, 
-    uf_empresa organization, 
-    ifnull(uf_comentarios,'') remarks,
-    uf_puesto position,
-    uf_ref_customer customer_id,
-    uf_pipeline pipeline,
-    uf_stage stage,
-    uf_probability probability,
-    uf_amount amount,
-    uf_iejecutivo
-    from ut_icontact 
-    "+sqlWhere+" 
-    order by "+sqlOrder+" limit @limit;
-    "
-    // do file.wtext("C:/Devkron/_tests/logs/leads.list.sql",sql)
-    ref t=dbr.table(db,sql,params)
-
-    ref l=list.create()
-    
-    for i=0;i<@count(t)
-    {
-        ref rw=row.get(t,i)
-        if tolower(@@(rw,"$agent_id"))=="freezer"{rw<"agent_id">:@@(rw,"$sys_info")}
-
-        rw<"agent_id">:field.dstr(dic_agentes,"cod_"+@@(rw,"$uf_iejecutivo"),@@(rw,"$agent_id"))
-        rw<"agent_name">:field.dstr(dic_agentes,"id_"+@@(rw,"$uf_iejecutivo"),"Sin asignar")
-        rw<"user_name">:field.dstr(dic_agentes,"usr_"+@@(rw,"$uf_iejecutivo"),"")
+        // Texto descriptivo del estado
         switch @@(rw,"#leadstatus")
         {
-            case 0 { rw<"leadstatus_text">:"Recibido"}
-            case 1 { rw<"leadstatus_text">:"Atendido"}
-            case 2 { rw<"leadstatus_text">:"Descartado"}
-            case 3 { rw<"leadstatus_text">:"Oportunidad"}
-            case 4 { rw<"leadstatus_text">:"Ganado :)"}
-            case 5 { rw<"leadstatus_text">:"Perdido :("}
-            default { rw<"leadstatus_text">:"Otro"}
+            case 0 { rw<"leadstatus_text">: "Recibido"    }
+            case 1 { rw<"leadstatus_text">: "Atendido"    }
+            case 2 { rw<"leadstatus_text">: "Descartado"  }
+            case 3 { rw<"leadstatus_text">: "Oportunidad" }
+            case 4 { rw<"leadstatus_text">: "Ganado :)"   }
+            case 5 { rw<"leadstatus_text">: "Perdido :("  }
+            default { rw<"leadstatus_text">: "Otro"       }
         }
-        // ref log=dbr.rec(db,"SELECT date_format(n.uf_tiempo,'%Y-%m-%dT%T') last_log_update, n.uf_usuario last_log_user_update, n.uf_mensaje last_log from xt_biticontact n WHERE n.uf_Iicontact=@sys_pk ORDER BY n.Sys_PK DESC LIMIT 1;",rw)
-        // if not(isnull(log))
-        // {
-        //     rw<"last_log_update">:@@(log,"last_log_update")
-        //     rw<"last_log_user_update">:@@(log,"last_log_user_update")
-        //     rw<"last_log">:@@(log,"last_log")
-        // }
-        
-        do addNotes(db,rw)
-        do list.add(l,rw)
     }
-    response<"data*">:l
-    response<"success">:@true
+
+    // addNotes: agrega el historial de bitácora al registro del lead
+    //   Solo se llama cuando se consulta un lead específico (sys_pk)
+    //   Parámetros:
+    //     db — conexión activa
+    //     rw — registro del lead (el campo sys_pk debe existir)
+
+    //#endregion
+
+    // ---------------------------------------------------------------------------
+    // Respuesta base y parseo de parámetros
+    // ---------------------------------------------------------------------------
+    new response
+    {
+        @"success": @false
+    }
+
+    ref params = from.json(@@(@http_context,"$request/post_string"))
+    if isnull(params) { ref params = record.create() }
+
+    ref db   = @@(@http_context,"&session/idp/database")
+    ref user = @@(@http_context,"&session/user")
+
+    // Verificar y migrar estructura de la BD si es necesario
+    do checkDBStruct(db)
+
+    // ---------------------------------------------------------------------------
+    // Diccionario de agentes: clave = sys_pk (string)
+    //   cod_<pk>  → codigo del agente
+    //   id_<pk>   → nombre del agente
+    //   usr_<pk>  → username del usuario vinculado
+    // ---------------------------------------------------------------------------
+    ref dic_agentes = record.create()
+
+    ref lagentes = dbr.list(db,"
+    SELECT
+        c.sys_pk,
+        c.codigo id,
+        c.nombre `name`,
+        t.username nameusr
+    FROM agente c
+        LEFT JOIN tuser t ON c.uf_iuser = t.sys_pk
+    WHERE IFNULL(c.sys_deleted,0) = 0
+    ",@null)
+
+    for i = 0; i < list.count(lagentes)
+    {
+        ref ra  = list.obj(lagentes,i)
+        pk_str  = @@(ra,"$sys_pk")
+        dic_agentes<"cod_"+pk_str> : trim(@@(ra,"$id"))
+        dic_agentes<"id_"+pk_str> : trim(@@(ra,"$name"))
+        dic_agentes<"usr_"+pk_str> : trim(@@(ra,"$nameusr"))
+    }
+
+    // ---------------------------------------------------------------------------
+    // Verificación de permisos
+    // ---------------------------------------------------------------------------
+    manage_all_leads = @false
+    codeblock "check privileges"
+    {
+        do dbr.apps.action.grant("VC84")
+        manage_all_leads = @true
+        exception { do clear_exceptions() }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Restricción base por permisos
+    //   Con permiso: sin restricción de asignación
+    //   Sin permiso: solo leads asignados al agente del usuario (uf_iejecutivo)
+    //                O al usuario directamente (uf_perfil = sys_guid del usuario)
+    // ---------------------------------------------------------------------------
+    sqlPermiso = ""
+    if not(manage_all_leads)
+    {
+        // Obtener sys_pk(s) del/los agente(s) vinculados al usuario logueado
+        logged_user_agents = dbr.str(db,"SELECT GROUP_CONCAT(a.sys_pk) FROM agente a INNER JOIN tuser t ON a.uf_iuser = t.sys_pk WHERE t.userid = @userid",user)
+
+        if logged_user_agents != "" {
+            sqlPermiso = "(IFNULL(uf_iejecutivo,0) IN ("+logged_user_agents+") OR uf_perfil = @logged_user_guid)"
+        }
+        else {
+            sqlPermiso = "uf_perfil = @logged_user_guid"
+        }
+
+        // Establecer sys_guid del usuario logueado (para uf_perfil)
+        params<"logged_user_guid"> : @@(user,"$uid")
+    }
+
+    // ---------------------------------------------------------------------------
+    // Consulta principal
+    // ---------------------------------------------------------------------------
+    sql = "
+    SELECT
+        sys_pk,
+        sys_guid,
+        sys_user fuser,
+        IFNULL(sys_info,'') sys_info,
+        date_format(sys_dtcreated,'%Y-%m-%dT%T') sys_dtcreated,
+        date_format(sys_timestamp,'%Y-%m-%dT%T') sys_timestamp,
+        if(isnull(uf_fecha), date_format(sys_dtcreated,'%Y-%m-%dT%T'), date_format(uf_fecha,'%Y-%m-%dT%T')) recived,
+        if(isnull(uf_proxcontac), '', date_format(uf_proxcontac,'%Y-%m-%dT%T')) next_contact,
+        if(not IFNULL(uf_contactado,0), '', if(isnull(uf_ultimocontac), '', date_format(uf_ultimocontac,'%Y-%m-%dT%T'))) last_contact,
+        if(isnull(uf_ultimointento), '', date_format(uf_ultimointento,'%Y-%m-%dT%T')) last_attempt,
+        if(IFNULL(uf_perfil,'')='', 'unassigned', uf_perfil) agent_id,
+        IFNULL(uf_status,0) leadstatus,
+        uf_interes subject,
+        uf_color color,
+        uf_nombre name,
+        uf_email email,
+        uf_telefono phone,
+        uf_empresa organization,
+        IFNULL(uf_comentarios,'') remarks,
+        uf_puesto position,
+        uf_ref_customer customer_id,
+        uf_pipeline pipeline,
+        uf_stage stage,
+        uf_probability probability,
+        uf_amount amount,
+        uf_iejecutivo
+    FROM ut_icontact
+    WHERE "+sqlPermiso
+
+    // ---------------------------------------------------------------------------
+    // Búsqueda por sys_pk exacto
+    //   Omite todos los filtros de negocio pero MANTIENE la restricción de permiso
+    // ---------------------------------------------------------------------------
+    if @@(params,"$sys_pk") != ""
+    {
+        sql = sql + ifstr(sqlPermiso != "", " AND ","") + "sys_pk = @sys_pk"
+        ref r = dbr.rec(db,sql,params)
+
+        do EnrichLead(r,dic_agentes)
+        do addNotes(db,r)
+
+        ref l = list.create()
+        do list.add(l,r)
+        
+        response<"success"> : @true
+        response<"data*"> : l
+
+        do SetHTTPResponse(response)
+        return
+    }
+
+    // ---------------------------------------------------------------------------
+    // Construcción de WHERE para listado general
+    // ---------------------------------------------------------------------------
+
+    // -- Filtro especial (freezer / deleted): reemplaza TODO el where
+    //    pero conserva la restricción de permisos
+    search_term = trim(@@(params,"$search"))
+    special_mode = tolower(trim(@@(params,"$special")))
+    searchClause = "(
+        uf_nombre   LIKE CONCAT('%',@search,'%') OR
+        uf_email    LIKE CONCAT('%',@search,'%') OR
+        uf_telefono LIKE CONCAT('%',@search,'%') OR
+        uf_empresa  LIKE CONCAT('%',@search,'%') OR
+        uf_interes  LIKE CONCAT('%',@search,'%')
+    )"
+
+    if search_term == "" {
+        search_term = trim(@@(params,"$text"))
+        params<"search"> : search_term
+    }
+
+    if special_mode == "freezer" || special_mode == "deleted"
+    {
+        sqlWhere = ifstr(sqlPermiso != "", " AND ","")
+
+        if special_mode == "freezer"
+        {
+            sqlWhere = sqlWhere + "LOWER(uf_perfil) = 'freezer'" + ifstr(search_term != "", " AND "+searchClause, "")
+            agent_filter_val = trim(@@(params,"$agent_filter"))
+            if agent_filter_val != ""
+            {
+                params<"agent_filter"> : cut(agent_filter_val,32)
+                sqlWhere = sqlWhere + " AND sys_info = @agent_filter"
+            }
+        }
+        else  // deleted
+        {
+            sqlWhere = sqlWhere + "IFNULL(sys_deleted,0) = 1" + ifstr(search_term != "", " AND "+searchClause, "")
+            agent_filter_val = trim(@@(params,"$agent_filter"))
+            if agent_filter_val != ""
+            {
+                params<"agent_filter"> : cut(agent_filter_val,32)
+                sqlWhere = sqlWhere + " AND uf_perfil = @agent_filter"
+            }
+        }
+
+        sqlOrder = "IFNULL(uf_fecha,sys_dtcreated) DESC"
+    }
+    else
+    {
+        // -----------------------------------------------------------------------
+        // Flujo normal
+        // -----------------------------------------------------------------------
+
+        // -- Base: registros activos (no eliminados, no en freezer)
+        sqlWhere = ifstr(sqlPermiso != "", " AND ","") + "NOT IFNULL(sys_deleted,0) AND LOWER(IFNULL(uf_perfil,'')) <> 'freezer'"
+
+        // -- Filtro de agente (agent_filter)
+        agent_filter_val = trim(@@(params,"$agent_filter"))
+        if agent_filter_val == "" { agent_filter_val = "all" }
+
+        switch agent_filter_val
+        {
+            case "all"
+            {
+                // Sin filtro de agente: se muestran todos (ya restringido por permisos)
+                break
+            }
+            case "assigned"
+            {
+                // Tiene asignación por cualquiera de los dos mecanismos
+                sqlWhere = sqlWhere + " AND (IFNULL(uf_iejecutivo,0) > 0 OR IFNULL(uf_perfil,'') <> '')"
+                break
+            }
+            case "unassigned"
+            {
+                // Sin asignación por ninguno de los dos mecanismos
+                sqlWhere = sqlWhere + " AND (IFNULL(uf_iejecutivo,0) = 0 AND IFNULL(uf_perfil,'') = '')"
+                break
+            }
+            default
+            {
+                // Código alfanumérico de un agente específico
+                ref _agente = dbr.rec(db,"SELECT a.sys_pk pk_agente, t.sys_guid guid_user FROM agente a LEFT JOIN tuser t ON a.uf_iuser = t.sys_pk WHERE a.codigo = @agent_filter",params)
+
+                params<"pk_agente"> : @@(_agente,"#pk_agente")
+                params<"guid_user"> : trim(@@(_agente,"$guid_user"))
+                
+                sqlWhere = sqlWhere + " AND (IFNULL(uf_iejecutivo,0) = @pk_agente OR uf_perfil = @guid_user)"
+            }
+        }
+
+        // -- Filtro de estado (status_filter)
+        status_val = @@(params,"#status_filter")
+
+        if status_val == 999
+        {
+            // "Por atender": asignados en estado recibido (0) u oportunidad (3) con próximo contacto
+            sqlWhere = sqlWhere + " AND (
+                ( IFNULL(uf_iejecutivo,0) > 0 OR NOT ISNULL(uf_perfil) ) AND
+                ( uf_status = 0 OR (uf_status = 3 AND NOT ISNULL(uf_proxcontac)) )
+            )"
+            // sqlOrder = "uf_proxcontac ASC, IFNULL(uf_fecha,sys_dtcreated) DESC"
+        }
+        else if status_val >= 0
+        {
+            // Estado exacto
+            sqlWhere = sqlWhere + " AND uf_status = @status_filter"
+        }
+        // status_val == -1: no se agrega cláusula, devuelve todos los estados
+
+        // -- Filtro de color
+        if @@(params,"#color_filter") >= 0 { sqlWhere = sqlWhere + " AND uf_color = @color_filter" }
+
+        // -- Filtro de pipeline / stage (solo cuando status = 3 Oportunidad)
+        if status_val == 3
+        {
+            if @@(params,"#pipeline") > 0 { sqlWhere = sqlWhere + " AND uf_pipeline = @pipeline" }
+            if @@(params,"#stage")    > 0 { sqlWhere = sqlWhere + " AND uf_stage = @stage" }
+        }
+
+        // -- Búsqueda por rango de fechas
+        if isanyword(@@(params,"$fdr_mode"),"month,lastdays,range")
+        {
+            ndt = ndatetime.now()
+            
+            fdr_field = @@(params,"#fdr_field")
+            fdr_year = @@(params,"#fdr_year")
+            fdr_month = @@(params,"#fdr_month")
+            fdr_range = @@(params,"#fdr_range")
+            fdr_from = DateFormat(@@(params,"$fdr_from"), "yyyy-MM-dd")
+            fdr_to = DateFormat(@@(params,"$fdr_to"), "yyyy-MM-dd")
+            
+            if not(isanyword(fdr_field,"1,2")) { fdr_field = 1 }
+            // [month]
+            params<"fdr_year"> : if(fdr_year > 0, fdr_year, ndatetime.year(ndt))
+            params<"fdr_month"> : if(fdr_month > 0, fdr_month, ndatetime.month(ndt))
+            // [lastdays]
+            params<"fdr_range"> : if(isanyword(fdr_range,"15,30,45,60,90"), fdr_range, 30)
+            // [range]
+            fdr_from, fdr_to >> params
+
+            new _fields
+            {
+                @"1": "IFNULL(uf_fecha,sys_dtcreated)"
+                @"2": "uf_proxcontac"
+            }
+            lead_fdr_field = field.str(_fields, fdr_field)
+
+            sqlWhere = sqlWhere + ftext(" AND (
+            CASE @fdr_mode
+                WHEN 'month' THEN (YEAR(#<lead_fdr_field>) = @fdr_year AND MONTH(#<lead_fdr_field>) = @fdr_month)
+                WHEN 'lastdays' THEN (DATE(#<lead_fdr_field>) BETWEEN ADDDATE(DATE(NOW()), INTERVAL -@fdr_range DAY) AND DATE(NOW()))
+                WHEN 'range' THEN (
+                    CASE
+                        WHEN @fdr_from != '' && @fdr_to != '' THEN (DATE(#<lead_fdr_field>) BETWEEN DATE(@fdr_from) AND DATE(@fdr_to))
+                        WHEN @fdr_from != '' && @fdr_to = '' THEN (DATE(#<lead_fdr_field>) >= DATE(@fdr_from))
+                        WHEN @fdr_from = '' && @fdr_to != '' THEN (DATE(#<lead_fdr_field>) <= DATE(@fdr_to))
+                        ELSE TRUE
+                    END
+                )
+                ELSE TRUE
+            END
+            )")
+        }
+
+        // -- Búsqueda de texto (search)
+        if search_term != ""
+        {
+            params<"search">: search_term
+            sqlWhere = sqlWhere + " AND " + searchClause
+        }
+
+        // -- Orden (ordeby + ordedir)
+        ordeby_val  = trim(@@(params,"$ordeby"))
+        ordedir_val = trim(toupper(@@(params,"$ordedir")))
+
+        if not(isanyword(ordeby_val,"sys_dtcreated,uf_proxcontac,uf_nombre,uf_empresa,uf_interes,agent_name")) { ordeby_val = "sys_dtcreated" }
+
+        if ordeby_val == "sys_dtcreated" { ordeby_val = "IFNULL(uf_fecha,sys_dtcreated)" }
+        if ordedir_val != "ASC" && ordedir_val != "DESC" { ordedir_val = "DESC" }
+
+        sqlOrder = ordeby_val + " " + ordedir_val
+
+    } // fin flujo normal
+
+    // -- Límite de filas
+    if @@(params,"#limit") > 0 { MAX_ROWS = @@(params,"#limit") }
+
+    sql = sql + sqlWhere + " ORDER BY "+sqlOrder+" LIMIT "+str(MAX_ROWS)
+    // do file.wtext("C:/Devkron/_tests/logs/list-leads.sql",sql)
+
+    ref l = dbr.list(db,sql,params)
+    for i = 0; i < list.count(l)
+    {
+        ref r = list.obj(l,i)
+        do EnrichLead(r,dic_agentes)
+    }
+
+    response<"success"> : @true
+    response<"data*"> : l
 
     exception
     {
         using response
         {
-            @"success":@false
-            @"message":last_error() 
+            @"success": @false
+            @"message": last_error()
         }
-
-        if isset("db") { do dbr.close(db) }
+        do clear_exceptions()
     }
 
-    @http_context<"response/output">:"text"
-    @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
-    @http_context<"response/text">: to.json(response)
+    do SetHTTPResponse(response)
 }

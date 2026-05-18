@@ -4,14 +4,19 @@ module "ventas"
 {
 	#include "functions.dkh"
 	#include "serialize.dkh"
+	#include "dbr.dkh"
+	#include "dbr.apps.dkl"
+	#include "dbr.security.dkl"
 	#include "uielements.v12.dkl"
 
 	do @context.begin(@crud_context)
+	
 	ref @http_context = @("&http")
-	ref agente=@("&./agente")
-	ref links=ifnull(@("&./links"),record.create())
-	ref filter=@("&./filters")
-	@induxsoft_sid=@("$./induxsoft_sid")
+	ref agente = @("&./agente")
+	ref links = ifnull(@("&./links"),record.create())
+	ref filter = @("&./filters")
+	
+	@induxsoft_sid = @("$./induxsoft_sid")
 	
 	if trim(@("$parameters/_filter"))!="" && isnull(filter)
 	{
@@ -22,6 +27,15 @@ module "ventas"
 			agente<"codigo">:@@(filter,"$cbAgentes")
 		}
 	}
+	if isnull(filter){ ref filter = @("&parameters") }
+
+	@manage_all_leads = @false
+    codeblock "check privileges"
+    {
+        do dbr.apps.action.grant("VC84")
+        @manage_all_leads = @true
+        exception { do clear_exceptions() }
+    }
 
 	PATH_TRANSLATED = field.dstr(@http_context,'request/headers/PATH_TRANSLATED','')
 	PATH_TRANSLATED = path.concat(dir.name(PATH_TRANSLATED),"_modules/ventas.dk")
@@ -64,6 +78,43 @@ module "ventas"
 			@"copy":@true
 		}
     }
+
+	ndt = ndatetime.now()
+	fdr_year = @@(filter,"#fdr_year")
+	fdr_month = @@(filter,"#fdr_month")
+	fdr_range = @@(filter,"#fdr_range")
+	
+	new fdr_init
+    {
+        @"fdr_mode": field.dstr(filter,"fdr_mode","lastdays")
+        // [month]
+        @"fdr_year": if(fdr_year > 0, fdr_year, ndatetime.year(ndt))
+        @"fdr_month": if(fdr_month > 0, fdr_month, ndatetime.month(ndt))
+        // [lastdays]
+        @"fdr_range": if(isanyword(fdr_range,"15,30,45,60,90"), fdr_range, 30)
+        // [range]
+        @"fdr_from": field.dstr(filter,"fdr_from","")
+        @"fdr_to": field.dstr(filter,"fdr_to","")
+    }
+
+    new fdr_field
+    {
+        @"datatable*": from.json('[
+            {"id":1, "const":"Creación"},
+            {"id":2, "const":"Prox. contacto"},
+        ]')
+        @"id": "fdr_field"
+        member "attributes"
+        {
+            @"name": "fdr_field"
+            @"class": "induxsoft-form-select"
+            @"title": "Elegir método de filtro para el rango de fechas"
+            @"onchange": "model.filters_leads(model.getDataFilters());"
+        }
+        @"value_field": "id"
+        @"text_field": "const"
+        @"selected": @("#parameters/fdr_field")
+    }
 	
 	#$
 	div(class="pt-1 ps-3 pe-3" style="background-color:#F5F5F5; min-height:94%;" id="container-ventas")
@@ -86,7 +137,7 @@ module "ventas"
 			#! 
             do uie.printV12FormBar(nav_config)
             #$
-			div(style="cursor: pointer;" "data-bs-toggle"="collapse" "data-bs-target"=".module-filter" class="d-flex h-100")
+			div(style="cursor: pointer;" "data-bs-toggle"="collapse" "data-bs-target"=".module-filter" class="d-flex align-items-center gap-1 h-100")
 			{
 				span(class="toggle-icon")
 				{
@@ -98,60 +149,139 @@ module "ventas"
 						<path d="M1.5 10.5l6.5-6.5 6.5 6.5"/>
 					</svg>'
 				}
+				span{"Herramientas"}
 				hr(class="w-100"){""}
 			}
 			
 			div(class="collapse module-filter show" id="module-filter")
 			{
-				form(class="row gx-1" action="#" method="GET" id="form-leads-filter")
+				form(class="" action="#" method="GET" id="form-leads-filter")
 				{
-					div(class="col-lg-2 col-md-3 mb-1")
+					div(class="d-flex align-items-end gap-1 flex-wrap w-100")
 					{
-						label{"Agente:"}
-						select(class="form-select form-select-sm induxsoft-corners no-shadow" id="cbAgentes" name="cbAgentes" value="#<@@(filter,'$cbAgentes')>"){$""}
-					}
-					div(class="col-lg-2 col-md-3 mb-1")
-					{
-						label{"Estado:"}
-						select(class="form-select form-select-sm induxsoft-corners no-shadow" id="cbStatus" name="cbStatus" value="#<@@(filter,'$cbStatus')>"){$""}
-					}
-					div(class="col-lg-2 col-md-3 mb-1")
-					{
-						label{"Color:"}
-						select(class="form-select form-select-sm induxsoft-corners no-shadow" id="cbColors" name="cbColors" value="#<@@(filter,'$cbColors')>"){$""}
-					}
-					div(class="col-lg-2 col-md-3 mb-1")
-					{
-						label{"Ordenar por:"}
-						select(class="form-select form-select-sm induxsoft-corners no-shadow" id="sOrderBy" name="sOrderBy" value="#<@@(filter,'$sOrderBy')>"){$""}
-					}
-					div(class="col-lg-4 col-md-8 mb-1 align-self-end")
-					{
-						// label(class="" "for"="txtFilter"){"Filtrar:"}
-						// input(type="text" class="form-control form-control-sm induxsoft-corners no-shadow" "aria-label"="Small" "aria-describedby"="inputGroup-sizing-sm" id="txtFilter" placeholder="Filtrar..."  onkeyup="model.filter_table_text();" name="txtFilter")
-
-						"filter-text"("text-field"="search" id="txtFilter" value="#<@('$parameters/search')>" placeholder="Buscar ..." form="#form-leads-filter" "auto-submit"="true"){""}
-					}
-					div(class="col-lg-2 col-md-4 mb-1 d-flex align-items-end")
-					{
-						div(class="d-flex gap-2")
+						div(class="d-flex align-items-end gap-1")
 						{
-							small(class="fw-bold"){"Prospectos encontrados: "}
-							h6(id="_rows"){"0"}
+							div
+							{
+								label(class="d-block"){"Agente:"}
+								div(class="d-flex")
+								{
+									select(class="form-select induxsoft-corners no-shadow" id="cbAgentes" name="cbAgentes" value="#<@@(filter,'$cbAgentes')>"){$""}
+
+									#!
+									text agents_info
+									{$'
+									Los resultados se restringen por el privilegio: <b>VC84</b> - Administrar todos los prospectos.</br></br>
+									<b>Sin privilegio</b> - solo prospectos asignados a los agentes del usuario que inicio sesión.
+									'}
+									#$
+									button(
+										class="btn btn-info rounded-0 shadow-none" type="button" id="show-taxes-summary"
+										"data-bs-toggle"="popover" "data-bs-placement"="top" "data-bs-html"="true"
+										"data-bs-content"="#<agents_info>"
+										title="Filtro por agentes"
+									){i{"i"}}
+								}
+							}
+							div
+							{
+								label(class="d-block"){"Estado:"}
+								div(class="d-flex")
+								{
+									select(class="form-select induxsoft-corners no-shadow" id="cbStatus" name="cbStatus" value="#<@@(filter,'$cbStatus')>"){$""}
+
+									#!
+									text status_info
+									{$'
+									<b>(Por atender)</b> - Muestra los prospectos asignados en estado recibido u oportunidad con próximo contacto.
+									'}
+									#$
+									button(
+										class="btn btn-info rounded-0 shadow-none" type="button" id="show-taxes-summary"
+										"data-bs-toggle"="popover" "data-bs-placement"="top" "data-bs-html"="true"
+										"data-bs-content"="#<status_info>"
+										title="Estados especiales"
+									){i{"i"}}
+								}
+							}
+							div
+							{
+								div(class="d-flex gap-1 #<ifstr(@@(filter,'$cbPipeline')=='','d-none','')>" id="div_pipeline")
+								{
+									select(class="form-select induxsoft-corners" id="cbPipeline" name="cbPipeline" value="#<@@(filter,'$cbPipeline')>"){$""}
+									select(class="form-select induxsoft-corners" id="cbStages" name="cbStages" value="#<@@(filter,'$cbStages')>"){$""}
+								}
+							}
+						}
+						div(class="flex-grow-1")
+						{
+							"filter-text"("text-field"="search" id="txtFilter" value="#<@('$parameters/search')>" placeholder="Buscar ..." form="#form-leads-filter" "auto-submit"="true"){""}
 						}
 					}
-					div(class="col-lg-4 mb-1 " )
+					div(class="d-flex align-items-end gap-1 flex-wrap w-100 py-1")
 					{
-						div(class="d-flex gap-1 #<ifstr(@@(filter,'$cbPipeline')=='','d-none','')>" id="div_pipeline" style="height: max-content;")
+						div(class="d-flex align-items-end")
 						{
-							select(class="form-select form-select-sm induxsoft-corners" id="cbPipeline" name="cbPipeline" value="#<@@(filter,'$cbPipeline')>"){$""}
-							select(class="form-select form-select-sm induxsoft-corners" id="cbStages" name="cbStages" value="#<@@(filter,'$cbStages')>"){$""}
+							div
+							{
+								label(class="d-block"){"Filtrar por fecha de:"}
+								##
+								do uie.dbSelect(fdr_field)
+								##
+							}
+							div(class="flex-grow-1")
+							{
+								"filter-date-range"(
+									"form"="#form-leads-filter"
+									"auto-submit"="true"
+									"custom-range"="true"
+									"selection"='#<to.json(fdr_init)>'
+
+									"mode-field"="fdr_mode"
+									"year-field"="fdr_year"
+									"month-field"="fdr_month"
+									"range-field"="fdr_range"
+									"from-field"="fdr_from"
+									"to-field"="fdr_to"
+									
+									"lastdays-options"="15,30,45,60,90"
+								){$""}
+							}
+						}
+						div
+						{
+							label(class="d-block"){"Color:"}
+							select(class="form-select induxsoft-corners no-shadow" id="cbColors" name="cbColors" value="#<@@(filter,'$cbColors')>"){$""}
+						}
+						div
+						{
+							label(class="d-block"){"Ordenar por:"}
+							select(class="form-select induxsoft-corners no-shadow" id="sOrderBy" name="sOrderBy" value="#<@@(filter,'$sOrderBy')>"){$""}
+						}
+						div
+						{
+							label(class="d-block" "for"="sOrderDir"){"Ordenar de:"}
+							#!
+							order_dir = tolower(@@(filter,'$sOrderBy'))
+							if order_dir == "" { order_dir = "desc" }
+							#$
+							select(class="form-select rounded-0 shadow-none" name="sOrderDir" id="sOrderDir")
+							{
+								option(value="ASC" "#<ifstr(order_dir=='asc', 'selected', '')>"=""){"Menor a mayor"}
+								option(value="DESC" "#<ifstr(order_dir=='desc', 'selected', '')>"=""){"Mayor a menor"}
+							}
 						}
 					}
 					
-					div(class="col-lg-6 col-md-12 mb-1")
+					div(class="d-flex flex-wrap justify-content-between align-items-center")
 					{
-						div(class="d-md-flex gap-1 justify-content-end")
+						div(class="d-flex align-items-center gap-2")
+						{
+							span(class="fw-bold"){"Prospectos encontrados: "}
+							h6(class="m-0" id="_rows"){"0"}
+						}
+						
+						div(class="d-md-flex gap-1 justify-content-end align-items-center")
 						{
 							label(class="d-flex gap-2 mt-2 ms-2")
 							{
@@ -183,11 +313,8 @@ module "ventas"
 									</svg>'
 								}
 							}
-							
 						}
-						
 					}
-					
 				}
 				hr{}	
 			}			
@@ -255,6 +382,7 @@ module "ventas"
 					model._filter=#<to.json(filter)>;
 					model.data_enlances=#<to.json(links)>;
 					model.induxsoft_sid="#<@induxsoft_sid>";
+					model.manage_all_leads = #<@manage_all_leads>;
 					model.Init();
 					model.fieldsOrder((model._filter?.sOrderBy??""));
 

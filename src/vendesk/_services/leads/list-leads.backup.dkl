@@ -1,0 +1,252 @@
+#include "dkli.dkh"
+#!
+module "listar-prospectos"
+{
+	#include "functions.dkh"
+	#include "dbr.dkh"
+	#include "serialize.dkh"
+    #include "webcl.dkh"
+    #include "website.dkl"
+    #include "dbr.security.dkl"
+	#include "dbr.events.dkl"
+    #include "dbr.vars.dkl"
+	#include "dbr.apps.dkl"
+    
+    do cors_xhr()
+    if @@(@http_context,"request/headers/REQUEST_METHOD")=="OPTIONS"{return}
+    
+    max_rows=500 // Máximo de registros a devolver
+
+    new response
+    {
+        @"success":@false
+        
+    }
+
+    ref params=from.json(field.dstr(@http_context,"request/post_string","{}"))
+
+    
+    ref db=@@(@http_context,"&session/idp/database")
+    ref user=@@(@http_context,"&session/user")
+
+    //verifica y agrega tablas y campos, solo se necesita cuando la bd se creó con PlazaMundial
+    do checkDBStruct(db)
+    ///////////////////////////////////////////////////////////////////////////////////////////
+
+    ref dic_agentes=record.create()
+    
+    sql="select c.codigo id,c.sys_pk, c.nombre `name`,t.username `nameusr` 
+    from agente c 
+    left join tuser t on c.uf_iuser=t.sys_pk
+        where ifnull(c.sys_deleted,0)=0"
+    
+    ref tagentes=dbr.table(db,sql,@null)
+
+    for i=0;i<@count(tagentes)
+    {
+        ref ra=row.get(tagentes,i)
+        dic_agentes<"cod_"+@@(ra,"$sys_pk")>:@@(ra,"id")
+        dic_agentes<"usr_"+@@(ra,"$sys_pk")>:trim(@@(ra,"$nameusr"))
+        dic_agentes<"id_"+@@(ra,"$sys_pk")>:@@(ra,"$name")
+    }
+    
+    sqlWhere=""
+    sqlOrder=" ifnull(uf_fecha,sys_dtcreated) desc "
+
+    permiso=@false
+    module "check privileges"
+    {
+        do dbr.apps.action.grant("VC84")
+        permiso=@true
+        exception{}
+    }
+    if not(permiso)
+    {
+        yoagentes=dbr.str(db,"SELECT GROUP_CONCAT(a.sys_pk) FROM agente a 
+                    INNER JOIN tuser t ON a.uf_iuser=t.sys_pk WHERE t.userid=@uid",user)
+
+        yoagentes=to.json(split(yoagentes,","))
+        yoagentes=replace(yoagentes,"[","")
+        yoagentes=replace(yoagentes,"]","")
+        
+        sqlWhere="ifnull(uf_iejecutivo,0) in("+yoagentes+")"
+    }
+
+    switch field.dstr(params,"agent_filter","all")
+    {
+        case ""
+        {
+            sqlWhere = ifstr(trim(sqlWhere)!="", sqlWhere + " AND TRUE ", " TRUE ")
+            break
+        }
+        case "assigned"
+        {
+            sqlWhere=ifstr(trim(sqlWhere)!="",sqlWhere + " AND ","") + " ifnull(uf_perfil,'')<>'' and (ifnull(uf_iejecutivo,0)>0 and ifnull(uf_perfil,'')<>'') "
+            break
+        }
+        case "unassigned"
+        {
+            sqlWhere=ifstr(trim(sqlWhere)!="",sqlWhere + " AND ","") + " ifnull(uf_perfil,'')='' and (ifnull(uf_iejecutivo,0)=0 and ifnull(uf_perfil,'')='') "
+            break
+        }
+        case "all"
+        {
+            sqlWhere=ifstr(trim(sqlWhere)!="",sqlWhere + " AND ","") + " (ifnull(uf_iejecutivo,0)<>0 or ifnull(uf_perfil,'')<>'') "
+            break
+        }
+        default
+        {
+            sql="SELECT a.codigo,a.sys_pk pk_agente,a.nombre,t.sys_guid
+                from agente a
+                LEFT JOIN tuser t ON a.uf_iuser=t.sys_pk
+                WHERE a.codigo=@agent_filter"
+    
+            ref _agente_usr=dbr.rec(db,sql,params)
+            
+            params<"guid_user">:trim(@@(_agente_usr,"$sys_guid"))
+            params<"pk_agente">:@@(_agente_usr,"#pk_agente")
+            
+            sqlWhere=ifstr(trim(sqlWhere)!="",sqlWhere + " AND ","") + " ((ifnull(uf_iejecutivo,0)=@pk_agente or 
+            ifnull(uf_perfil,'')=@guid_user) and not (ifnull(uf_iejecutivo,0)=0 and ifnull(uf_perfil,'')='')) "
+        }
+    }
+
+    if sqlWhere!="" { sqlWhere=" WHERE ifnull(sys_deleted,0)=0 and LOWER(ifnull(uf_perfil,''))<>'freezer' and "+sqlWhere}
+
+    if field.dnum(params,"status_filter",-1)>=0 && field.dnum(params,"status_filter",-1)<999 { sqlWhere=sqlWhere+" and uf_status=@status_filter"}
+    else
+    {
+        //Status especiales
+        switch field.dnum(params,"status_filter",-1)
+        {
+            case 999
+            {
+                sqlWhere=sqlWhere+" and (uf_status=0 or (uf_status=3 and not isnull(uf_proxcontac)) and not isnull(uf_perfil) )"
+                sqlOrder=" uf_proxcontac, ifnull(uf_fecha,sys_dtcreated) desc "
+            }
+        }
+    }
+
+    if field.dnum(params,"color_filter",-1)>=0 { sqlWhere=sqlWhere+" and uf_color=@color_filter"}
+    
+    if @@(params,"$text")!=""
+    {
+        if tolower(@@(params,"$special"))=="freezer"
+        {
+            sqlWhere=" where (uf_interes like '%@{text}%' or uf_nombre like '%@{text}%' or uf_email like '%@{text}%' or uf_telefono like '%@{text}%' or uf_empresa like '%@{text}%') and LOWER(uf_perfil)=LOWER(@special)"
+            if @@(params,"$agent_filter")!=""
+            {
+                params<"agent_filter">:cut(trim(@@(params,"$agent_filter")),32)
+                sqlWhere =sqlWhere + " and sys_info=@agent_filter "
+            }
+        }
+        else if tolower(@@(params,"$special"))=="deleted"
+        {
+            sqlWhere=" where ifnull(sys_deleted,0)=1 and (uf_interes like '%@{text}%' or uf_nombre like '%@{text}%' or uf_email like '%@{text}%' or uf_telefono like '%@{text}%' or uf_empresa like '%@{text}%')"
+            if @@(params,"$agent_filter")!=""{sqlWhere =sqlWhere + " and uf_perfil=@agent_filter "}
+        }
+        else{sqlWhere=sqlWhere+" and (uf_interes like '%@{text}%' or uf_nombre like '%@{text}%' or uf_email like '%@{text}%' or uf_telefono like '%@{text}%' or uf_empresa like '%@{text}%') "}
+        
+    }
+    if @@(params,"#status_filter") == 3
+    {
+        if @@(params,"#pipeline")> 0{sqlWhere=sqlWhere + " AND uf_pipeline=@pipeline"}
+        if @@(params,"#stage")> 0{sqlWhere=sqlWhere + " AND uf_stage=@stage"}
+    }
+    if @@(params,"$search") != "" {
+        sqlWhere = sqlWhere + " AND (
+            uf_nombre LIKE CONCAT('%',@search,'%') OR
+            uf_email LIKE CONCAT('%',@search,'%') OR
+            uf_telefono LIKE CONCAT('%',@search,'%') OR
+            uf_empresa LIKE CONCAT('%',@search,'%') OR
+            uf_interes LIKE CONCAT('%',@search,'%')
+        )"
+    }
+    //si la sys_pk > 0 , reseteamos las condiciones
+    if @@(params,"$sys_pk")!=""{sqlWhere =" WHERE ifnull(sys_deleted,0)=0 and sys_pk=@sys_pk "}
+
+    if not(field.exist(params,"limit")) { params<"limit">:max_rows }
+    
+    if trim(@@(params,"$ordeby"))!=""{sqlOrder=@@(params,"$ordeby") + ifstr(@@(params,"$ordeby")=="uf_ultimocontac"," ASC "," DESC ")}
+    
+    sql="
+    select sys_pk,sys_user fuser,ifnull(sys_info,'')sys_info,
+    date_format(sys_dtcreated,'%Y-%m-%dT%T') sys_dtcreated,
+    date_format(sys_timestamp,'%Y-%m-%dT%T') sys_timestamp, 
+    sys_guid, 
+    if(isnull(uf_fecha),date_format(sys_dtcreated,'%Y-%m-%dT%T'),date_format(uf_fecha,'%Y-%m-%dT%T')) recived,
+    if(isnull(uf_proxcontac),'',date_format(uf_proxcontac,'%Y-%m-%dT%T')) next_contact,
+    if(not ifnull(uf_contactado,0),'', if(isnull(uf_ultimocontac),'',date_format(uf_ultimocontac,'%Y-%m-%dT%T'))) last_contact,
+    if(isnull(uf_ultimointento),'',date_format(uf_ultimointento,'%Y-%m-%dT%T')) last_attempt,
+    if(ifnull(uf_perfil,'')='','unassigned',uf_perfil) agent_id, 
+    ifnull(uf_status,0) leadstatus,
+    uf_interes subject,
+    uf_color color, 
+    uf_nombre name, 
+    uf_email email, 
+    uf_telefono phone, 
+    uf_empresa organization, 
+    ifnull(uf_comentarios,'') remarks,
+    uf_puesto position,
+    uf_ref_customer customer_id,
+    uf_pipeline pipeline,
+    uf_stage stage,
+    uf_probability probability,
+    uf_amount amount,
+    uf_iejecutivo
+    from ut_icontact 
+    "+sqlWhere+" 
+    order by "+sqlOrder+" limit @limit;
+    "
+    // do file.wtext("C:/Devkron/_tests/logs/leads.list.sql",sql)
+    ref t=dbr.table(db,sql,params)
+
+    ref l=list.create()
+    
+    for i=0;i<@count(t)
+    {
+        ref rw=row.get(t,i)
+        if tolower(@@(rw,"$agent_id"))=="freezer"{rw<"agent_id">:@@(rw,"$sys_info")}
+
+        rw<"agent_id">:field.dstr(dic_agentes,"cod_"+@@(rw,"$uf_iejecutivo"),@@(rw,"$agent_id"))
+        rw<"agent_name">:field.dstr(dic_agentes,"id_"+@@(rw,"$uf_iejecutivo"),"Sin asignar")
+        rw<"user_name">:field.dstr(dic_agentes,"usr_"+@@(rw,"$uf_iejecutivo"),"")
+        switch @@(rw,"#leadstatus")
+        {
+            case 0 { rw<"leadstatus_text">:"Recibido"}
+            case 1 { rw<"leadstatus_text">:"Atendido"}
+            case 2 { rw<"leadstatus_text">:"Descartado"}
+            case 3 { rw<"leadstatus_text">:"Oportunidad"}
+            case 4 { rw<"leadstatus_text">:"Ganado :)"}
+            case 5 { rw<"leadstatus_text">:"Perdido :("}
+            default { rw<"leadstatus_text">:"Otro"}
+        }
+        // ref log=dbr.rec(db,"SELECT date_format(n.uf_tiempo,'%Y-%m-%dT%T') last_log_update, n.uf_usuario last_log_user_update, n.uf_mensaje last_log from xt_biticontact n WHERE n.uf_Iicontact=@sys_pk ORDER BY n.Sys_PK DESC LIMIT 1;",rw)
+        // if not(isnull(log))
+        // {
+        //     rw<"last_log_update">:@@(log,"last_log_update")
+        //     rw<"last_log_user_update">:@@(log,"last_log_user_update")
+        //     rw<"last_log">:@@(log,"last_log")
+        // }
+        
+        do addNotes(db,rw)
+        do list.add(l,rw)
+    }
+    response<"data*">:l
+    response<"success">:@true
+
+    exception
+    {
+        using response
+        {
+            @"success":@false
+            @"message":last_error() 
+        }
+
+        if isset("db") { do dbr.close(db) }
+    }
+
+    @http_context<"response/output">:"text"
+    @http_context<"response/headers/Content-Type">:"application/json;charset=utf-8"
+    @http_context<"response/text">: to.json(response)
+}

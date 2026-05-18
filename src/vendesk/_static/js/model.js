@@ -218,9 +218,17 @@ var model =
   getDataFilters: function () 
   {
     var cbAgentes = document.querySelector("#cbAgentes");
-    var color = document.querySelector("#cbColors");
     var status = document.querySelector("#cbStatus");
+    var color = document.querySelector("#cbColors");
+    var fdr_field = document.querySelector("#fdr_field");
+    var fdr_mode = document.querySelector('input[name="fdr_mode"]');
+    var fdr_year = document.querySelector('input[name="fdr_year"]');
+    var fdr_month = document.querySelector('input[name="fdr_month"]');
+    var fdr_range = document.querySelector('input[name="fdr_range"]');
+    var fdr_from = document.querySelector('input[name="fdr_from"]');
+    var fdr_to = document.querySelector('input[name="fdr_to"]');
     var orderby = document.querySelector("#sOrderBy");
+    var orderdir = document.querySelector("#sOrderDir");
     var txtFilters = document.querySelector('input[name="search"]');
 
     if(!cbAgentes || !color || !status)return;
@@ -228,11 +236,19 @@ var model =
     var params = 
     {
       agent_filter: cbAgentes.value,
-      color_filter: Number(color.value ?? 0),
       status_filter: status.value == "" ? "999" : status.value,
       pipeline: this.cmpipelines?.value ?? 0,
       stage: this.cbStages?.value ?? 0,
+      fdr_field: fdr_field?.value ?? 1,
+      fdr_mode: fdr_mode?.value ?? "lastdays",
+      fdr_year: fdr_year?.value ?? "",
+      fdr_month: fdr_month?.value ?? "",
+      fdr_range: fdr_range?.value ?? 30,
+      fdr_from: fdr_from?.value ?? "",
+      fdr_to: fdr_to?.value ?? "",
+      color_filter: Number(color.value ?? 0),
       ordeby: orderby?.value ?? "",
+      ordedir: orderdir?.value ?? "",
       search: txtFilters?.value ?? ""
     }
     return params;
@@ -281,11 +297,13 @@ var model =
     }
 
     const form_leads_filter = document.getElementById("form-leads-filter");
+    const fdr = form_leads_filter.querySelector("filter-date-range");
+    const order_dir = document.getElementById("sOrderDir");
     const text_filter = document.getElementById("txtFilter");
 
-    if (text_filter) {
-      text_filter.dispatch_submit = true;
-    }
+    if (fdr) fdr._submitFilter = () => model.filters_leads(model.getDataFilters());
+    if (text_filter) text_filter.dispatch_submit = true;
+
     if (form_leads_filter) form_leads_filter.addEventListener('submit', (e) => {
       e.preventDefault();
       model.filters_leads(model.getDataFilters());
@@ -307,18 +325,27 @@ var model =
       if(this.value=="agent_name")model.orderBy(this.value);
       else model.filters_leads(model.getDataFilters());
     });
+    if (order_dir) order_dir.addEventListener("change", (e) => model.filters_leads(model.getDataFilters()));
 
     model.LoadFields();
     model.SetEvents();
 
-    if(!model.agente)model.filters_leads(model.getDataFilters());
-
-    if (window.location.href.includes('?'))
+    // model.agente se establece en el formulario (prospecto.dk)
+    if (!model.agente)
     {
-      setTimeout(() => {
-        this.restore_filters_from_URL();
-      }, 500);
+      if (window.location.href.includes('?'))
+      {
+        setTimeout(() => {
+          this.restore_filters_from_URL();
+        }, 500);
+      }
+      else model.filters_leads(model.getDataFilters());
     }
+
+    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+      return new bootstrap.Popover(popoverTriggerEl)
+    })
   },
   LoadFields()
   {
@@ -455,11 +482,19 @@ var model =
 
     model.invoke_service(model.url_vendesk + "leads/list-agents.dkl", data, function (data) 
     {
+      const special = [];
+      if (!model.agente)
+      {
+        special.push({ id:"all", name:"(Todos los agentes)" });
+        if (model.manage_all_leads)
+        {
+          special.push({ id:"assigned", name:"(Asignados)" });
+          special.push({ id:"unassigned", name:"(Sin asignar)" });
+        }
+      }
+      
       const agents_list = [
-        { id:"", name:"(Todos)" },
-        { id:"assigned", name:"(Asignados)" },
-        { id:"unassigned", name:"(Sin asignar)" },
-        { id:"all", name:"(Todos los agentes)" },
+        ...special,
         ...data
       ];
       model.load_cb(agents_list, "id", "name", idsag, "", model.agente?.codigo??"", fvalue, ftext);
@@ -1105,18 +1140,15 @@ var model =
     var select = document.querySelector(idselect);
     if(!select)return;
 
-    var options = (/*idselect=="#cbAgentes" || */idselect=="#cbPropietario") ? `<option value="unassigned">(Sin asignar)</option>` : "";
+    var options = (idselect=="#cbPropietario") ? `<option value="unassigned">(Sin asignar)</option>` : "";
     if (fisrt_value) options += `<option value="${fisrt_value}">${fisrt_text}</option>`;
-
-    // if (idselect == "#cbAgentes") 
-    // {
-    //   options += `<option value="all" ${optselected=="all"?"selected":""}>(Todos los agentes)</option>`;
-    // }
     var slected = "";
 
     for (var i = 0; i < data.length; i++) 
     {
       var itm = data[i];
+      if (!itm) continue;
+
       if (model.isprospecto && idselect == "#cbStatus" && eval("itm." + key) == 999) continue;
       if (idselect == "#cbPropietario") 
       {
@@ -1181,6 +1213,7 @@ var model =
       pipeline: "cbPipeline",
       stage: "cbStages",
       ordeby: "sOrderBy",
+      ordedir: "sOrderDir",
       search: "txtFilter"
     };
 
@@ -1809,10 +1842,11 @@ var model =
   {
     var fields =
     {
+      sys_dtcreated: "Fecha creación",
       uf_proxcontac: "Prox. contacto",
       uf_nombre: "Nombre",
       uf_empresa: "Empresa",
-      subject: "Asunto",
+      uf_interes: "Asunto",
       agent_name: "Agente"
 
       // next_contact: "Prox. contacto",

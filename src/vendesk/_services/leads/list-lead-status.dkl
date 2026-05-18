@@ -20,13 +20,14 @@ module "listar-agentes"
 
     ref l=from.json('[
         {"key":999,"caption":"(Por atender)","final":false},
+        {"key":-1,"caption":"(Todos)","final":false},
         {"key":0,"caption":"Recibido","final":false},
         {"key":1,"caption":"Atendido","final":true},
         {"key":2,"caption":"Descartado","final":true},
         {"key":3,"caption":"Oportunidad","final":false},
         {"key":4,"caption":"Ganado :)","final":true},
         {"key":5,"caption":"Perdido :(","final":true},
-        ]')
+    ]')
     
     response<"data*">:l
     response<"success">:@true
