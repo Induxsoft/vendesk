@@ -18,7 +18,7 @@ module "listar-prospectos"
     //#region >Contentes
     do errordet(@false)
 
-    MAX_ROWS = 250
+    MAX_ROWS = 1000
     //#endregion
 
     //#region >Funciones
