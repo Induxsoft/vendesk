@@ -342,10 +342,13 @@ var model =
       else model.filters_leads(model.getDataFilters());
     }
 
-    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
-    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+    this.EnablePopoversEverywhere();
+  },
+  EnablePopoversEverywhere() {
+    const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+    const popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
       return new bootstrap.Popover(popoverTriggerEl)
-    })
+    });
   },
   LoadFields()
   {
@@ -791,6 +794,14 @@ var model =
       </ul>
   </div>`;
   },
+  _formatDateTime(iso) {
+    if (!iso) return '-';
+    try {
+      return new Date(iso).toLocaleString('es-MX', {
+        dateStyle: 'short', timeStyle: 'short'
+      });
+    } catch { return iso; }
+  },
   CreateItem(itm)
   {
     var ps = "";
@@ -856,8 +867,9 @@ var model =
           <div class="d-flex justify-content-end">
               <b><smal>${itm.agent_name}</smal></b><br>
           </div>
-          <div class="d-flex justify-content-end">
-              <b></b><smal title="Creación">${itm.sys_dtcreated}</smal>
+          <div class="d-flex justify-content-end gap-1">
+              <b>Creado:</b>
+              <smal title="Creación">${this._formatDateTime(itm.sys_dtcreated)}</smal>
           </div>
           <div class="d-flex justify-content-end gap-1 action-buttons">
             ${enlaces}

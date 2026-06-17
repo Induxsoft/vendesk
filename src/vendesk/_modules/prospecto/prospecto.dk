@@ -97,7 +97,7 @@ module "condif lead"
 			if edit_proc
 			{
 				ref calendars = list.create()
-				implemented_pim = PackExist(@("&database"),"pim")
+				implemented_pim = PackExist(db,"pim")
 				allowed_calendar = @false
 				//Consultar calendarios del usuario logeado
 				if implemented_pim
@@ -325,8 +325,28 @@ module "condif lead"
 								}
 								div(class="col-lg-3 col-md-3")
 								{
+									#!
+									sql = "
+									SELECT
+										GROUP_CONCAT(CONCAT(DATE_FORMAT(l.transition_date,'%d/%m/%Y %h:%i %p'),' - ',s.name) ORDER BY l.transition_date DESC SEPARATOR '<br>') AS stage_log
+									FROM lead_stage_log l
+										INNER JOIN sales_pipeline_stage s ON l.stage_id = s.sys_guid
+									WHERE l.lead_id = '"+@("$./sys_guid")+"';
+									"
+									lead_stage_log = dbr.str(db,sql,@null)
+									#$
+
 									label{"Stage:"}
-									select(class="form-select form-select-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbStages" value="#<@('$./stage')>"){$""}
+									div(class="d-flex")
+									{
+										select(class="form-select form-select-sm induxsoft-corners" "#<ifstr(sys_pk_lead=='','disabled','')>"="true" id="cbStages" value="#<@('$./stage')>"){$""}
+										button(
+											class="btn btn-sm btn-info rounded-0 shadow-none" type="button" id="show-taxes-summary"
+											"data-bs-toggle"="popover" "data-bs-placement"="top" "data-bs-html"="true"
+											"data-bs-content"="#<lead_stage_log>"
+											title="Historial de transición"
+										){i{"i"}}
+									}
 								}
 								div(class="col-lg-3 col-md-3")
 								{
@@ -404,6 +424,7 @@ module "condif lead"
 					model.LoadFields();
 					model.load_boxes();
 					model.SetEvents();
+					model.EnablePopoversEverywhere();
 					
 					if(Number(model.sys_pk)<1)model.load_module_prospecto();
 					if(model.cbPipeline)model.cbPipeline.value="#<@("$./pipeline")>";

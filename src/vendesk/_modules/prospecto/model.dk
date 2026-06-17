@@ -3,20 +3,26 @@
 module ""
 {
     @table_name="ut_icontact"
-    @read_query="select *,date_format(uf_proxcontac,'%Y-%m-%d %H:%i') prox_contact,
-        uf_pipeline pipeline, 
-        uf_stage as stage,uf_status oportunidad,
-        trim(sys_dtcreated)creacion,
-        uf_email email,
-        uf_telefono phone
-    from ut_icontact where sys_pk=@_entity_id limit 1"
+    @read_query="
+    SELECT
+        c.*,
+        DATE_FORMAT(c.uf_proxcontac,'%Y-%m-%d %H:%i') prox_contact,
+        c.uf_pipeline pipeline,
+        c.uf_stage AS stage,
+        c.uf_status AS oportunidad,
+        TRIM(c.sys_dtcreated) AS creacion,
+        c.uf_email AS email,
+        c.uf_telefono AS phone
+    FROM ut_icontact c
+    WHERE c.sys_pk=@_entity_id LIMIT 1
+    "
 
     @fields_configs="vendesk_link1_text,vendesk_link1,vendesk_link2_text,vendesk_link2,vendesk_link3_text,vendesk_link3,vendesk_link1_target_blank,vendesk_link2_target_blank,vendesk_link3_target_blank"
 
     existIlinkType::&db
     {
         new p{@"detilink":@ILINK_TYPE}
-        pkilink=dbr.str(db,"select ifnull(id,'') from inlink_type where id='DET01C'",p)
+        pkilink=dbr.str(db,"select ifnull(id,'') from inlink_type where id='DET0AF'",p)
         exception{pkilink=""}
 
         return trim(pkilink)!=""
