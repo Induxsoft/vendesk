@@ -334,6 +334,7 @@ module "condif lead"
 									WHERE l.lead_id = '"+@("$./sys_guid")+"';
 									"
 									lead_stage_log = dbr.str(db,sql,@null)
+									if trim(lead_stage_log)== ""{lead_stage_log="Sin datos"}
 									#$
 
 									label{"Stage:"}
