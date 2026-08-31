@@ -1213,9 +1213,9 @@ var model =
   },
   restore_filters_from_URL() {
     const qryobj = new URLSearchParams(window.location.search);
-    const params = Object.fromEntries(qryobj.entries());
-    
-    this.filters_leads(params);
+    var params = Object.fromEntries(qryobj.entries());
+    // if(params._filter)params=JSON.parse(tools.url_decode(params._filter));
+    this.filters_leads(model.getDataFilters());
 
     const module_filters = document.getElementById("module-filter");
     const queryfields_as_filterfields = {

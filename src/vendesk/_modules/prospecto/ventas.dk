@@ -24,7 +24,7 @@ module "ventas"
         @manage_all_leads = @true
         exception { do clear_exceptions() }
     }
-
+	
 	if trim(@("$parameters/_filter"))!="" && isnull(filter)
 	{
 		ref filter=from.json(url_dcode(@("$parameters/_filter")))
@@ -34,6 +34,7 @@ module "ventas"
 			if not(@manage_all_leads){agente<"codigo">:@@(filter,"$cbAgentes")}
 		}
 	}
+	if @manage_all_leads{ref agente=@null}
 	if isnull(filter){ ref filter = @("&parameters") }
 
 	PATH_TRANSLATED = field.dstr(@http_context,'request/headers/PATH_TRANSLATED','')

@@ -318,10 +318,14 @@ module "listar-prospectos"
         if status_val == 999
         {
             // "Por atender": asignados en estado recibido (0) u oportunidad (3) con próximo contacto
-            sqlWhere = sqlWhere + " AND (
-                ( IFNULL(uf_iejecutivo,0) > 0 OR NOT ISNULL(uf_perfil) ) AND
-                ( uf_status = 0 OR (uf_status = 3 AND NOT ISNULL(uf_proxcontac)) )
-            )"
+            // sqlWhere = sqlWhere + " AND (
+            //     ( IFNULL(uf_iejecutivo,0) > 0 OR NOT ISNULL(uf_perfil) ) AND
+            //     ( uf_status = 0 OR (uf_status = 3 AND NOT ISNULL(uf_proxcontac)) )
+            // )"
+
+            // "Por atender": estado recibido (0) u oportunidad (3) con próximo contacto
+            sqlWhere = sqlWhere + " AND ( uf_status = 0 OR (uf_status = 3 AND NOT ISNULL(uf_proxcontac)) )"
+
             // sqlOrder = "uf_proxcontac ASC, IFNULL(uf_fecha,sys_dtcreated) DESC"
         }
         else if status_val >= 0
