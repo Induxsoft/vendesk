@@ -61,7 +61,7 @@ module "listar-prospectos"
 
         // Resolver código, nombre y usuario del agente desde el diccionario
         rw<"agent_id">:   @@(dic_agentes,"$cod_"+pk_str)
-        rw<"agent_name">: ifstr(@@(dic_agentes,"$id_"+pk_str) != "","Sin asignar",@@(dic_agentes,"$id_"+pk_str))
+        rw<"agent_name">: ifstr(@@(dic_agentes,"$id_"+pk_str)=="","Sin asignar",@@(dic_agentes,"$id_"+pk_str))
         rw<"user_name">:  @@(dic_agentes,"$usr_"+pk_str)
 
         // Texto descriptivo del estado
