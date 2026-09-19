@@ -46,9 +46,14 @@ module "condif lead"
 	if parse.num(sys_pk_lead)<1{sys_pk_lead=@("$./sys_pk")}
 	text=ifstr(sys_pk_lead=="","Agregar Prospecto","Editar Prospecto")
 
-	url=@@(@http_context,"request/get/url")
-	if url!=""{url=url_dcode(url)}
-	else{url=".."}
+	url = @@(@http_context,"request/get/url")
+	url_exit = ""
+	if url == "" { url = ".." }
+	else
+	{
+		url_exit = url
+		url = url_dcode(url)
+	}
 	
 	exist_ilinktype=@("#./exist_ilinktype")
 	url_ilink=replace(@URL_INLINK_PROSPECTO,"@trace",@('$./sys_pk'))
@@ -410,6 +415,7 @@ module "condif lead"
 		{
 			$'
 				model.url="#<url>";
+				model.url_exit="#<url_exit>";
 				model.url_vendesk="#<@url_service_vendesk>";
 				model.ids="#<@@(@http_context,"session/user/ids")>";
 				model.uid="#<@@(@http_context,"session/user/uid")>";

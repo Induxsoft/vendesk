@@ -811,17 +811,38 @@ var model =
       return;
     }
 
-    const panels = top.WebShell.Panels.Const;
+    const wsPanels = top.WebShell.Panels.Const;
 
-    top.WebShell.browseAsModal(
-      `/!/vendesk/prospecto/${_entity_id}/?url=${tools.url_encode('javascript:top.WebShell.closeModal();')}`,
-      [
-        { panel:panels.Left, title:'Relacionados' },
-        { panel:panels.Right, title:'Notas' }
-      ],
-      null,
-      { showClose:false }
-    );
+    let url = `/!/vendesk/prospecto/${_entity_id}/?url=${tools.url_encode('javascript:top.WebShell.closeModal();')}`;
+    let panels = [
+      { panel:wsPanels.Left, title:'Relacionados' },
+      { panel:wsPanels.Right, title:'Notas' }
+    ];
+    let options = { showClose:false };
+    
+    const onClose = () => {
+      const el = document.getElementById("prospect-" + _entity_id);
+      if (!el) return;
+
+      let url = model.url_vendesk + "leads/list-leads.dkl";
+      let body = {
+        ids: model.ids,
+        sys_pk: _entity_id
+      };
+
+      model.invoke_service(url, body,
+        function (data) {
+          if (!data || !data.length) return;
+          el.outerHTML = model.CreateItem(data[0]);
+        },
+        function (error) {
+          model.alert(error.message);
+        },
+        "POST", false
+      );
+    }
+
+    top.WebShell.browseAsModal(url,panels,onClose,options);
   },
   CreateItem(itm)
   {
@@ -856,7 +877,7 @@ var model =
     // onclick="${this.IsFreezer?"":`model.redirec('./${itm.sys_pk}/?_filter=${tools.url_encode(JSON.stringify(model.GetFieldsFilter()))}')`}"
 
     return `
-    <div class="card bg-white shadow shadow-sm">
+    <div class="card bg-white shadow shadow-sm" id="prospect-${itm.sys_pk}">
       <div class="d-flex align-items-center py-1 px-2" id="dv-color_${itm.sys_pk}" style="padding-left:1rem !important; padding-right:.5rem !important; cursor:move; ${model.getColor(itm.color)}" draggable="true">
         <div class="flex-grow-1">
           <h6 class="m-0">${itm.subject == null || itm.subject == "" ? "(Sin asunto)" : itm.subject}</h6>
@@ -1719,13 +1740,35 @@ var model =
     }
     model.invoke_service(model.url_vendesk + "leads/post-lead.dkl", data, function (data) 
     {
-      if(model.agente && cbPropietario.value.trim()==model.agente?.codigo)window.location.href=`../${data.sys_pk}/`;
-      else window.location.href = model.url ?model.url:"..";
+      if (model.agente && cbPropietario.value.trim() == model.agente?.codigo)
+      {
+        let url = model.isValidURL(model.url)
+          ? model.url
+          : `../${data.sys_pk}/` + (model.url_exit ? "?url="+model.url_exit : "");
+        window.location.href = url;
+      }
+      else
+      {
+        let url = model.isValidURL(model.url)
+          ? model.url
+          : (model.url_exit ? "./?url="+model.url_exit : "..");
+        window.location.href = url;
+      }
     },
     function (error) {
       model.alert(error.message);
     }, "POST", false);
 
+  },
+  isValidURL(s)
+  {
+    try {
+      if (s.startsWith('/!/')) return true;
+      if (s == "..") return true;
+      new URL(s);
+      return true;
+    }
+    catch (e) { return false; }
   },
   load_stages: function (sys_pk,idstage="#cbStages",selected="") 
   {
@@ -1741,7 +1784,6 @@ var model =
   },
   LoadStagesPipeline(stages,idstage="#cbStages",selected="")
   {
-    console.log(stages)
     if(!this.div_pipeline)
     {
       let vaue_selected=model._stage_selected > 0?model._stage_selected:(this.cbStages?this.cbStages.value:"")
