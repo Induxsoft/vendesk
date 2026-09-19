@@ -1,6 +1,6 @@
 {
 	"id":"vendesk",
 	"installable":["vendesk"],
-	"version":"1.0.102",
+	"version":"1.0.103",
 	"schema_ver":"1.0.10"
 }

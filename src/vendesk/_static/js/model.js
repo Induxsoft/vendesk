@@ -802,6 +802,27 @@ var model =
       });
     } catch { return iso; }
   },
+  _viewProspectInWebShellModal(_entity_id)
+  {
+    if (!_entity_id) return;
+    const ws = window.top.WebShell;
+    if (!ws) {
+      console.warn("No se pudo obtener la API: WebShell");
+      return;
+    }
+
+    const panels = top.WebShell.Panels.Const;
+
+    top.WebShell.browseAsModal(
+      `/!/vendesk/prospecto/${_entity_id}/?url=${tools.url_encode('javascript:top.WebShell.closeModal();')}`,
+      [
+        { panel:panels.Left, title:'Relacionados' },
+        { panel:panels.Right, title:'Notas' }
+      ],
+      null,
+      { showClose:false }
+    );
+  },
   CreateItem(itm)
   {
     var ps = "";
@@ -848,7 +869,11 @@ var model =
       <hr style="margin: 0;"></hr>
       <div class="card-body p-2" style="overflow:auto; display:flex; flex-direction:column;">
         <div class="justify-items-center flex-grow-1" >
-          <b><smal>${itm.name}</smal> </b><br>
+          <button
+            class="fw-bold btn btn-sm btn-link"
+            type="button"
+            onclick="model._viewProspectInWebShellModal(${itm.sys_pk})"
+          >${itm.name}</button><br>
           <smal>${itm.phone}</smal>${itm.phone == "" ? "" : "<br>"}
           <smal>${email}</smal>${email == "" ? "" : "<br>"}
           <smal>${org}</smal>${org == "" ? "" : "<br>"}
