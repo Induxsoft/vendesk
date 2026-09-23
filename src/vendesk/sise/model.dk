@@ -175,7 +175,7 @@ module ":rest"
                     sql = sql + " AND uf_interes=@subject"
                 }
 
-                retention = trun(@@(data,"$retention"))
+                retention = trun(@@(data,"#retention"))
                 if retention > 0
                 {
                     p<"retention"> : retention
@@ -304,26 +304,6 @@ module ":rest"
 
     AddLead::&db,&params,&data
     {
-        // URL: /vendesk/_services/leads/post-lead.dkl
-        // {
-        //     "name": "scdcd",
-        //     "email": "dcdcdc",
-        //     "phone": "dcdc",
-        //     "organization": "vfvfvfv",
-        //     "position": "fvfvfv",
-        //     "subject": "fvfvf",
-        //     "remarks": "fvfvfv",
-        //     "color": "0",
-        //     "leadstatus": "3",
-        //     "agent_id": "000001",
-        //     "source": "",
-        //     "storeid": "",
-        //     "pipeline": "1",
-        //     "stage": "1",
-        //     "probability": "10",
-        //     "amount": "100"
-        // }
-
         ref cleaned = filter_args(@@(data,"&data"),"lead_guid,name,email,phone,organization,position,subject,remarks,agent_id,leadstatus,pipeline,stage,calendar,idfield,retention,default_participant,subject_iskeypart,exclude_update_fields,exclude_update_status,update_rem_as_note")
         data<"data*"> : cleaned
         
@@ -331,6 +311,7 @@ module ":rest"
         _data<"email"> : trim(@@(_data,"$email"))
         _data<"subject"> : cut(@@(_data,"$subject"),150)
         _data<"leadstatus"> : LeadStatus(@@(_data,"$leadstatus"))
+        _data<"chat_id_iae"> : @@(data,"$chat_id")
         
         if trim(@@(_data,"$name")) == ""{ do rise_error(400,"No ha indicado un 'nombre'") }
 

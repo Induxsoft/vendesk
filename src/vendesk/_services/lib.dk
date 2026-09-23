@@ -2,6 +2,10 @@
 #!
 module ""
 {
+    @endpoint_agent_crm="https://agent.induxsoft.net/crm/v1/@chat_id/"
+
+    #include "vendesk/_services/_assing_seller_lead.dkl"
+        
     function get_db()
     {
         @open_connection = @false
@@ -31,6 +35,12 @@ module ""
 
         if @open_connection { @http_context<"session/idp/database*"> : db }
         return db
+    }
+    SetHTTPResponse :: &response
+    {
+        @http_context<"response/headers/Content-Type"> : "application/json; charset=utf-8"
+        @http_context<"response/output"> : "text"
+        @http_context<"response/text"> : to.json(response)
     }
     cors_xhr::
     {
@@ -229,7 +239,7 @@ module ""
             }
         }
     }
-
+   
     ///leads
     LogLeadStageTransition :: &db, lead_guid, stage_guid, username
     {
@@ -374,6 +384,12 @@ module ""
             newEntry<"notif_automatica_activa"> : parse.bool(@@(params,"$notif_automatica_activa"))
         }
 
+        /*
+         * Summary:
+         * - enlazar prospecto con una conversación
+        */
+        if field.exist(params,"chat_id_iae") && dbfield_exist(db,"ut_icontact","chat_id_iae"){newEntry<"chat_id_iae">:@@(params,"$chat_id_iae")}
+
         if sys_pk > 0
         {
             //Actualizar
@@ -396,6 +412,8 @@ module ""
                 log_text=@@(params,"$log")
             }
             do agregar_log(db,sys_pk,log_text,@@(user,"name"))
+
+            do _send_data_to_iae(db,newEntry,sys_pk)
         }
         else
         {
@@ -412,6 +430,9 @@ module ""
             sys_pk = dbr.num(db,"SELECT LAST_INSERT_ID();",@null)
             
             do agregar_log(db,sys_pk,"Nuevo prospecto",@@(user,"name"))
+
+            vendesk_leadKey=trim(dbr.vars.get(db,"vendesk_leadKey"))
+            do _assing_seller_lead(db, _clean_value(vendesk_leadKey,@@(newEntry,"$"+vendesk_leadKey)), @@(params,"$agent_id"))
         }
 
         ref lead = dbr.rec(db,"
@@ -572,6 +593,133 @@ module ""
         return data
     }
 
+    _add_notes_iae::&db,&notes,lead,chat_id
+    {   
+        if not(dbfield_exist(db,"ut_icontact","chat_id_iae")) || not(dbfield_exist(db,"xt_biticontact","note_id")) || not(dbfield_exist(db,"xt_biticontact","note_id")) || parse.num(lead) < 1
+        {
+            return "Sin prospecto asociado"
+        }
+
+        for i = 0; i < @count(notes)
+        {
+            ref n=@item(notes,i)
+            new p
+            {
+                @"chat_id":chat_id
+                @"id":@@(n,"#id")
+                @"lead":lead
+            }
+            if dbr.num(db,"SELECT IFNULL(sys_pk,0) FROM xt_biticontact WHERE chat_id_iae=@chat_id and note_id=@id AND uf_iicontact=@lead",p) < 1
+            {
+                new note
+                {
+                    @"uf_mensaje":@@(n,"$text")
+                    @"uf_tiempo":@@(n,"$timestamp")
+                    @"uf_iicontact":lead
+                    @"uf_usuario":cut(@@(n,"$human_name"),50)
+                    @"chat_id_iae":chat_id
+                    @"note_id":p.id
+                }
+
+                do dbr.insert(db,"xt_biticontact",note)
+            }
+        }
+
+        return "Notas agregadas al prospecto: "+str(lead)
+    }
+    _auth.token::
+    {
+        http_auth = @@(@http_context, "$request/headers/HTTP_AUTHORIZATION")
+        auth_opt = ""
+        auth_opt_val = ""
+        
+        if contains(http_auth," ")
+        {
+            ref auth = split(http_auth," ")
+            auth_opt = tolower(list.str(auth,0))
+            auth_opt_val = list.str(auth,1)
+        }
+        else 
+        {
+            auth_opt = "bearer"
+            auth_opt_val = http_auth
+        }
+
+        return auth_opt_val
+    }
+    _debe_disparar_iae::&db,campos_modificados
+    {
+        campo_clave = trim(dbr.vars.get(db,"vendesk_leadKey"))
+
+        ref campos_monitoreados = list.create()
+        do list.add(campos_monitoreados,"uf_nombre")
+        do list.add(campos_monitoreados,"uf_email")
+        do list.add(campos_monitoreados,"uf_telefono")
+        do list.add(campos_monitoreados,"uf_color")
+        do list.add(campos_monitoreados,"uf_iejecutivo")
+        do list.add(campos_monitoreados,"uf_perfil")
+
+        dispara = 0
+
+        go foreach.lstr(value:campo) with(campos_monitoreados)
+        {
+            // se descarta el campo clave aunque haya cambiado y esté en la lista
+            if campo != campo_clave && isanyword(campo,campos_modificados)
+            {
+                dispara = 1
+            }
+        }
+
+        return dispara
+    }
+    _send_data_to_iae::&db,&data,lead_id
+    {
+        if not(parse.bool(dbr.vars.get(db,"vendesk_sendLeadChangesToIAE"))) || not(dbfield_exist(db,"ut_icontact","chat_id_iae"))
+        {
+            return
+        }
+        
+        lead_id >> p
+
+        chat_id=trim(dbr.str(db,"SELECT IFNULL(chat_id_iae,'') FROM ut_icontact WHERE sys_pk=@lead_id OR sys_guid=@lead_id",p))
+        if chat_id == ""{return}
+        
+        field_key_cfg=trim(dbr.vars.get(db,"vendesk_leadKey"))
+        dt_str=to.json(list.create_from_fields(data))
+        dt_str=trim(replace(ranychars(dt_str,'"[]{}'," ")," ",""))
+        dt_str=replace(dt_str,field_key_cfg,"")
+        
+        if trim(dt_str) == "" || not(_debe_disparar_iae(db,dt_str))
+        {
+            return
+        }
+
+        if trim(field_key_cfg) != ""{do field.remove(data,field_key_cfg)}
+
+        if @count(list.create_from_fields(data)) < 1{ return}
+        
+        new headers
+        {
+            @"Content-Type": "application/json"
+            @"Authorization": "Bearer "+dbr.vars.get(db,"vendesk_iae_agent_token")
+        }
+        campos = "uf_nombre,uf_email,uf_telefono,uf_color"
+        alias = "uf_nombre:username,uf_email:useremail,uf_telefono:userphone,uf_color:color"
+        ref payload = record.copyex(data,@null,campos,",",alias,":")
+        if @@(data,"$uf_perfil") != ""
+        {
+            induxsoft_identifier = dbr.str(db,"SELECT ifnull(induxsoft_identifier,'') FROM tuser WHERE sys_guid = @uf_perfil",data)
+            if induxsoft_identifier != "" { payload<"human"> : induxsoft_identifier }
+            else { payload<"human"> : @@(data,"$uf_perfil") }
+        }
+
+        do http.request(replace(@endpoint_agent_crm,"@chat_id",chat_id),"POST",headers,to.json(payload))
+        exception{ do pop_exception() }
+    }
+    function dbr.table.exist(db,table)
+    {
+        return dbr.str(db,"SHOW TABLES LIKE '"+table+"';",@null) != ""
+    }
     function delete_entity(&db,table_name,conditionals,field,value_info,&params)
     {
         @use_transaction = @false

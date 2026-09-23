@@ -118,6 +118,115 @@
                         "keyfield":"val"
                     }
                 }
+            },
+            {
+                "varname": "vendesk_leadKey",
+                "vardefault": "uf_email",
+                "varvalue": "uf_email",
+                "varcaption": "Campo clave del prospecto",
+                "varhelp": "Campo para buscar prospecto activo. ",
+                "vartype": "string",
+                "varinput": 
+                {
+                    "control": "select",
+                    "source":
+                    {
+                        "type":"list",
+                        "values":
+                        [
+                            {"val":"uf_telefono", "text":"Teléfono"},
+                            {"val":"uf_email", "text":"Email"}
+                        ],
+                        "showfield":"text",
+                        "keyfield":"val"
+                    }
+                }
+            },
+            {
+                "varname": "vendesk_autoAssignLastSalesRep",
+                "vardefault": "0",
+                "varvalue": "0",
+                "varcaption": "Último vendedor",
+                "varhelp": "Asignar al vendedor que ya ha atendido al prospecto ('vendesk_leadKey')",
+                "vartype": "integer",
+                "varinput": 
+                {
+                    "control": "select",
+                    "source":
+                    {
+                        "type":"list",
+                        "values":
+                        [
+                            {"val":"0", "text":"No"},
+                            {"val":"1", "text":"Sí"}
+                        ],
+                        "showfield":"text",
+                        "keyfield":"val"
+                    }
+                }
+            },
+            {
+                "varname": "vendesk_defaultAgent",
+                "vardefault": "unassigned",
+                "varvalue": "unassigned",
+                "varcaption": "Vendedor predeterminado",
+                "varhelp": "Usar este vendedor (agente) cuando no se resuelva 'agent_id'",
+                "vartype": "string",
+                "varinput": 
+                {
+                    "control": "select",
+                    "source":
+                    {
+                        "type":"query",
+                        "query":"SELECT 'unassigned' AS codigo, '(Sin asignar)' AS nombre UNION SELECT codigo, nombre FROM agente WHERE NOT ifnull(sys_deleted,0) AND NOT ifnull(uf_sys_baja,0);",
+                        "keyfield":"codigo",
+                        "showfield":"nombre"
+                    }
+                }
+            },
+            {
+                "varname": "vendesk_sendLeadChangesToIAE",
+                "vardefault": "1",
+                "varvalue": "1",
+                "varcaption": "Enviar cambios del prospecto a la conversación IAE",
+                "varhelp": "Al cambiar nombre, email/teléfono, color o vendedor enviar a IAE",
+                "vartype": "integer",
+                "varinput": 
+                {
+                    "control": "select",
+                    "source":
+                    {
+                        "type":"list",
+                        "values":
+                        [
+                            {"val":"0", "text":"No"},
+                            {"val":"1", "text":"Sí"}
+                        ],
+                        "showfield":"text",
+                        "keyfield":"val"
+                    }
+                }
+            },
+            {
+                "varname": "vendesk_iae_agent_token",
+                "vardefault": "",
+                "varvalue": "",
+                "varcaption": "Token del Agente IAE",
+                "varhelp": "Autorizar cambios del prospecto a la conversación IAE",
+                "vartype": "string",
+                "varinput": { "control": "text" }
+            },
+            {
+                "varname": "vendesk_notesToken",
+                "vardefault": "",
+                "varvalue": "",
+                "varcaption": "Token de recepción de notas",
+                "varhelp": "",
+                "vartype": "string",
+                "varinput": 
+                {
+                    "control": "text"
+                }
             }
         ]
     }

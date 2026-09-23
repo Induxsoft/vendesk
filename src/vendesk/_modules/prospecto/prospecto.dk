@@ -315,7 +315,7 @@ module "condif lead"
 								}
 								div(class="col-lg-3 col-md-5")
 								{
-									label(class="fw-bold"){"Propietario:"}
+									label(class="fw-bold"){"Agente:"}
 									select(class="form-select form-select-sm induxsoft-corners" id="cbPropietario"){$""}
 								}
 								div(class="col-lg-3 col-md-3")

@@ -1,0 +1,405 @@
+#include "dkli.dkh"
+#!
+module ""
+{
+    // =====================================================================
+    // _assing_seller_lead
+    // ---------------------------------------------------------------------
+    // Resuelve Y asigna (hace el UPDATE) el vendedor (uf_iejecutivo) de un
+    // lead en ut_icontact, según agent_id (seller_id) recibido desde IAE.
+    //
+    // Precedencia:
+    //   1. Prospecto activo (Recibido=0 u Oportunidad=3) con la misma clave
+    //      que YA tiene vendedor -> se conserva ese vendedor.
+    //   2. seller_id coincide con un vendedor (agente.codigo / agente.sys_guid).
+    //   3. seller_id coincide con un equipo (vendesk_equipo_venta.id):
+    //        3.a "último vendedor" (config vendesk_autoAssignLastSalesRep)
+    //        3.b vendedor del equipo con menos prospectos activos (empate: menor sys_pk)
+    //   4. Sin resolver -> vendedor por defecto (config) o sin asignar + nota
+    //      en bitácora (xt_biticontact). Nunca debe abortar la creación del lead.
+    //
+    // SUPUESTOS que quedan pendientes de confirmar (marcados también inline):
+    //   - `lead_id` ya llega normalizado (addlead se encarga de quitar "+","52","1"
+    //     de teléfono, y de lower/trim de correo) ANTES de llamar esta función.
+    //   - Cuando la clave (field_key_cfg) tiene más de un ut_icontact coincidente,
+    //     se toma el más reciente (ORDER BY sys_pk DESC). Si el criterio real de
+    //     "cuál lead es éste" es otro, hay que ajustar esa cláusula.
+    //   - Usuario que queda registrado en la nota de bitácora: constante
+    //     "IAE" (bit_biticontact.uf_usuario). Cámbialo si tienen otra convención.
+    //   - `dbr.table.exist` y `dbfield_exist` ya los usabas en tu borrador; no
+    //     aparecen en el catálogo de funciones que tengo documentado, así que no
+    //     pude confirmar su firma exacta. Los dejo igual, pero verifícalos.
+    //   - El bloqueo por equipo (paso 3) ya NO usa dbr.lock/dbr.unlock (confirmaste
+    //     que no sirven en DKL). Se reemplazó por un SELECT ... FOR UPDATE dentro
+    //     de una transacción (ver comentario en el paso 3). Si su motor no es
+    //     MySQL/uno que soporte FOR UPDATE, o si el bloqueo se maneja distinto en
+    //     su plataforma, avísame para ajustarlo.
+    //   - No incluí aquí la normalización de teléfono/correo ni el "no reenviar a
+    //     IAE lo que vino de IAE": según lo que platicamos, eso pasa antes/afuera
+    //     de esta función (en el resto de addlead), no dentro de _assing_seller_lead.
+    // =====================================================================
+
+    // ---------------------------------------------------------------------
+    // Fragmento SQL para filtrar "perfil IAE". HOY no filtra nada (regresa
+    // cadena vacía) para no detener el proceso mientras se define la relación
+    // real entre `agente` y `vendesk_acceso_agente_iae`.
+    //
+    // TODO(perfil IAE): cuando se sepa el campo de cruce, reemplazar el
+    // `return ""` de abajo por algo como:
+    //   return " AND EXISTS (SELECT 1 FROM vendesk_acceso_agente_iae iae WHERE iae.agent_id=a.codigo) "
+    // (o `=a.sys_guid`, según corresponda). Este es el ÚNICO lugar que hay
+    // que tocar: lo usan tanto el paso 3.a como el 3.b.
+    // ---------------------------------------------------------------------
+    _filtro_perfil_iae::&db
+    {
+        if not(dbr.table.exist(db,"vendesk_acceso_agente_iae")){ return "" }
+
+        // TODO(perfil IAE): sin implementar todavía; no filtra.
+        return ""
+    }
+
+    // ---------------------------------------------------------------------
+    // Hace el UPDATE de ut_icontact.uf_iejecutivo con el vendedor resuelto.
+    // _agente debe traer el campo "pk_agente" (= agente.sys_pk),
+    // que es el valor que se guarda en uf_iejecutivo.
+    // ---------------------------------------------------------------------
+    _asignar_vendedor::&db,lead_sys_pk,&_agente,&p
+    {
+        p<"lead_sys_pk">:lead_sys_pk
+        p<"nvo_ejecutivo">: @@(_agente,"#pk_agente")
+
+        new datos
+        {
+            @"uf_iejecutivo": @@(_agente,"#pk_agente")
+            @"uf_perfil": @@(_agente,"$sys_guid")
+        }
+
+        do dbr.update(db,"ut_icontact",datos,"sys_pk=@lead_sys_pk",p)
+        return @true
+    }
+
+    // ---------------------------------------------------------------------
+    // Nota de bitácora cuando NO se pudo resolver ningún vendedor (paso 4).
+    // ---------------------------------------------------------------------
+    _bitacora_sin_vendedor::&db,lead_sys_pk,seller_id
+    {
+        usuario = ""
+        if isset("@http_context") { usuario = @@(@http_context,"$session/user/name") }
+        if usuario == "" { usuario = "IAE" }
+
+        new nota
+        {
+            @"uf_mensaje": "vendesk: no se pudo resolver vendedor para agent_id='"+seller_id+"'; lead sys_pk="+str(lead_sys_pk)
+            @"uf_usuario": usuario
+            @"uf_tiempo*": dbr.sql("now()")
+            @"uf_iicontact": lead_sys_pk
+        }
+
+        do dbr.insert(db,"xt_biticontact",nota)
+        return @true
+    }
+
+    // ---------------------------------------------------------------------
+    // _normaliza_telefono
+    // Deja solo dígitos y, si detecta el prefijo de WhatsApp/país mexicano,
+    // lo recorta a 10 dígitos:
+    //   "+52 1 55 1234 5678"  -> "5215512345678" (solo dígitos) -> "5512345678"
+    //   "5215512345678"       -> 13 dígitos, empieza con "521"  -> "5512345678"
+    //   "525512345678"        -> 12 dígitos, empieza con "52"   -> "5512345678"
+    //   "15512345678"         -> 11 dígitos, empieza con "1"    -> "5512345678"
+    //   "5512345678"          -> ya son 10                      -> "5512345678"
+    // DKL no trae regex, así que el filtrado de dígitos se hace char por char.
+    // ---------------------------------------------------------------------
+    _normaliza_telefono::telefono
+    {
+        ref buf = text.create()
+
+        n = length(telefono)
+        for i=0; i<n; i=i+1
+        {
+            c = substring(telefono,i,1)
+            if isany(c,"0123456789")
+            {
+                do text.echo(buf,c)
+            }
+        }
+        solo_digitos = text.get(buf)
+
+        n = length(solo_digitos)
+
+        // 52 + 1 (indicador de WhatsApp) + 10 dígitos
+        if n==13 && left(solo_digitos,3)=="521"
+        {
+            return right(solo_digitos,10)
+        }
+        // 52 (lada de país) + 10 dígitos, sin el "1" de WhatsApp
+        if n==12 && left(solo_digitos,2)=="52"
+        {
+            return right(solo_digitos,10)
+        }
+        // 1 (indicador de WhatsApp) + 10 dígitos, sin lada de país
+        if n==11 && left(solo_digitos,1)=="1"
+        {
+            return right(solo_digitos,10)
+        }
+        // ya son 10 dígitos
+        if n==10
+        {
+            return solo_digitos
+        }
+
+        // No coincide con ninguno de los patrones esperados. Para no tronar la
+        // búsqueda, se regresan los últimos 10 dígitos si hay más de 10, o lo
+        // que haya si hay menos. ESTO ES UN SUPUESTO MÍO: si prefieres marcarlo
+        // como inválido en vez de recortarlo a ciegas, dímelo y lo cambiamos
+        // para que regrese "" (y quien llama decida qué hacer con eso).
+        if n>10
+        {
+            return right(solo_digitos,10)
+        }
+
+        return solo_digitos
+    }
+    _clean_value::field_key_cfg,value
+    {
+        if field_key_cfg == "uf_telefono"
+        {
+            // return _normaliza_telefono(value)
+        }
+
+        return trim(tolower(value))
+    }
+    // =====================================================================
+    // _assing_seller_lead
+    // =====================================================================
+    _assing_seller_lead::&db,lead_id,seller_id
+    {
+        if trim(lead_id) == ""{return @null}
+        
+        seller_id,lead_id >> p
+
+        field_key_cfg=trim(dbr.vars.get(db,"vendesk_leadKey"))
+        if field_key_cfg == ""{return @null}
+
+        // lead_id ya es el valor normalizado de la clave (tel./correo).
+        // Si hay más de un ut_icontact con la misma clave, se toma el más
+        // reciente. (Ver supuesto al inicio del archivo.)
+        ref lead = dbr.rec(db, ftext("
+            SELECT sys_pk, sys_guid, uf_iejecutivo, uf_status
+            FROM ut_icontact
+            WHERE #<field_key_cfg> = @lead_id
+            ORDER BY sys_pk DESC
+        "), p)
+
+        if isnull(lead){return @null}
+
+        lead_sys_pk = @@(lead,"#sys_pk")
+        p<"lead_sys_pk">:lead_sys_pk
+
+        // -------------------------------------------------------------
+        // Paso 1: prospecto activo con la misma clave que ya tiene vendedor
+        // -------------------------------------------------------------
+        ref lead_activo = dbr.rec(db, ftext("
+            SELECT sys_pk, uf_iejecutivo
+            FROM ut_icontact
+            WHERE #<field_key_cfg> = @lead_id
+            AND IFNULL(uf_status,0) IN (0,3)
+            AND uf_iejecutivo IS NOT NULL
+            AND IFNULL(sys_deleted,0)=0
+            ORDER BY sys_pk DESC
+        "), p)
+
+        if not(isnull(lead_activo))
+        {
+            p<"ejecutivo_previo">: @@(lead_activo,"#uf_iejecutivo")
+
+            // uf_iejecutivo=agente.sys_pk
+            ref _agente = dbr.rec(db,"
+                SELECT t.sys_pk,t.sys_guid,a.sys_pk pk_agente
+                FROM agente a
+                LEFT JOIN tuser t ON a.uf_iuser=t.sys_pk
+                WHERE a.sys_pk=@ejecutivo_previo
+                AND IFNULL(a.sys_deleted,0)=0
+            ",p)
+
+            if not(isnull(_agente))
+            {
+                do _asignar_vendedor(db,lead_sys_pk,_agente,p)
+                return _agente
+            }
+            // si el vendedor previo ya no es válido, se sigue resolviendo abajo
+        }
+
+        // -------------------------------------------------------------
+        // Paso 2: seller_id coincide con un vendedor
+        // -------------------------------------------------------------
+        ref _agente = dbr.rec(db,"
+            SELECT t.sys_pk,t.sys_guid,a.sys_pk pk_agente
+            FROM agente a
+            LEFT JOIN tuser t ON a.uf_iuser=t.sys_pk
+            WHERE (a.codigo=@seller_id OR a.sys_guid=@seller_id)
+            AND IFNULL(a.sys_deleted,0)=0
+        ",p)
+
+        if not(isnull(_agente))
+        {
+            do _asignar_vendedor(db,lead_sys_pk,_agente,p)
+            return _agente
+        }
+
+        // -------------------------------------------------------------
+        // Paso 3: seller_id coincide con un equipo
+        // -------------------------------------------------------------
+        if dbr.table.exist(db,"vendesk_equipo_venta")
+        {
+            id_equipo = dbr.num(db,"SELECT IFNULL(sys_pk,0) FROM vendesk_equipo_venta WHERE id=@seller_id",p)
+
+            if id_equipo > 0
+            {
+                p<"id_equipo">:id_equipo
+
+                // Serializado por equipo: dbr.lock/dbr.unlock no sirven en DKL
+                // (confirmado), así que el bloqueo se hace con SQL estándar:
+                // un SELECT ... FOR UPDATE dentro de una transacción bloquea la
+                // fila del equipo hasta que esa transacción termina (commit o
+                // rollback). Cualquier otra alta concurrente del mismo equipo
+                // que ejecute el mismo SELECT ... FOR UPDATE se queda esperando,
+                // así las dos NO calculan "el vendedor con menos prospectos"
+                // sobre el mismo conteo desactualizado.
+                //
+                // Si _assing_seller_lead ya se llama dentro de la transacción
+                // de addlead (begin ya hecho por el llamador), NO abrimos ni
+                // cerramos transacción aquí: el bloqueo igual se sostiene hasta
+                // que addlead haga su commit, que es lo correcto. Si se llama
+                // suelta (sin transacción activa), abrimos y cerramos una aquí.
+                abrio_tx_local = 0
+                if not(dbr.in_transaction(db))
+                {
+                    do dbr.begin(db)
+                    abrio_tx_local = 1
+                }
+
+                huboerror = 0
+
+                exception
+                {
+                    huboerror = 1
+                    if abrio_tx_local==1 && dbr.in_transaction(db)
+                    {
+                        do dbr.rollback(db)
+                    }
+                }
+
+                // Bloquea la fila del equipo (se libera con el commit/rollback de arriba).
+                do dbr.num(db,"SELECT sys_pk FROM vendesk_equipo_venta WHERE sys_pk=@id_equipo FOR UPDATE",p)
+
+                filtro_iae = _filtro_perfil_iae(db)
+
+                ref _agente = @null
+
+                // 3.a "último vendedor" activo, con perfil IAE y del equipo
+                if huboerror==0 && parse.bool(dbr.vars.get(db,"vendesk_autoAssignLastSalesRep")) && dbfield_exist(db,"agente","ref_equipo")
+                {
+                    ejecutivo_anterior = dbr.num(db,ftext("
+                        SELECT IFNULL(uf_iejecutivo,0)
+                        FROM ut_icontact
+                        WHERE #<field_key_cfg> = @lead_id
+                        AND sys_pk<>@lead_sys_pk
+                        AND uf_iejecutivo IS NOT NULL
+                        AND IFNULL(sys_deleted,0)=0
+                        ORDER BY sys_pk DESC
+                        LIMIT 1
+                    "),p)
+
+                    if ejecutivo_anterior > 0
+                    {
+                        p<"ejecutivo_anterior">:ejecutivo_anterior
+
+                        ref _agente = dbr.rec(db,ftext("
+                            SELECT t.sys_pk,t.sys_guid,a.sys_pk pk_agente
+                            FROM agente a
+                            LEFT JOIN tuser t ON a.uf_iuser=t.sys_pk
+                            WHERE a.sys_pk=@ejecutivo_anterior
+                            AND a.ref_equipo=@id_equipo
+                            AND IFNULL(a.sys_deleted,0)=0
+                            #<filtro_iae>
+                        "),p)
+                    }
+                }
+
+                // 3.b vendedor del equipo con menos prospectos activos (empate: menor sys_pk)
+                if huboerror==0 && isnull(_agente)
+                {
+                    ref _agente = dbr.rec(db,ftext("
+                        SELECT a.sys_pk pk_agente, t.sys_pk sys_pk, t.sys_guid sys_guid
+                        FROM agente a
+                            LEFT JOIN tuser t ON a.uf_iuser=t.sys_pk
+                        WHERE
+                            a.ref_equipo=@id_equipo
+                            AND IFNULL(a.sys_deleted,0)=0
+                            #<filtro_iae>
+                        ORDER BY (
+                                SELECT COUNT(*) FROM ut_icontact li
+                                WHERE li.uf_iejecutivo=a.sys_pk
+                                AND IFNULL(li.uf_status,0) IN (0,3)
+                                AND IFNULL(li.sys_deleted,0)=0
+                            ) ASC, a.sys_pk ASC
+                        LIMIT 1
+                    "),p)
+                }
+
+                // El UPDATE de asignación se hace ANTES del commit, todavía con
+                // la fila del equipo bloqueada: así el conteo de "prospectos
+                // activos" que vio esta llamada queda consistente con lo que
+                // se acaba de escribir antes de soltar el bloqueo.
+                if huboerror==0 && not(isnull(_agente))
+                {
+                    do _asignar_vendedor(db,lead_sys_pk,_agente,p)
+                }
+
+                if abrio_tx_local==1 && dbr.in_transaction(db)
+                {
+                    do dbr.commit(db)
+                }
+
+                if huboerror==0 && not(isnull(_agente))
+                {
+                    return _agente
+                }
+            }
+        }
+
+        // -------------------------------------------------------------
+        // Paso 4: sin resolver -> vendedor por defecto o sin asignar + bitácora
+        // Nunca debe fallar la creación del lead.
+        // -------------------------------------------------------------
+        default_seller = trim(dbr.vars.get(db,"vendesk_defaultAgent"))
+
+        if default_seller != ""
+        {
+            p<"default_seller">:default_seller
+
+            ref _agente = dbr.rec(db,"
+                SELECT t.sys_pk,t.sys_guid,a.sys_pk pk_agente
+                FROM agente a
+                LEFT JOIN tuser t ON a.uf_iuser=t.sys_pk
+                WHERE (a.codigo=@default_seller OR a.sys_guid=@default_seller)
+                AND IFNULL(a.sys_deleted,0)=0
+            ",p)
+
+            if not(isnull(_agente))
+            {
+                do _asignar_vendedor(db,lead_sys_pk,_agente,p)
+                return _agente
+            }
+        }
+        // else
+        // {
+        //     do dbr.execute(db,"UPDATE ut_icontact SET uf_status=0 WHERE sys_pk=@lead_sys_pk",p)
+        // }
+        
+        do _bitacora_sin_vendedor(db,lead_sys_pk,seller_id)
+        return @null
+    }
+
+}

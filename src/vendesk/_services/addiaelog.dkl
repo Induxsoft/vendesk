@@ -1,0 +1,83 @@
+#include "dkli.dkh"
+#!
+module "listar-prospectos"
+{
+	#include "functions.dkh"
+	#include "dbr.dkh"
+	#include "serialize.dkh"
+    #include "webcl.dkh"
+    #include "website.dkl"
+    #include "dbr.vars.dkl"
+    #include "vendesk/_services/_assing_seller_lead.dkl"
+    
+    do cors_xhr()
+    if @@(@http_context,"request/headers/REQUEST_METHOD")=="OPTIONS"{return}
+
+    new response{@"success":@true}
+
+    ref postData=@@(@http_context,"&request/post")
+    if isnull(postData){ref postData=from.json(field.dstr(@http_context,"request/post_string","{}")) }
+    
+    ref db=get_db()
+    ref user=@@(@http_context,"&session/user")
+
+    ref notes=@@(postData,"&notes")
+
+    token_cfg=trim(dbr.vars.get(db,"vendesk_notesToken"))
+    token_iae=_auth.token()
+
+    if token_iae == "" || token_cfg != token_iae{do rise_error(500,"No autorizado")}
+
+    field_key_cfg=trim(dbr.vars.get(db,"vendesk_leadKey"))
+    // if field_key_cfg==""{do rise_error(500,"No hay un identificador de campos")}
+
+    chat_id = @@(postData,"$chat_id")
+    lead_id=""
+    switch field_key_cfg
+    {
+        case "uf_email"
+        {
+            lead_id=@@(postData,"$useremail")
+            break
+        }
+        case "uf_telefono"
+        {
+            lead_id=@@(postData,"$userphone")
+            break
+        }
+    }
+    
+    lead_id=_clean_value(field_key_cfg,lead_id)
+    lead_condition = ""
+    if lead_id != "" {
+        lead_condition = "OR "+field_key_cfg+"=@lead_id"
+    }
+
+    chat_id, lead_id >> p
+
+    lead_sys_pk = dbr.num(db,ftext("
+        SELECT ifnull(sys_pk,0)
+        FROM ut_icontact
+        WHERE
+            chat_id_iae = @chat_id 
+            #<lead_condition>
+        ORDER BY sys_pk DESC
+    "),p)
+
+    m= _add_notes_iae(db,notes,lead_sys_pk,@@(postData,"$chat_id"))
+
+    response<"data*">:@null
+    response<"message">:m
+
+    exception
+    {
+        using response
+        {
+            @"success":@false
+            @"message":last_error()
+            @"code":last_error_code()
+        }
+    }
+
+    do SetHTTPResponse(response)
+}
