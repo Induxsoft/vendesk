@@ -1652,6 +1652,7 @@ var model =
     var txtImporteTrato = document.querySelector("#txtImporteTrato");
     var cbColor = document.querySelector("#cbColors");
     var notif_automatica_activa = document.querySelector("#notif_automatica_activa");
+    var chat_id_iae = document.querySelector('input[name="chat_id_iae"]');
 
     if (name.value.trim().length < 5) {
       model.alert("El nombre del prospecto debe ser mayor a 5 caracteres.");
@@ -1681,6 +1682,7 @@ var model =
           if (itm.leadstatus != cbStatus.value) data["leadstatus"] = cbStatus.value;
           if (itm.color != cbColor.value) data["color"] = cbColor.value;
           data["notif_automatica_activa"] = notif_automatica_activa.checked;
+          data["chat_id_iae"] = chat_id_iae.value;
         }
       }
     }
@@ -1697,7 +1699,8 @@ var model =
         color: cbColor.value,
         leadstatus: cbStatus.value,
         agent_id: cbPropietario.value,
-        notif_automatica_activa: notif_automatica_activa.checked
+        notif_automatica_activa: notif_automatica_activa.checked,
+        chat_id_iae: chat_id_iae.value
       }
     }
     data["sys_pk"] = Number(model.sys_pk);

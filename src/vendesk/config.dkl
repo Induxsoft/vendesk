@@ -77,7 +77,7 @@ module "config.dkl"
 	@path_root="vendesk/" //"web/"+@name_root
 	@path_web=""
 	@endpoint_induxsoft_auth_fromv12 = "https://api.induxsoft.net/auth/from-v12/"
-	@hosting_service_id="5CC98F650EB041928F6C4394E5D51BA6"
+	@hosting_service_id=""
 	@url_root="https://"+@name_root
 
 	@dir_catalogs=@path_root+"/_modules/"

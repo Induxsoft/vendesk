@@ -66,6 +66,8 @@ module "condif lead"
 		url_ilink=url_ilink + "&"+k+"="+@("$parameters/"+k)
 	}
 
+	view_mode = @("$parameters/mode")
+
 	new nav_config
     {
         @"title": text
@@ -76,11 +78,14 @@ module "condif lead"
 			@"print":@true
 			@"csv":@true
 			@"copy":@true
+			@"send": view_mode=="simple-dialog"
+			@"exit": view_mode=="simple-dialog"
 		}
     }
 	edit_proc=@("#./sys_pk")> 0
 	show_btns_recibido=(@("#./uf_status")==0 && edit_proc)
 	show_btns_oprt=@("#./uf_status")==3
+	
 	#$
 	div(class="container-fluid pt-1 ps-3 pe-3" style="background-color:#F5F5F5; min-height:94%;" id="container-clientes")
 	{
@@ -154,7 +159,7 @@ module "condif lead"
 				{
 					div(class="d-flex gap-2 div_btns_lead" )
 					{
-						div(id="div_enlances" class="#<ifstr(edit_proc!=0,'','d-none')>"){$""}
+						div(id="div_enlances" class="#<ifstr(edit_proc!=0 && view_mode!='simple-dialog','','d-none')>"){$""}
 						#!
 						if show_btns_recibido
 						{
@@ -189,25 +194,30 @@ module "condif lead"
 								}
 							}
 							#$
-
-							button(class="btn btn-sm border-secondary induxsoft-corners btn-disabled" title="Próximo contacto" onclick="model.showModal('#modal_notas_recordatorio','record')")
+							#!
+							if view_mode != "simple-dialog"
 							{
-								$'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-clock" viewBox="0 0 16 16">
-									<path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71z"/>
-									<path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0"/>
+								#$
+								button(class="btn btn-sm border-secondary induxsoft-corners btn-disabled" title="Próximo contacto" onclick="model.showModal('#modal_notas_recordatorio','record')")
+								{
+									$'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-clock" viewBox="0 0 16 16">
+										<path d="M8 3.5a.5.5 0 0 0-1 0V9a.5.5 0 0 0 .252.434l3.5 2a.5.5 0 0 0 .496-.868L8 8.71z"/>
+										<path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16m7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0"/>
+										</svg>'
+								}
+								button(class="btn btn-sm border-secondary induxsoft-corners btn-disabled" title="Agendar evento" onclick="prospecto.showCalendarsDialog();")
+								{
+									$'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-calendar3-event" viewBox="0 0 16 16">
+									<path d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2M1 3.857C1 3.384 1.448 3 2 3h12c.552 0 1 .384 1 .857v10.286c0 .473-.448.857-1 .857H2c-.552 0-1-.384-1-.857z"/>
+									<path d="M12 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/>
 									</svg>'
+								}
+								button(class="btn btn-sm border-secondary induxsoft-corners btn-disabled" title="Congelar" onclick="model.Freezer(#<@('#./sys_pk')>,event)")
+								{
+									$'<img src="/$/vendesk/img/icons/freezer.png" style="width: 25px;height: 25px;" /> '
+								}
 							}
-							button(class="btn btn-sm border-secondary induxsoft-corners btn-disabled" title="Agendar evento" onclick="prospecto.showCalendarsDialog();")
-							{
-								$'<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-calendar3-event" viewBox="0 0 16 16">
-								<path d="M14 0H2a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2M1 3.857C1 3.384 1.448 3 2 3h12c.552 0 1 .384 1 .857v10.286c0 .473-.448.857-1 .857H2c-.552 0-1-.384-1-.857z"/>
-								<path d="M12 7a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/>
-								</svg>'
-							}
-							button(class="btn btn-sm border-secondary induxsoft-corners btn-disabled" title="Congelar" onclick="model.Freezer(#<@('#./sys_pk')>,event)")
-							{
-								$'<img src="/$/vendesk/img/icons/freezer.png" style="width: 25px;height: 25px;" /> '
-							}
+							#$
 						}
 
 						span(class="flex-grow-1"){""}
@@ -250,6 +260,8 @@ module "condif lead"
 
 				form(onsubmit="return false" id="form_prospecto")
 				{
+					input(type="hidden" name="chat_id_iae" value="#<@('$./chat_id_iae')>")
+
 					div(class="card")
 					{
 						div(class="card-body")

@@ -1,0 +1,192 @@
+#include "dkli.dkh"
+#!
+program ""
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "webcl.dkh"
+    #include "dbr.dkh"
+    #include "dbr.vars.dkl"
+    #include "vendesk/config.dkl"
+
+    if @@(@http_context,"request/headers/REQUEST_METHOD") != "GET" { return }
+
+    function solveServiceId(&db)
+    {
+        id = dbr.vars.get(db,"induxsoft_cloud_id")
+        if id != "" { return id }
+
+        qname = dbr.relative_qname(db)
+        cnn = list.str(split(qname,"@"),0)
+        id = replace(cnn,"vxii","")
+        if id != "" { return id }
+
+        if isset("@hosting_service_id") {
+            if @hosting_service_id != "" { return @hosting_service_id }
+        }
+        
+        do rise_error(404,"No se pudo resolver el 'id' del servicio alojado")
+    }
+
+    function solveV12Session(v12,ids)
+    {
+        endpoint = "https://portal.induxsoft.net/v12/login/#<v12>/#<ids>/"
+        new headers
+        {
+            @"Content-Type": "application/json"
+        }
+
+        response = http.request(endpoint,"POST",headers,@null)
+        ref resp = from.json(response)
+
+        if not(@@(resp,"#success"))
+        {
+            if field.exist(resp,"message") { do rise_error(500,@@(resp,"$message")) }
+            if field.exist(resp,"error") { do rise_error(@@(resp,"#error_code"),@@(resp,"$error")) }
+        }
+        return @@(resp,"$v12_sid")
+    }
+
+    function get_db()
+    {
+        @_open_db = @false
+
+        qname = trim(@@(@http_context,"$session/idp/qname"))
+        ref db = @@(@http_context,"&session/idp/database")
+        
+        if isnull(db) {
+            ref db:dbr.open(qname)
+            @_open_db = @true
+        }
+        if not(dbr.is_open(db)) {
+            ref db:dbr.open(qname)
+            @_open_db = @true
+        }
+        
+        do dbr.rec(db,"select 1 as success;",@null)
+        
+        exception
+        {
+            do pop_exception()
+            ref db:dbr.open(qname)
+            @_open_db = @true
+        }
+
+        // if @_open_db { @http_context<"session/idp/database*"> : db }
+        return db
+    }
+
+    function v12Session(&db, induxsoft_sid)
+    {
+        // Validar sesión de induxsaoft
+        endpoint = "https://api.induxsoft.net/auth/login/"
+        new headers
+        {
+            @"Content-Type": "application/json;charset=utf-8"
+        }
+        new payload
+        {
+            @"ids": induxsoft_sid
+        }
+
+        response = http.request(endpoint,"POST",headers,to.json(payload))
+        ref resp = from.json(response)
+
+        if not(@@(resp,"#success"))
+        {
+            if field.exist(resp,"message") { do rise_error(401,@@(resp,"$message")) }
+            do rise_error(401,"No autorizado")
+        }
+
+        // Recuperar sesión de v12
+        ref data = @@(resp,"&data")
+        ref user = dbr.rec(db,"
+        SELECT sys_pk
+        FROM tuser
+        WHERE
+            NOT ifnull(sys_deleted,0)
+            AND NOT ifnull(locked,0)
+            AND (
+                induxsoft_identifier = @uid OR
+                sys_guid = @uid
+            )
+        ",data)
+
+        if isnull(user) { do rise_error(404,"No se encontro un usuario relacionado al perfil induxsoft indicado") }
+
+        v12_sid = dbr.str(db,"SELECT IFNULL((
+        SELECT sys_guid
+        FROM sys_session
+        WHERE
+            NOT ifnull(sys_deleted,0)
+            AND iuser = @sys_pk
+        ),'')",user)
+
+        if v12_sid == ""
+        {
+            new session
+            {
+                @"sys_guid": uuid()
+                @"sys_dtcreated*": dbr.sql("now()")
+                @"sys_timestamp*": dbr.sql("now()")
+                @"sys_deleted": @false
+                @"iuser": user.sys_pk
+                @"clientinfo": "IAE"
+            }
+            do dbr.insert(db,"sys_session",session)
+            v12_sid = session.sys_guid
+        }
+
+        return v12_sid
+    }
+
+    ref parameters = ifnull(@@(@http_context,"&request/get"),record.create())
+    ref db = get_db()
+
+    email = @@(parameters,"$email")
+    phone = @@(parameters,"$phone")
+    sys_pk = @@(parameters,"#sys_pk")
+    chat_id = @@(parameters,"$chat_id")
+    view_mode = @@(parameters,"$mode")
+    induxsoft_sid = @@(parameters,"$induxsoft_sid")
+    v12_sid = v12Session(db,induxsoft_sid)
+
+    sys_pk, email, phone, chat_id >> params
+
+    sql = "SHOW COLUMNS FROM ut_icontact LIKE 'chat_id_iae'"
+    chat_condition = ""
+    // if not(isnull(dbr.rec(db,sql,@null))) { chat_condition = "chat_id_iae = @chat_id OR" }
+
+    sql = ftext("SELECT IFNULL((
+    SELECT sys_pk
+    FROM ut_icontact
+    WHERE
+        NOT ifnull(sys_deleted,0)
+        AND uf_status IN(0,3)
+        AND (
+            #<chat_condition>
+            sys_pk = @sys_pk OR
+            uf_email = @email OR
+            uf_telefono = @phone
+        )
+    ORDER BY sys_pk DESC
+    LIMIT 1),0)")
+    _entity_id = dbr.num(db,sql,params)
+
+    if _entity_id > 0 { href = ftext("/!/vendesk/prospecto/#<_entity_id>/?mode=#<view_mode>") }
+    else
+    {
+        href = ftext("/!/vendesk/prospecto/_new/?mode=#<view_mode>")
+        new ctx
+        {
+            @"nombre": url_dcode(@@(parameters,"$name"))
+            @"telefonos": phone
+            @"email": email
+            @"chat_id_iae": chat_id
+        }
+        href = href + "&_context="+url_encode(to.json(ctx))
+    }
+    if v12_sid != "" { href = href + "&ids="+v12_sid }
+    
+    @http_context<"response/headers/location"> : href
+}
