@@ -1,0 +1,187 @@
+#include "dkli.dkh"
+#!
+module "sync-leads-iae"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "uielements.v12.dkl"
+
+    do @context.begin(@crud_context)
+    ref @http_context = @("&http")
+
+    ref params = ifnull(@("&parameters"), record.create())
+    ref resumen = ifnull(@("&./resumen"), record.create())
+    ref resultados = ifnull(@("&./resultados"), list.create())
+    
+    @hoy = date_str(now(),"yyyy-MM-dd")
+    error_msg = @("$./error/message")
+
+    function printNavButtons()
+    {
+        cls = "btn btn-main-action btn-sm border-secondary induxsoft-corners"
+        
+        if @("#./resumen/chats_a_modificar") > 0 {
+            #$ button(class="#<cls>" type="button" onclick="Sincronizar()"){"Sincronizar"}
+        }
+        #!
+        else {
+            #$ button(class="#<cls>" type="submit" form="frm_sync"){"Consultar"}
+        }
+        
+        #!
+    }
+    point buttons to printNavButtons
+    new nav_config
+    {
+        @"title": "Sincronizar humano IAE"
+        @"buttons*": buttons
+
+        member @"hidden"
+        {
+            @"copy": @true
+            @"csv": @true
+            @"print": @true
+            @"send": @true
+        }
+    }
+
+    if not(field.exist(params,"fi")) { params<"fi"> : @hoy }
+    if not(field.exist(params,"ff")) { params<"ff"> : @hoy }
+    new dr_init
+    {
+        @"start": @@(params,"$fi")
+        @"end": @@(params,"$ff")
+    }
+
+    #$
+    div(class="container-lg" id="view")
+    {
+        section(id="top_area")
+        {
+            #!
+            do uie.printV12FormBar(nav_config)
+            #$
+        }
+
+        section(id="work_area" style="overflow-y:auto; overflow-x:hidden;")
+        {
+            form(class="px-1" action="./" method="GET" id="frm_sync")
+            {
+                div(class="row")
+                {
+                    div(class="col-auto")
+                    {
+                        label(class="form-label" "for"="agent_id"){"Id de Agente IAE"}
+                        input(class="form-control rounded-0" type="text" name="agent_id" value="#<@('$./agent_id')>" id="agent_id" required="" autocomplete="off")
+                    }
+                    div(class="col-auto")
+                    {
+                        label(class="form-label" "for"="agent_token"){"Token de autorización"}
+                        input(class="form-control rounded-0" type="password" name="agent_token" value="#<@('$./agent_token')>" id="agent_token" required="" autocomplete="off")
+                    }
+                    div(class="col-auto")
+                    {
+                        label(class="form-label"){"Filtrar"}
+                        "date-range"(class="w-100" "hide-labels"="true" "hidden-input-name-start"="fi" "hidden-input-name-end"="ff" data='#<to.json(dr_init)>'){""}
+                    }
+                }
+            }
+
+            #!
+            if error_msg != ""
+            {
+                #$
+                div(class="alert alert-danger alert-dismissible fade show my-2 pb-1" role="alert")
+                {
+                    div(class="w-100 overflow-auto pb-2"){$"#<error_msg>"}
+                    button(type="button" class="btn-close" "data-bs-dismiss"="alert" "aria-label"="Close"){""}
+                }
+            }
+            #!
+            if @("$./agent_id")!="" && @("$./agent_token")!=""
+            {
+                #$
+                div(class="mt-3")
+                {
+                    h5{$"Resumen de sincronización"}
+                    table(class="table table-sm table-bordered w-auto")
+                    {
+                        tbody
+                        {
+                            tr { td{$"Conversaciones consultadas"} td{"#<@@(resumen,'#conversaciones_consultadas')>"} }
+                            tr { td{$"Prospectos encontrados"} td{"#<@@(resumen,'#prospectos_encontrados')>"} }
+                            tr { td{$"Chats a modificar"} td{"#<@@(resumen,'#chats_a_modificar')>"} }
+                            tr { td{$"Sin prospecto V12"} td{"#<@@(resumen,'#sin_prospecto')>"} }
+                            tr { td{$"Asignados"} td{"#<@@(resumen,'#asignados')>"} }
+                            tr { td{$"Errores"} td{"#<@@(resumen,'#errores')>"} }
+                        }
+                    }
+                }
+
+                div(class="mt-3")
+                {
+                    h5{$"Detalle de asignaciones enviadas"}
+                    table(class="table table-sm table-striped w-100")
+                    {
+                        thead
+                        {
+                            tr
+                            {
+                                th{$"Estado"}
+                                th{$"Chat"}
+                                th{$"Humano"}
+                                th{$"Mensaje"}
+                            }
+                        }
+                        tbody
+                        {
+                            #!
+                            go foreach.lobj(index:i, value:row) with(resultados)
+                            {
+                                ok = @@(row,"#success")
+                                icon = ifstr(ok,"✓","✗")
+                                row_cls = ifstr(ok,"table-success","table-danger")
+                                #$
+                                tr(class="#<row_cls>")
+                                {
+                                    td{"#<icon>"}
+                                    td{"#<@@(row,'$chat_id')>"}
+                                    td{"#<@@(row,'$human')>"}
+                                    td{"#<@@(row,'$message')>"}
+                                }
+                            }
+                            #!
+                        }
+                    }
+                }
+                #$
+            }
+            #$
+        }
+
+        section(id="bottom_area")
+        {
+            div(id="_custom_area")
+            {
+                script(src="/$/vendesk/js/sync_leads_iae.js"){""}
+                script(type="text/javascript")
+                {$'
+                    document.addEventListener("DOMContentLoaded", (e) => {
+                        const form = document.getElementById("frm_sync");
+                        const date_range = document.querySelector("date-range");
+                        if (date_range)
+                        {
+                            date_range.onChanging = (oldData,newData) => { date_range.setData(newData) }
+                            date_range.onChange = (data) => { form.submit() }
+                        }
+                    });
+
+                    const lote = #<to.json(@("&./lote"))>;
+                '}
+            }
+        }
+    }
+    #!
+
+    do @context.end()
+}

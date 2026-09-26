@@ -155,7 +155,7 @@ program ""
 
     sql = "SHOW COLUMNS FROM ut_icontact LIKE 'chat_id_iae'"
     chat_condition = ""
-    // if not(isnull(dbr.rec(db,sql,@null))) { chat_condition = "chat_id_iae = @chat_id OR" }
+    if not(isnull(dbr.rec(db,sql,@null))) { chat_condition = "(@chat_id <> '' AND ifnull(chat_id_iae,'') = @chat_id) OR" }
 
     sql = ftext("SELECT IFNULL((
     SELECT sys_pk
@@ -166,8 +166,8 @@ program ""
         AND (
             #<chat_condition>
             sys_pk = @sys_pk OR
-            uf_email = @email OR
-            uf_telefono = @phone
+            (@email <> '' AND trim(ifnull(uf_email,'')) = @email) OR
+            (@phone <> '' AND REGEXP_REPLACE(trim(ifnull(uf_telefono,'')), '[^0-9]', '') = @phone)
         )
     ORDER BY sys_pk DESC
     LIMIT 1),0)")

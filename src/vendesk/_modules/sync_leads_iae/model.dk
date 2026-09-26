@@ -1,0 +1,279 @@
+#include "dkli.dkh"
+#!
+program ""
+{
+    do errordet(@true)
+
+    @list_view = "sync_leads.dk"
+    @form_view = "sync_leads.dk"
+
+    @iae_base_url = "https://agent.induxsoft.net/svc_process"
+
+
+    // ------------------------------------------------------------
+    // GET conversaciones activas
+    // ------------------------------------------------------------
+    function iae_get_conversations(&params)
+    {
+        url = @iae_base_url + "/" + @@(params,"$agent_id") + "/conversations/?state=open&revision=-1&human=-1"
+
+        if @@(params,"$fi")!="" { url = url + "&fi="+@@(params,"$fi") }
+        if @@(params,"$ff")!="" { url = url + "&ff="+@@(params,"$ff") }
+
+        new headers
+        {
+            @"Authorization": @@(params,"$agent_token")
+        }
+
+        respuesta_str = http.request(url,"GET",headers,"")
+        ref respuesta = from.json(respuesta_str)
+
+        if not(field.parse.dbool(respuesta,"success",@false))
+        {
+            msg = field.dstr(respuesta,"message","Error desconocido al consultar conversaciones de IAE.")
+            do rise_error(500,msg)
+        }
+
+        ref data_in = field.dobj(respuesta,"data",list.create())
+        ref out = list.create()
+
+        go foreach.lobj(index:i, value:item) with(data_in)
+        {
+            new conv
+            {
+                @"chat_id": field.dstr(item,"chat_id","")
+                @"human_id": field.dstr(item,"human_id","")
+                @"phone": field.dstr(item,"userphone","")
+                @"email": field.dstr(item,"usermail","")
+            }
+            do list.add(out,conv)
+        }
+
+        return out
+    }
+
+    // ------------------------------------------------------------
+    // Normaliza teléfono a solo dígitos
+    // ------------------------------------------------------------
+    function normalize_phone(s)
+    {
+        return replace(ranydiffchars(s,"1234567890","$"),"$","")
+    }
+
+    // ------------------------------------------------------------
+    // Busca el prospecto activo por OR (chat_id, email, phone)
+    // y selecciona el más reciente (mayor sys_pk).
+    // ------------------------------------------------------------
+    function find_active_prospect(&db,chat_id,email,phone)
+    {
+        new p
+        {
+            @"chat_id": chat_id
+            @"email": email
+            @"phone": phone
+        }
+
+        sql = "
+        SELECT *
+        FROM ut_icontact
+        WHERE
+            NOT IFNULL(sys_deleted,0)
+            AND uf_status IN (0,3)
+            AND (
+                (@chat_id <> '' AND IFNULL(chat_id_iae,'') = @chat_id) OR
+                (@email <> '' AND TRIM(IFNULL(uf_email,'')) = @email) OR
+                (@phone <> '' AND REGEXP_REPLACE(TRIM(IFNULL(uf_telefono,'')),'[^0-9]','') = @phone)
+          )
+        ORDER BY sys_pk DESC
+        LIMIT 1
+        "
+
+        ref r = dbr.rec(db,sql,p)
+        return r
+    }
+
+    // ------------------------------------------------------------
+    // agent.sys_pk -> agent.uf_iuser -> tuser.sys_pk -> ws_perfil.sys_guid
+    // ------------------------------------------------------------
+    function resolve_human_from_agent_pk(&db,agent_pk)
+    {
+        new p1 { @"agent_pk": agent_pk }
+        ref u = dbr.rec(db,"
+            SELECT t.induxsoft_identifier, t.sys_guid
+            FROM agente a
+            INNER JOIN tuser t ON t.sys_pk = a.uf_iuser
+            WHERE a.sys_pk = @agent_pk
+            LIMIT 1
+        ",p1)
+
+        if @@(u,"$induxsoft_identifier") != "" { return @@(u,"$induxsoft_identifier") }
+        else { return @@(u,"$sys_guid") }
+    }
+
+    // ------------------------------------------------------------
+    // Asignar vendedor del human_id recibido de IAE -> ws_perfil = tuser.induxsoft_identifier || tuser.sys_guid
+    // ------------------------------------------------------------
+    function assign_seller_from_received_human_id(&db,lead_pk,human_id_recibido)
+    {
+        return human_id_recibido
+
+        new p
+        {
+            @"lead_pk": lead_pk
+            @"identificador": human_id_recibido
+        }
+
+        ref seller = dbr.rec(db,"
+            SELECT a.sys_pk AS uf_iejecutivo, t.sys_guid AS uf_perfil
+            FROM tuser t
+                INNER JOIN agente a ON t.sys_pk = a.uf_iuser
+            WHERE t.induxsoft_identifier = @identificador
+               OR t.sys_guid = @identificador
+            LIMIT 1
+        ",p)
+
+        if isnull(seller) { return "" }
+        do dbr.update(db,"ut_icontact",seller,"sys_pk=@lead_pk",p)
+        
+        return human_id_recibido
+    }
+
+    // ------------------------------------------------------------
+    // Resuelve el humano IAE esperado para un prospecto.
+    //
+    // Camino principal: uf_iejecutivo -> agent -> tuser -> ws_perfil
+    // Fallback (si no hay vendedor válido): human_id recibido de IAE
+    //          -> ws_perfil -> tuser -> agent
+    //          (se usa únicamente como intento de resolución, no se
+    //          inventa un vendedor distinto)
+    //
+    // Devuelve el sys_guid de ws_perfil (humano esperado) o "" si no
+    // pudo resolverse.
+    // ------------------------------------------------------------
+    function resolve_expected_human(&db,&prospecto,human_id_recibido,&cache_agent,&cache_human)
+    {
+        agent_pk = @@(prospecto,"#uf_iejecutivo")
+
+        if agent_pk > 0
+        {
+            // Camino principal: vendedor conocido
+            cache_key = "a:" + str(agent_pk)
+            if field.exist(cache_agent,cache_key)
+            {
+                return field.dstr(cache_agent,cache_key,"")
+            }
+
+            human_guid = resolve_human_from_agent_pk(db,agent_pk)
+            cache_agent<cache_key> : human_guid
+            return human_guid
+        }
+
+        // Prospecto sin vendedor asignado: usar human_id recibido como
+        // punto de partida para intentar resolver la cadena inversa.
+        if human_id_recibido=="" { return "" }
+
+        do assign_seller_from_received_human_id(db,@@(prospecto,"#sys_pk"),human_id_recibido)        
+        return human_id_recibido
+    }
+
+    entity.list :: &db, &params
+    {
+        ref resultados = list.create()
+        new resumen
+        {
+            @"conversaciones_consultadas": 0
+            @"prospectos_encontrados": 0
+            @"chats_a_modificar": 0
+            @"sin_prospecto": 0
+            @"asignados": 0
+            @"errores": 0
+        }
+
+        agent_id = @@(params,"$agent_id")
+        agent_token = @@(params,"$agent_token")
+        agent_id, agent_token, resumen, resultados >> response
+
+        if agent_id=="" || agent_token=="" { return response }
+        
+        // Caché de resoluciones repetidas dentro de la misma corrida
+        // (no se persiste entre ejecuciones)
+        ref cache_agent = record.create()     // sys_pk(agent) -> human sys_guid (ws_perfil) o ""
+        ref cache_human = record.create()     // identificador humano -> human sys_guid resuelto (idéntico, solo evita relecturas)
+
+        ref lote = list.create()          // Array a enviar a /assign/
+        ref detalle_prep = list.create()  // Para trazabilidad interna (no persistente), opcional para la vista
+
+        // 1) Obtener conversaciones activas desde IAE
+        ref conversaciones = iae_get_conversations(params)
+
+        resumen<"conversaciones_consultadas"> : list.count(conversaciones)
+
+        // 2) Recorrer conversaciones
+        go foreach.lobj(index:i, value:conv) with(conversaciones)
+        {
+            chat_id = @@(conv,"$chat_id")
+            human_id_actual = @@(conv,"$human_id")
+            phone = normalize_phone(@@(conv,"$phone"))
+            email = trim(@@(conv,"$email"))
+
+            ref prospecto = find_active_prospect(db,chat_id,email,phone)
+
+            if isnull(prospecto)
+            {
+                // No modificar, no agregar al lote; simplemente no se procesa más esta conversación
+                resumen<"sin_prospecto"> : resumen.sin_prospecto + 1
+            }
+            else
+            {
+                resumen<"prospectos_encontrados"> : resumen.prospectos_encontrados + 1
+
+                human_esperado = resolve_expected_human(db,prospecto,human_id_actual,cache_agent,cache_human)
+
+                if human_esperado != "" && human_esperado != human_id_actual
+                {
+                    resumen<"chats_a_modificar"> : resumen.chats_a_modificar + 1
+
+                    chat_id_out = @@(prospecto,"$chat_id_iae")
+                    if chat_id_out == ""
+                    {
+                        chat_id_out = trim(@@(prospecto,"$uf_email")) + "|" + trim(@@(prospecto,"$uf_telefono"))
+                    }
+
+                    new item_lote
+                    {
+                        @"chat_id": chat_id_out
+                        @"human": human_esperado
+                    }
+                    do list.add(lote,item_lote)
+                }
+                // si human_esperado == "" (no se pudo resolver) o ya coincide, no se envía
+            }
+        }
+
+        lote >> response
+        return response
+
+        exception
+        {
+            new error
+            {
+                @"message": last_error()
+            }
+            
+            do clear_exceptions()
+
+            response<"error*"> : error
+            return response
+        }
+    }
+
+    entity.read :: &db, &params
+    {
+        return record.create()
+    }
+
+    entity.blank :: &db, &params
+    {
+        return record.create()
+    }
+}

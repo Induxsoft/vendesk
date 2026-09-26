@@ -28,43 +28,33 @@ module "listar-prospectos"
 
     if token_iae == "" || token_cfg != token_iae{do rise_error(500,"No autorizado")}
 
-    field_key_cfg=trim(dbr.vars.get(db,"vendesk_leadKey"))
-    // if field_key_cfg==""{do rise_error(500,"No hay un identificador de campos")}
-
     chat_id = @@(postData,"$chat_id")
-    lead_id=""
-    switch field_key_cfg
-    {
-        case "uf_email"
-        {
-            lead_id=@@(postData,"$useremail")
-            break
-        }
-        case "uf_telefono"
-        {
-            lead_id=@@(postData,"$userphone")
-            break
-        }
-    }
+    email = @@(postData,"$useremail")
+    phone = @@(postData,"$userphone")
+
+    email, phone, chat_id >> params
+
+    chat_condition = ""
+    has_chat_id = not(isnull(dbr.rec(db,"SHOW COLUMNS FROM ut_icontact LIKE 'chat_id_iae'",@null)))
     
-    lead_id=_clean_value(field_key_cfg,lead_id)
-    lead_condition = ""
-    if lead_id != "" {
-        lead_condition = "OR "+field_key_cfg+"=@lead_id"
+    if has_chat_id { chat_condition = "(@chat_id <> '' AND ifnull(chat_id_iae,'') = @chat_id) OR" }
+
+    sql = ftext("SELECT IFNULL((
+    SELECT sys_pk
+    FROM ut_icontact
+    WHERE
+        #<chat_condition>
+        (@email <> '' AND trim(ifnull(uf_email,'')) = @email) OR
+        (@phone <> '' AND REGEXP_REPLACE(trim(ifnull(uf_telefono,'')), '[^0-9]', '') = @phone)
+    ORDER BY sys_pk DESC
+    LIMIT 1),0)")
+    lead_pk = dbr.num(db,sql,params)
+
+    if lead_pk > 0 && has_chat_id {
+        lead_pk >> params
+        do dbr.execute(db,"UPDATE ut_icontact SET chat_id_iae = if(ifnull(chat_id_iae,'')='', @chat_id, chat_id_iae) WHERE sys_pk = @lead_pk",params)
     }
-
-    chat_id, lead_id >> p
-
-    lead_sys_pk = dbr.num(db,ftext("
-        SELECT ifnull(sys_pk,0)
-        FROM ut_icontact
-        WHERE
-            chat_id_iae = @chat_id 
-            #<lead_condition>
-        ORDER BY sys_pk DESC
-    "),p)
-
-    m= _add_notes_iae(db,notes,lead_sys_pk,@@(postData,"$chat_id"))
+    m= _add_notes_iae(db,notes,lead_pk,chat_id)
 
     response<"data*">:@null
     response<"message">:m

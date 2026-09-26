@@ -594,7 +594,7 @@ module ""
     }
 
     _add_notes_iae::&db,&notes,lead,chat_id
-    {   
+    {
         if not(dbfield_exist(db,"ut_icontact","chat_id_iae")) || not(dbfield_exist(db,"xt_biticontact","note_id")) || not(dbfield_exist(db,"xt_biticontact","note_id")) || parse.num(lead) < 1
         {
             return "Sin prospecto asociado"
@@ -681,8 +681,21 @@ module ""
         
         lead_id >> p
 
-        chat_id=trim(dbr.str(db,"SELECT IFNULL(chat_id_iae,'') FROM ut_icontact WHERE sys_pk=@lead_id OR sys_guid=@lead_id",p))
-        if chat_id == ""{return}
+        ref lead = dbr.rec(db,"
+        SELECT
+            ifnull(chat_id_iae,'') chat_id,
+            trim(ifnull(uf_email,'')) email,
+            REGEXP_REPLACE(trim(ifnull(uf_telefono,'')), '[^0-9]', '') phone
+        FROM ut_icontact
+        WHERE sys_pk = @lead_id OR sys_guid = @lead_id
+        ",p)
+        
+        chat_id = @@(lead,"$chat_id")
+        if chat_id == ""
+        {
+            chat_id = @@(lead,"$email") +"|"+ @@(lead,"$phone")
+            if chat_id == "|" { return }
+        }
         
         field_key_cfg=trim(dbr.vars.get(db,"vendesk_leadKey"))
         dt_str=to.json(list.create_from_fields(data))
