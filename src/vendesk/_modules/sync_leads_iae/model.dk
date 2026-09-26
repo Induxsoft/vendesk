@@ -115,8 +115,6 @@ program ""
     // ------------------------------------------------------------
     function assign_seller_from_received_human_id(&db,lead_pk,human_id_recibido)
     {
-        return human_id_recibido
-
         new p
         {
             @"lead_pk": lead_pk

@@ -1,0 +1,94 @@
+#include "dkli.dkh"
+#!
+program "Asignar vendedor a cliente potencial"
+{
+    #include "functions.dkh"
+    #include "serialize.dkh"
+    #include "dbr.dkh"
+    #include "lib.sise.dk"
+    #include "vendesk/_services/lib.dk"
+
+    function find_lead_pk(&db,&data)
+    {
+        chat_condition = ""
+        if @has_chat_id { chat_condition = "(@chat_id <> '' AND ifnull(chat_id_iae,'') = @chat_id) OR" }
+
+        sql = ftext("SELECT IFNULL((
+        SELECT sys_pk
+        FROM ut_icontact
+        WHERE
+            #<chat_condition>
+            (@email <> '' AND trim(ifnull(uf_email,'')) = @email) OR
+            (@phone <> '' AND REGEXP_REPLACE(trim(ifnull(uf_telefono,'')), '[^0-9]', '') = @phone)
+        ORDER BY sys_pk DESC
+        LIMIT 1),0)")
+
+        return dbr.num(db,sql,data)
+    }
+
+    function find_seller(&db,&data)
+    {
+        ref seller = dbr.rec(db,"
+        SELECT u.sys_guid AS uf_perfil, a.sys_pk AS uf_iejecutivo, a.codigo
+        FROM tuser u
+            INNER JOIN agente a ON a.uf_iuser = u.sys_pk
+        WHERE u.induxsoft_identifier = @human_id
+            OR u.sys_guid = @human_id
+        LIMIT 1
+        ",data)
+
+        return seller
+    }
+
+    function save_lead(&db,lead_pk,&data)
+    {
+        ref seller = find_seller(db,data)
+        lead_pk >> data
+        
+        if lead_pk > 0
+        {
+            if not(isnull(seller))
+            {
+                do field.remove(seller,"codigo")
+                do dbr.update(db,"ut_icontact",seller,"sys_pk=@lead_pk",data)
+            }
+
+            if @has_chat_id
+            {
+                do dbr.execute(db,"UPDATE ut_icontact SET chat_id_iae = if(ifnull(chat_id_iae,'')='', @chat_id, chat_id_iae) WHERE sys_pk = @lead_pk",data)
+            }
+        }
+        else
+        {
+            ref out = record.create()
+            ref lead = record.copy(data,"name,email,phone,remarks")
+            using lead
+            {
+                @"agent_id": @@(seller,"$codigo")
+                @"chat_id_iae": @@(data,"$chat_id")
+            }
+            do _AddLead(db,lead,out)
+        }
+    }
+
+    do errordet(@true)
+    // -- Procesar solicitud HTTP -------------------------
+    go sise_base_service(params:params, payload:payload, response:response)
+    {
+        ref db = _db()
+
+        @has_chat_id = not(isnull(dbr.rec(db,"SHOW COLUMNS FROM ut_icontact LIKE 'chat_id_iae'",@null)))
+
+        lead_pk = find_lead_pk(db,payload)
+        do save_lead(db,lead_pk,payload)
+
+        exception
+        {
+            using response
+            {
+                @"success": @false
+                @"message": "No fue posible obtener los espacios: "+last_error()
+            }
+        }
+    }
+}
