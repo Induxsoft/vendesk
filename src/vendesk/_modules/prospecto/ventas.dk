@@ -113,7 +113,7 @@ module "ventas"
         }
         @"value_field": "id"
         @"text_field": "const"
-        @"selected": @("#parameters/fdr_field")
+        @"selected": @@(filter,"#fdr_field")
     }
 	
 	#$
@@ -215,7 +215,7 @@ module "ventas"
 						}
 						div(class="flex-grow-1")
 						{
-							"filter-text"("text-field"="search" id="txtFilter" value="#<@('$parameters/search')>" placeholder="Buscar ..." form="#form-leads-filter" "auto-submit"="true"){""}
+							"filter-text"("text-field"="search" id="txtFilter" value="#<@@(filter,'$search')>" placeholder="Buscar ..." form="#form-leads-filter" "auto-submit"="true"){""}
 						}
 					}
 					div(class="d-flex align-items-end gap-1 flex-wrap w-100 py-1")
