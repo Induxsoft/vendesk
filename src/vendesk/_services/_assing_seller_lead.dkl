@@ -75,6 +75,15 @@ module ""
         }
 
         do dbr.update(db,"ut_icontact",datos,"sys_pk=@lead_sys_pk",p)
+
+        codeblock "disparar a IAE"
+        {
+            if trim(@@(datos,"$uf_perfil")) !=""
+            {
+                do _send_data_to_iae(db,datos,lead_sys_pk)
+                exception{do pop_exception()}
+            }
+        }
         return @true
     }
 
