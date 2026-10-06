@@ -110,7 +110,9 @@ program "stage-stuck-task"
                 IFNULL(
                     (SELECT MAX(lsl.transition_date)
                      FROM lead_stage_log lsl
-                     WHERE lsl.lead_id = c.sys_guid AND lsl.stage_id = s.sys_guid),
+                     WHERE
+                        lsl.lead_id COLLATE utf8mb4_0900_ai_ci = c.sys_guid COLLATE utf8mb4_0900_ai_ci
+                        AND lsl.stage_id = s.sys_guid),
                     c.sys_timestamp
                 ) + INTERVAL s.stage_stuck_days DAY
             ) <= NOW()

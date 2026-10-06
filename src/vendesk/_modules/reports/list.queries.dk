@@ -41,7 +41,11 @@ module ""
             ch.name AS channel_name,
 
             COALESCE(
-                (SELECT MAX(lsl.transition_date) FROM lead_stage_log lsl WHERE lsl.lead_id = c.sys_guid AND lsl.stage_id = s.sys_guid),
+                (SELECT MAX(lsl.transition_date)
+                 FROM lead_stage_log lsl
+                 WHERE
+                    lsl.lead_id COLLATE utf8mb4_0900_ai_ci = c.sys_guid COLLATE utf8mb4_0900_ai_ci
+                    AND lsl.stage_id = s.sys_guid),
                 c.sys_timestamp
             ) AS entered_stage_at,
 
@@ -56,7 +60,7 @@ module ""
             JOIN snd_channel ch ON n.template = ch.sys_pk
             LEFT JOIN agente a ON c.uf_iejecutivo = a.sys_pk
             LEFT JOIN stage_notif_log l 
-                ON l.lead_id = c.sys_guid 
+                ON l.lead_id COLLATE utf8mb4_0900_ai_ci = c.sys_guid COLLATE utf8mb4_0900_ai_ci
                 AND l.stage_id = s.sys_guid 
                 AND l.notif_id = n.sys_guid
 
@@ -75,9 +79,9 @@ module ""
             )
             AND (
                 IFNULL(@search,'') = ''
-                OR c.uf_nombre LIKE CONCAT('%', @search, '%')
-                OR c.uf_email LIKE CONCAT('%', @search, '%')
-                OR c.uf_telefono LIKE CONCAT('%', @search, '%')
+                OR c.uf_nombre LIKE CONCAT('%', @search, '%') COLLATE utf8mb4_0900_ai_ci
+                OR c.uf_email LIKE CONCAT('%', @search, '%') COLLATE utf8mb4_0900_ai_ci
+                OR c.uf_telefono LIKE CONCAT('%', @search, '%') COLLATE utf8mb4_0900_ai_ci
             )
             AND n.enabled = TRUE
     ) t
