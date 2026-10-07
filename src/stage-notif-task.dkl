@@ -209,6 +209,16 @@ program ""
                     c.sys_timestamp
                 ) + INTERVAL n.waiting_minutes MINUTE
             ) <= NOW()
+            AND DATE(
+                COALESCE(
+                    (SELECT MAX(lsl.transition_date)
+                     FROM lead_stage_log lsl
+                     WHERE
+                        lsl.lead_id COLLATE utf8mb4_0900_ai_ci = c.sys_guid COLLATE utf8mb4_0900_ai_ci
+                        AND lsl.stage_id = s.sys_guid),
+                    c.sys_timestamp
+                ) + INTERVAL n.waiting_minutes MINUTE
+            ) = CURDATE()
             AND NOT EXISTS (
                 SELECT 1 FROM stage_notif_log snl
                 WHERE snl.lead_id COLLATE utf8mb4_0900_ai_ci = c.sys_guid COLLATE utf8mb4_0900_ai_ci
